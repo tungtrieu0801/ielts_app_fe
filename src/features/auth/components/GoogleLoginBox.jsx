@@ -2,9 +2,12 @@ import {googleLogout, useGoogleLogin} from "@react-oauth/google";
 import {Box, Button, Heading, VStack, Text, Image} from "@chakra-ui/react";
 import {FcGoogle} from "react-icons/fc";
 import {useState} from "react";
+import { useNavigate } from "react-router-dom";
 import {VITE_GOOGLE_USER_DETAIL} from "../../../constants/env.js";
 
 export const GoogleLoginBox = () => {
+
+    const navigate = useNavigate();
 
     // State lưu thông tin user
     const [userProfile, setUserProfile] = useState(null);
@@ -19,6 +22,8 @@ export const GoogleLoginBox = () => {
                 const data = await res.json();
                 setUserProfile(data);
                 console.log("User data: ", data);
+                localStorage.setItem("access_token", tokenResponse.access_token);
+                navigate("/home");
             } catch (error) {
                 console.log(error);
             }

@@ -2,19 +2,21 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './app/App.jsx'
 import './index.css'
-import {ChakraProvider, defaultSystem} from '@chakra-ui/react'
+import {ChakraProvider} from '@chakra-ui/react'
 // 1. Import Provider của Google
 import { GoogleOAuthProvider } from '@react-oauth/google'
 import {VITE_GOOGLE_CLIENT_ID} from "./constants/env.js";
-
+import {system} from "./shared/utils/extendTheme.js";
+import { ColorModeScript } from '@chakra-ui/color-mode';
+import {Provider} from "./components/ui/provider.jsx";
 
 ReactDOM.createRoot(document.getElementById('root')).render(
     <React.StrictMode>
         {/* 3. Bọc GoogleOAuthProvider ngoài cùng, truyền clientId vào */}
         <GoogleOAuthProvider clientId={VITE_GOOGLE_CLIENT_ID}>
-            <ChakraProvider value={defaultSystem}>
+            <Provider >
                 <App />
-            </ChakraProvider>
+            </Provider>
         </GoogleOAuthProvider>
     </React.StrictMode>,
 )
