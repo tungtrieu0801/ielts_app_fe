@@ -1,11 +1,11 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import App from './App.jsx'
+import App from './app/App.jsx'
 import './index.css'
 import {ChakraProvider, defaultSystem} from '@chakra-ui/react'
 // 1. Import Provider của Google
 import { GoogleOAuthProvider } from '@react-oauth/google'
-import {VITE_GOOGLE_CLIENT_ID} from "./config/env.js";
+import {VITE_GOOGLE_CLIENT_ID} from "./constants/env.js";
 
 
 ReactDOM.createRoot(document.getElementById('root')).render(

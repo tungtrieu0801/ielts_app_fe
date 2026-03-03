@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, Flex } from '@chakra-ui/react';
-import Sidebar from "../components/Slidebar.jsx";
+import Sidebar from "../shared/components/Slidebar.jsx";
 
 const DashboardLayout = ({ children }) => {
     return (

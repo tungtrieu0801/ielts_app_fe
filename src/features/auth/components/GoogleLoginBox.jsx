@@ -2,7 +2,7 @@ import {googleLogout, useGoogleLogin} from "@react-oauth/google";
 import {Box, Button, Heading, VStack, Text, Image} from "@chakra-ui/react";
 import {FcGoogle} from "react-icons/fc";
 import {useState} from "react";
-import {VITE_GOOGLE_USER_DETAIL} from "../../../config/env.js";
+import {VITE_GOOGLE_USER_DETAIL} from "../../../constants/env.js";
 
 export const GoogleLoginBox = () => {
 
@@ -53,7 +53,7 @@ export const GoogleLoginBox = () => {
                         </Button>
                     </VStack>
                 ) : (
-                    // Nếu CHƯA có userProfile -> Hiện form Login
+                    // Nếu CHƯA có userProfile -> Hiện form LoginPage
                     <>
                         <Box textAlign="center">
                             <Heading size="lg" mb={2}>Hello</Heading>

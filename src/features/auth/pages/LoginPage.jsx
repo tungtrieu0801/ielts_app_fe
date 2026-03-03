@@ -1,6 +1,6 @@
-import {GoogleLoginBox} from "../features/auth/components/GoogleLoginBox.jsx";
+import {GoogleLoginBox} from "../components/GoogleLoginBox.jsx";
 
-const Login = () => {
+const LoginPage = () => {
     return (
         <div className="h-screen w-full flex items-center justify-center bg-gray-50">
             <GoogleLoginBox />
@@ -8,4 +8,4 @@ const Login = () => {
     )
 }
 
-export default Login;
+export default LoginPage;

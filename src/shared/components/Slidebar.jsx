@@ -4,11 +4,7 @@ import { FiHome, FiBook, FiList, FiPlay, FiShoppingBag, FiAward } from 'react-ic
 
 const menuItems = [
     { name: 'Trang chủ', icon: FiHome, active: true },
-    { name: 'Bộ từ vựng', icon: FiBook },
     { name: 'Từ vựng', icon: FiList },
-    { name: 'Game phản xạ', icon: FiPlay },
-    { name: 'Cửa hàng', icon: FiShoppingBag },
-    { name: 'Xếp hạng', icon: FiAward },
 ];
 
 const Sidebar = () => {
