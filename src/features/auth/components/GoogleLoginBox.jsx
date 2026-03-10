@@ -1,47 +1,45 @@
-import {googleLogout, useGoogleLogin} from "@react-oauth/google";
-import {Box, Button, Heading, VStack, Text, Image} from "@chakra-ui/react";
-import {FcGoogle} from "react-icons/fc";
-import {useState} from "react";
-import { useNavigate } from "react-router-dom";
-import {VITE_GOOGLE_USER_DETAIL} from "../../../constants/env.js";
+import { Box, Button, Heading, VStack, Text, Image } from "@chakra-ui/react";
+import { FcGoogle } from "react-icons/fc";
+import { useState, useEffect } from "react";
+import axiosClient from "../../../config/axios.js";
 
 export const GoogleLoginBox = () => {
-
-    const navigate = useNavigate();
-
-    // State lưu thông tin user
     const [userProfile, setUserProfile] = useState(null);
 
-    const login = useGoogleLogin({
-        onSuccess: async (tokenResponse) => {
-            console.log('Access Token: ', tokenResponse.access_token);
-            try {
-                const res = await fetch(VITE_GOOGLE_USER_DETAIL, {
-                    headers: { Authorization: `Bearer ${tokenResponse.access_token}`}
-                    });
-                const data = await res.json();
-                setUserProfile(data);
-                console.log("User data: ", data);
-                localStorage.setItem("access_token", tokenResponse.access_token);
-                navigate("/home");
-            } catch (error) {
-                console.log(error);
+    // 1. Kiểm tra xem đã có token trong localStorage chưa để lấy profile
+    useEffect(() => {
+        const fetchProfile = async () => {
+            const token = localStorage.getItem("token");
+            if (token) {
+                try {
+                    // Bạn nên có 1 route ở backend: GET /auth/me để lấy profile từ token
+                    const res = await axiosClient.get("/auth/me");
+                    setUserProfile(res.data.user);
+                } catch (err) {
+                    console.log("Fetch profile error:", err);
+                    localStorage.removeItem("token");
+                }
             }
-        },
-        onError: (err) => console.log('Lỗi: ', err),
-    })
+        };
+        fetchProfile();
+    }, []);
 
-    const logOut = async () => {
-        googleLogout();
+    // 2. Hàm xử lý đăng nhập: Chuyển hướng trình duyệt
+    const handleLogin = () => {
+        // Thay url này bằng đúng endpoint backend của bạn
+        window.location.href = "http://localhost:5000/auth/google";
+    };
+
+    const logOut = () => {
+        localStorage.removeItem("token");
         setUserProfile(null);
-    }
+        // Có thể gọi thêm logout ở backend nếu cần
+    };
 
     return (
         <Box p={8} maxWidth="400px" bg="white" shadow="md" borderRadius={8} borderWidth={1}>
             <VStack spacing={6} align="stretch">
-                {/* HIỂN THỊ THEO ĐIỀU KIỆN */}
                 {userProfile ? (
-                    // Nếu ĐÃ có userProfile -> Hiện thông tin
                     <VStack spacing={4} textAlign="center">
                         <Image
                             src={userProfile.picture}
@@ -58,18 +56,18 @@ export const GoogleLoginBox = () => {
                         </Button>
                     </VStack>
                 ) : (
-                    // Nếu CHƯA có userProfile -> Hiện form LoginPage
                     <>
                         <Box textAlign="center">
                             <Heading size="lg" mb={2}>Hello</Heading>
                             <Text color="gray.500">Đăng nhập để học từ vựng</Text>
                         </Box>
-                        <Button w="full" variant="outline" onClick={() => login()} size="lg">
-                            <FcGoogle style={{ marginRight: '8px' }} /> Đăng nhập với Google
+                        <Button w="full" variant="outline" onClick={handleLogin} size="lg">
+                            <FcGoogle style={{ marginRight: "8px" }} />
+                            Đăng nhập với Google
                         </Button>
                     </>
                 )}
             </VStack>
         </Box>
-    )
-}
+    );
+};
