@@ -1,52 +1,88 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Box, Flex, Text, VStack, Image, Button } from '@chakra-ui/react';
-import { FiHome, FiList, FiLogOut } from 'react-icons/fi';
+import { FiHome, FiBook, FiLogOut } from 'react-icons/fi';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { ColorModeButton } from "../../components/ui/color-mode.jsx";
-import {useAuthStore} from "../../stores/useAuthStore.js";
+import { ColorModeButton, useColorMode } from '../../components/ui/color-mode.jsx';
+import { useAuthStore } from '../../stores/useAuthStore.js';
 
 const menuItems = [
     { name: 'Trang chủ', icon: FiHome, path: '/home' },
-    { name: 'Từ vựng', icon: FiList, path: '/vocabulary' },
+    { name: 'Bộ từ của tôi', icon: FiBook, path: '/sets' },
 ];
 
 const Sidebar = () => {
     const location = useLocation();
     const navigate = useNavigate();
+    const { user, logout, colorMode: savedMode, setColorModePreference } = useAuthStore();
+    const { colorMode, setColorMode } = useColorMode();
 
-    // Lấy user và hàm logout từ Zustand store
-    const { user, logout } = useAuthStore();
+    // Sync: khi mount, apply preference đã lưu
+    useEffect(() => {
+        if (savedMode && savedMode !== colorMode) {
+            setColorMode(savedMode);
+        }
+    }, []); // eslint-disable-line
+
+    // Khi toggle → lưu vào store
+    useEffect(() => {
+        if (colorMode && colorMode !== savedMode) {
+            setColorModePreference(colorMode);
+        }
+    }, [colorMode]); // eslint-disable-line
 
     const handleLogout = () => {
-        logout(); // Xóa user/token trong store & localStorage
-        navigate("/login");
+        logout();
+        navigate('/');
     };
 
     return (
         <Box
-            w={{ base: "full", md: "250px" }}
+            w={{ base: 'full', md: '240px' }}
             h="100vh"
             bg="bg.panel"
             borderRightWidth="1px"
             borderColor="border.muted"
-            display="flex"         // Kích hoạt Flexbox
-            flexDirection="column" // Sắp xếp theo cột
-            justifyContent="space-between" // Đẩy menu lên trên, profile xuống dưới
-            transition="background 0.3s ease"
+            display="flex"
+            flexDirection="column"
+            justifyContent="space-between"
+            position="relative"
+            overflow="hidden"
         >
-            {/* Top Section: Logo & Menu */}
-            <Box p={4}>
-                <Flex align="center" justify="space-between" mb={8} px={4}>
-                    <Text fontSize="2xl" fontWeight="bold" color="purple.500">
-                        Ahihi
-                    </Text>
+            {/* Subtle accent glow */}
+            <Box
+                position="absolute" top={-10} left={-10}
+                w="160px" h="160px" borderRadius="full"
+                bg="brand.muted"
+                opacity={0.5}
+                pointerEvents="none"
+                filter="blur(30px)"
+            />
+
+            {/* ── Top: Logo + Menu ── */}
+            <Box pt={5} px={3}>
+                {/* Brand */}
+                <Flex align="center" justify="space-between" px={3} mb={7}>
+                    <Flex align="center" gap={2}>
+                        <Box
+                            w="30px" h="30px" borderRadius="lg"
+                            bg="brand.muted"
+                            display="flex" alignItems="center" justifyContent="center"
+                            fontSize="sm"
+                        >
+                            🎯
+                        </Box>
+                        <Text fontSize="lg" fontWeight="extrabold" color="brand.text">
+                            IELTS Vocab
+                        </Text>
+                    </Flex>
                     <ColorModeButton />
                 </Flex>
 
-                <VStack align="stretch" gap={2}>
+                {/* Navigation */}
+                <VStack align="stretch" gap={1}>
                     {menuItems.map((item) => {
-                        const isActive = location.pathname === item.path;
-
+                        const isActive = location.pathname === item.path
+                            || (item.path === '/sets' && location.pathname.startsWith('/sets'));
                         return (
                             <Flex
                                 key={item.name}
@@ -54,82 +90,97 @@ const Sidebar = () => {
                                 to={item.path}
                                 align="center"
                                 p={3}
-                                mx={2}
-                                borderRadius="lg"
-                                bg={isActive ? "blue.50" : "transparent"}
-                                _dark={{ bg: isActive ? "blue.900/30" : "transparent" }}
-                                color={isActive ? "blue.600" : "fg.muted"}
+                                borderRadius="xl"
+                                gap={3}
+                                bg={isActive ? 'brand.muted' : 'transparent'}
+                                color={isActive ? 'brand.text' : 'fg.muted'}
+                                borderWidth="1px"
+                                borderColor={isActive ? 'border.strong' : 'transparent'}
                                 _hover={{
-                                    bg: "gray.100",
-                                    _dark: { bg: "whiteAlpha.100" },
-                                    transform: "translateX(5px)"
+                                    bg: 'bg.subtle',
+                                    color: 'fg',
+                                    transform: 'translateX(3px)',
+                                    textDecoration: 'none',
                                 }}
-                                transition="all 0.2s ease"
+                                transition="all 0.15s ease"
+                                textDecoration="none"
                             >
-                                <Box as={item.icon} mr={3} fontSize="lg" />
-                                <Text fontWeight={isActive ? "bold" : "medium"}>
+                                <Box as={item.icon} fontSize="md" flexShrink={0} />
+                                <Text fontSize="sm" fontWeight={isActive ? '600' : '500'}>
                                     {item.name}
                                 </Text>
+                                {isActive && (
+                                    <Box
+                                        ml="auto" w="6px" h="6px" borderRadius="full"
+                                        bg="brand.solid"
+                                        flexShrink={0}
+                                    />
+                                )}
                             </Flex>
                         );
                     })}
                 </VStack>
             </Box>
 
-            {/* Bottom Section: User Profile */}
-            <Box p={4}>
-                <Box borderTopWidth="1px" borderColor="border.muted" my={4} />
+            {/* ── Bottom: User Profile ── */}
+            <Box px={3} pb={5}>
+                <Box h="1px" bg="border.muted" mb={4} />
 
-                <Flex align="center" p={2} mb={2}>
-                    {/* Avatar: Ưu tiên ảnh từ Google, nếu không có thì lấy chữ đầu tên */}
-                    {user?.picture ? (
-                        <Image
-                            src={user.picture}
-                            alt="Avatar"
-                            borderRadius="full"
-                            boxSize="32px"
-                            mr={3}
-                        />
-                    ) : (
-                        <Box
-                            w="8" h="8"
-                            borderRadius="full"
-                            bg="purple.500"
-                            color="white"
-                            display="flex"
-                            alignItems="center"
-                            justifyContent="center"
-                            fontWeight="bold"
-                            mr={3}
-                            fontSize="sm"
-                        >
-                            {user?.name ? user.name.charAt(0).toUpperCase() : "G"}
-                        </Box>
-                    )}
-
-                    <Box overflow="hidden">
-                        <Text fontSize="sm" fontWeight="bold" color="fg" isTruncated>
-                            {user?.name || "Khách"}
-                        </Text>
-                        <Text fontSize="xs" color="fg.muted" isTruncated>
-                            {user?.email || "Chưa đăng nhập"}
-                        </Text>
-                    </Box>
-                </Flex>
-
-                {/* Nút Đăng xuất tiện ích */}
                 {user && (
-                    <Button
-                        onClick={handleLogout}
-                        variant="ghost"
-                        colorPalette="red"
-                        size="sm"
-                        w="full"
-                        justifyContent="flex-start"
-                        leftIcon={<FiLogOut />}
-                    >
-                        Đăng xuất
-                    </Button>
+                    <>
+                        <Flex
+                            align="center" gap={3} p={3}
+                            borderRadius="xl"
+                            bg="bg.subtle"
+                            borderWidth="1px"
+                            borderColor="border.muted"
+                            mb={2}
+                        >
+                            {user?.picture ? (
+                                <Image
+                                    src={user.picture}
+                                    alt="Avatar"
+                                    borderRadius="full"
+                                    boxSize="34px"
+                                    flexShrink={0}
+                                    border="2px solid"
+                                    borderColor="brand.muted"
+                                />
+                            ) : (
+                                <Box
+                                    w="34px" h="34px" borderRadius="full" flexShrink={0}
+                                    bg="brand.muted" color="brand.text"
+                                    display="flex" alignItems="center" justifyContent="center"
+                                    fontWeight="bold" fontSize="sm"
+                                >
+                                    {user?.name?.charAt(0).toUpperCase() || 'U'}
+                                </Box>
+                            )}
+                            <Box overflow="hidden" flex={1}>
+                                <Text fontSize="xs" fontWeight="600" color="fg" isTruncated>
+                                    {user?.name || 'User'}
+                                </Text>
+                                <Text fontSize="xs" color="fg.muted" isTruncated>
+                                    {user?.email || ''}
+                                </Text>
+                            </Box>
+                        </Flex>
+
+                        <Button
+                            onClick={handleLogout}
+                            variant="ghost"
+                            size="sm"
+                            w="full"
+                            justifyContent="flex-start"
+                            gap={2}
+                            color="fg.muted"
+                            borderRadius="xl"
+                            _hover={{ bg: 'danger.bg', color: 'red.500' }}
+                        >
+                            <FiLogOut size={14} />
+                            <Text fontSize="sm">Đăng xuất</Text>
+                        </Button>
+                    </>
                 )}
             </Box>
         </Box>

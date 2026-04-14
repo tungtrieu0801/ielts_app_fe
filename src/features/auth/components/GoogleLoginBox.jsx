@@ -1,72 +1,139 @@
-import { Box, Button, Heading, VStack, Text, Image } from "@chakra-ui/react";
+import { Box, Button, Heading, VStack, Text, Flex } from "@chakra-ui/react";
 import { FcGoogle } from "react-icons/fc";
-import { useState, useEffect } from "react";
-import axiosClient from "../../../config/axios.js";
+import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuthStore } from "../../../stores/useAuthStore.js";
+import { ColorModeButton } from "../../../components/ui/color-mode.jsx";
 
 export const GoogleLoginBox = () => {
-    const [userProfile, setUserProfile] = useState(null);
+    const navigate = useNavigate();
+    const token = useAuthStore((s) => s.token);
 
-    // 1. Kiểm tra xem đã có token trong localStorage chưa để lấy profile
     useEffect(() => {
-        const fetchProfile = async () => {
-            const token = localStorage.getItem("token");
-            if (token) {
-                try {
-                    // Bạn nên có 1 route ở backend: GET /auth/me để lấy profile từ token
-                    const res = await axiosClient.get("/auth/me");
-                    setUserProfile(res.data.user);
-                } catch (err) {
-                    console.log("Fetch profile error:", err);
-                    localStorage.removeItem("token");
-                }
-            }
-        };
-        fetchProfile();
-    }, []);
+        if (token) navigate("/home");
+    }, [token]);
 
-    // 2. Hàm xử lý đăng nhập: Chuyển hướng trình duyệt
     const handleLogin = () => {
-        // Thay url này bằng đúng endpoint backend của bạn
         window.location.href = "http://localhost:5000/auth/google";
     };
 
-    const logOut = () => {
-        localStorage.removeItem("token");
-        setUserProfile(null);
-        // Có thể gọi thêm logout ở backend nếu cần
-    };
-
     return (
-        <Box p={8} maxWidth="400px" bg="white" shadow="md" borderRadius={8} borderWidth={1}>
-            <VStack spacing={6} align="stretch">
-                {userProfile ? (
-                    <VStack spacing={4} textAlign="center">
-                        <Image
-                            src={userProfile.picture}
-                            alt="Avatar"
-                            borderRadius="full"
-                            boxSize="80px"
-                        />
-                        <Box>
-                            <Heading size="md">{userProfile.name}</Heading>
-                            <Text color="gray.500">{userProfile.email}</Text>
-                        </Box>
-                        <Button colorPalette="red" variant="outline" onClick={logOut} w="full">
-                            Đăng xuất
-                        </Button>
-                    </VStack>
-                ) : (
-                    <>
-                        <Box textAlign="center">
-                            <Heading size="lg" mb={2}>Hello</Heading>
-                            <Text color="gray.500">Đăng nhập để học từ vựng</Text>
-                        </Box>
-                        <Button w="full" variant="outline" onClick={handleLogin} size="lg">
-                            <FcGoogle style={{ marginRight: "8px" }} />
-                            Đăng nhập với Google
-                        </Button>
-                    </>
+        <Box
+            className="login-card"
+            p={10}
+            w="full"
+            maxW="420px"
+            // Dùng Chakra semantic tokens — tự động đổi theo dark/light class trên <html>
+            bg="bg.panel"
+            shadow="2xl"
+            borderRadius="3xl"
+            borderWidth="1px"
+            borderColor="border.muted"
+            position="relative"
+        >
+            {/* Dark mode toggle */}
+            <Box position="absolute" top={4} right={4}>
+                <ColorModeButton />
+            </Box>
+
+            <VStack gap={7} align="stretch">
+                {/* Logo + Brand */}
+                <VStack gap={2} textAlign="center" pt={2}>
+                    <Box
+                        w="56px" h="56px" borderRadius="2xl"
+                        bg="brand.muted"
+                        display="flex" alignItems="center" justifyContent="center"
+                        fontSize="2xl"
+                        borderWidth="1px"
+                        borderColor="border.muted"
+                        mb={1}
+                    >
+                        🎯
+                    </Box>
+                    <Heading size="xl" fontWeight="extrabold" color="brand.text">
+                        IELTS Vocab
+                    </Heading>
+                    <Text color="fg.muted" fontSize="sm">
+                        Hệ thống học từ vựng thông minh với SRS
+                    </Text>
+                </VStack>
+
+                {/* Feature bullets */}
+                <VStack gap={2} align="stretch">
+                    {[
+                        { icon: '🧠', text: 'Thuật toán SRS tối ưu lịch ôn tập' },
+                        { icon: '🃏', text: 'Flashcard lật 3D mượt mà' },
+                        { icon: '📊', text: 'Theo dõi tiến độ học tập' },
+                        { icon: '📁', text: 'Import từ vựng từ file Excel' },
+                    ].map(({ icon, text }) => (
+                        <Flex
+                            key={text}
+                            align="center"
+                            gap={3}
+                            px={3}
+                            py={2}
+                            borderRadius="lg"
+                            bg="bg.subtle"
+                        >
+                            <Box fontSize="md" flexShrink={0}>{icon}</Box>
+                            <Text fontSize="sm" color="fg.muted">{text}</Text>
+                        </Flex>
+                    ))}
+                </VStack>
+
+                {/* Login button */}
+                <Button
+                    w="full"
+                    onClick={handleLogin}
+                    h="52px"
+                    borderRadius="xl"
+                    borderWidth="1.5px"
+                    borderColor="border.strong"
+                    bg="bg.elevated"
+                    color="fg"
+                    fontSize="md"
+                    fontWeight="600"
+                    gap={3}
+                    _hover={{
+                        bg: "bg.subtle",
+                        borderColor: "brand.solid",
+                        transform: "translateY(-1px)",
+                        shadow: "md",
+                    }}
+                    transition="all 0.2s ease"
+                >
+                    <FcGoogle size={22} />
+                    Đăng nhập với Google
+                </Button>
+
+                {/* Dev bypass — chỉ hiện trong môi trường development */}
+                {import.meta.env.DEV && (
+                    <Button
+                        w="full"
+                        onClick={() => { window.location.href = "http://localhost:5000/auth/dev-login"; }}
+                        h="44px"
+                        borderRadius="xl"
+                        borderWidth="1.5px"
+                        borderStyle="dashed"
+                        borderColor="orange.300"
+                        bg="transparent"
+                        color="orange.500"
+                        fontSize="sm"
+                        fontWeight="600"
+                        gap={2}
+                        _hover={{ bg: "warning.bg", transform: "translateY(-1px)" }}
+                        transition="all 0.2s ease"
+                    >
+                        ⚡ Dev Login (Bypass Google)
+                    </Button>
                 )}
+
+                <Text textAlign="center" fontSize="xs" color="fg.subtle">
+                    Bằng cách đăng nhập, bạn đồng ý với{' '}
+                    <Box as="span" color="brand.text" cursor="pointer" _hover={{ textDecoration: 'underline' }}>
+                        Điều khoản sử dụng
+                    </Box>
+                </Text>
             </VStack>
         </Box>
     );

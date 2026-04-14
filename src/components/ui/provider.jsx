@@ -1,12 +1,12 @@
 "use client"
 
-import { ChakraProvider, defaultSystem } from "@chakra-ui/react"
+import { ChakraProvider } from "@chakra-ui/react"
 import { ColorModeProvider } from "./color-mode"
+import { system } from "../../shared/utils/extendTheme.js"
 
 export function Provider(props) {
     return (
-        // Lưu ý: value phải là một đối tượng system (như defaultSystem)
-        <ChakraProvider value={defaultSystem}>
+        <ChakraProvider value={system}>
             <ColorModeProvider {...props} />
         </ChakraProvider>
     )

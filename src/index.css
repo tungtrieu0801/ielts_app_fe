@@ -1,1 +1,102 @@
 @import "tailwindcss";
+
+/* =====================================================
+   Global smooth dark/light transitions
+   ===================================================== */
+*,
+*::before,
+*::after {
+    transition:
+        background-color 0.25s ease,
+        border-color 0.25s ease,
+        color 0.2s ease,
+        box-shadow 0.2s ease,
+        fill 0.2s ease;
+}
+
+/* Don't transition transforms/opacity (causes jank on animations) */
+button, a, [role="button"] {
+    transition:
+        background-color 0.2s ease,
+        border-color 0.2s ease,
+        color 0.15s ease,
+        box-shadow 0.2s ease,
+        transform 0.2s ease,
+        opacity 0.15s ease;
+}
+
+/* =====================================================
+   Dark mode — rich deep background
+   ===================================================== */
+.dark body,
+.dark #root {
+    background-color: #0d0d12;
+    color: #e8eaf0;
+}
+
+/* Scrollbar styling — light */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+    border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #9ca3af;
+}
+
+/* Scrollbar — dark */
+.dark ::-webkit-scrollbar-thumb {
+    background: #2e2e40;
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+    background: #3d3d58;
+}
+
+/* =====================================================
+   Table styles for dark mode
+   ===================================================== */
+.dark table th {
+    background: #1c1c28 !important;
+    color: #8b8fa8 !important;
+    border-bottom-color: #252535 !important;
+}
+.dark table tr:nth-child(even) td {
+    background: #1a1a25 !important;
+}
+.dark table tr:hover td {
+    background: #1e1e2e !important;
+}
+
+/* Light table hover */
+table tr:hover td {
+    background: #f8f9ff !important;
+}
+
+/* =====================================================
+   Selection color
+   ===================================================== */
+::selection {
+    background: #6366f130;
+    color: inherit;
+}
+.dark ::selection {
+    background: #818cf840;
+}
+
+/* =====================================================
+   Focus ring — refined
+   ===================================================== */
+:focus-visible {
+    outline: 2px solid #6366f1;
+    outline-offset: 2px;
+    border-radius: 6px;
+}
+.dark :focus-visible {
+    outline-color: #818cf8;
+}

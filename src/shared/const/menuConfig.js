@@ -1,6 +1,6 @@
-import { FiHome, FiList } from "react-icons/fi";
+import { FiHome, FiBook, FiBookOpen, FiBarChart2 } from "react-icons/fi";
 
 export const menuItems = [
     { name: "Trang chủ", icon: FiHome, path: "/home" },
-    { name: "Từ vựng", icon: FiList, path: "/vocabulary" },
+    { name: "Bộ từ của tôi", icon: FiBook, path: "/sets" },
 ];
