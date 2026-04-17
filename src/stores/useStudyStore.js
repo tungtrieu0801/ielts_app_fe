@@ -11,6 +11,10 @@ export const useStudyStore = create((set) => ({
     sessionComplete: false,
     reviewedCount: 0,
 
+    // Heatmap & streak
+    heatmap: [],        // [{ date: "YYYY-MM-DD", wordsReviewed, minutesStudied }]
+    streakInfo: null,   // { currentStreak, longestStreak, totalStudyDays }
+
     // Khởi tạo session học cho 1 bộ từ
     startSession: async (setId, mode = "flashcard") => {
         set({ loading: true, sessionComplete: false, reviewedCount: 0 });
@@ -51,6 +55,22 @@ export const useStudyStore = create((set) => ({
         try {
             const data = await studyApi.getStudyStats();
             set({ stats: data });
+        } catch (_) {}
+    },
+
+    // Lấy dữ liệu heatmap 365 ngày
+    fetchHeatmap: async () => {
+        try {
+            const data = await studyApi.getHeatmap();
+            set({ heatmap: data });
+        } catch (_) {}
+    },
+
+    // Lấy thông tin streak
+    fetchStreakInfo: async () => {
+        try {
+            const data = await studyApi.getStreakInfo();
+            set({ streakInfo: data });
         } catch (_) {}
     },
 

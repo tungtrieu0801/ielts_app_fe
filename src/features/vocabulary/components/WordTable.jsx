@@ -11,6 +11,8 @@ const WordRow = ({ word, setId, index }) => {
     const [form, setForm] = useState({
         english: word.english,
         vietnamese: word.vietnamese,
+        pronunciation: word.pronunciation || "",
+        partOfSpeech: word.partOfSpeech || "",
         example: word.example,
     });
     const [saving, setSaving] = useState(false);
@@ -45,6 +47,20 @@ const WordRow = ({ word, setId, index }) => {
                 {editing ? (
                     <Input size="xs" value={form.vietnamese} onChange={(e) => setForm({ ...form, vietnamese: e.target.value })} />
                 ) : word.vietnamese}
+            </td>
+            <td style={{ padding: "10px 8px", minWidth: "130px", color: "var(--chakra-colors-fg-muted)", fontSize: "13px", fontStyle: "italic" }}>
+                {editing ? (
+                    <Input size="xs" value={form.pronunciation} onChange={(e) => setForm({ ...form, pronunciation: e.target.value })} placeholder="/ˈwɜːd/" />
+                ) : (word.pronunciation || "—")}
+            </td>
+            <td style={{ padding: "10px 8px", minWidth: "100px" }}>
+                {editing ? (
+                    <Input size="xs" value={form.partOfSpeech} onChange={(e) => setForm({ ...form, partOfSpeech: e.target.value })} placeholder="noun, verb..." />
+                ) : (
+                    word.partOfSpeech
+                        ? <Badge colorPalette="blue" size="sm" variant="subtle">{word.partOfSpeech}</Badge>
+                        : "—"
+                )}
             </td>
             <td style={{ padding: "10px 8px", minWidth: "200px", color: "var(--chakra-colors-fg-muted)", fontSize: "13px" }}>
                 {editing ? (
@@ -95,7 +111,7 @@ const WordTable = ({ words, setId, loading }) => {
                 <table style={{ width: "100%", borderCollapse: "collapse" }}>
                     <thead>
                         <tr>
-                            {["#", "English", "Vietnamese", "Ví dụ", "Trạng thái", "Ôn tiếp", ""].map((h) => (
+                            {["#", "English", "Vietnamese", "Phiên âm", "Từ loại", "Ví dụ", "Trạng thái", "Ôn tiếp", ""].map((h) => (
                                 <th key={h} style={{
                                     padding: "10px 12px",
                                     textAlign: "left",

@@ -4,9 +4,12 @@ import { FiBell, FiSearch } from "react-icons/fi";
 import { FaFire } from "react-icons/fa";
 import { useLocation } from "react-router-dom";
 import { menuItems } from "../../shared/const/menuConfig.js";
+import { useStudyStore } from "../../stores/useStudyStore.js";
 
 const Header = () => {
     const location = useLocation();
+    const { streakInfo } = useStudyStore();
+    const currentStreak = streakInfo?.currentStreak ?? 0;
 
     const activeMenu = menuItems.find((item) =>
         location.pathname === item.path ||
@@ -72,7 +75,7 @@ const Header = () => {
                         .dark .streak-badge { border-color: rgba(251,146,60,0.2); }
                     `}</style>
                     <Box as={FaFire} color="orange.400" fontSize="sm" />
-                    <Text fontSize="sm" fontWeight="bold" color="orange.500">7</Text>
+                    <Text fontSize="sm" fontWeight="bold" color="orange.500">{currentStreak}</Text>
                     <Text fontSize="xs" color="fg.muted">streak</Text>
                 </Flex>
 

@@ -5,6 +5,7 @@ import { FiBook, FiClock, FiAward, FiLayers } from "react-icons/fi";
 import BaseLayout from "../../../layouts/BaseLayout.jsx";
 import { useStudyStore } from "../../../stores/useStudyStore.js";
 import { useVocabularyStore } from "../../../stores/useVocabularyStore.js";
+import StudyStreakHeatmap from "../components/StudyStreakHeatmap.jsx";
 
 const StatCard = ({ icon: Icon, label, value, color, bg }) => (
     <Box
@@ -44,13 +45,15 @@ const StatCard = ({ icon: Icon, label, value, color, bg }) => (
 );
 
 const HomePage = () => {
-    const { stats, fetchStats } = useStudyStore();
+    const { stats, fetchStats, fetchHeatmap, fetchStreakInfo } = useStudyStore();
     const { wordSets, fetchWordSets, loading } = useVocabularyStore();
     const navigate = useNavigate();
 
     useEffect(() => {
         fetchStats();
         fetchWordSets();
+        fetchHeatmap();
+        fetchStreakInfo();
     }, []);
 
     return (
@@ -71,6 +74,9 @@ const HomePage = () => {
                     <StatCard icon={FiBook} label="Đã học hôm nay" value={stats?.reviewedToday} color="green" />
                     <StatCard icon={FiAward} label="Từ đã thuộc" value={stats?.masteredWords} color="purple" />
                 </SimpleGrid>
+
+                {/* Study Streak Heatmap */}
+                <StudyStreakHeatmap />
 
                 {/* Recent Sets */}
                 <Box>

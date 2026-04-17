@@ -8,3 +8,9 @@ export const submitReview = (wordId, quality) =>
 
 export const getStudyStats = () =>
     axiosClient.get("/study/stats").then((r) => r.data.data);
+
+export const getHeatmap = () =>
+    axiosClient.get("/study/heatmap").then((r) => r.data.data);
+
+export const getStreakInfo = () =>
+    axiosClient.get("/study/streak").then((r) => r.data.data);

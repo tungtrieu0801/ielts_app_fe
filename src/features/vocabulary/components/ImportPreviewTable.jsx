@@ -8,6 +8,8 @@ import { FiTrash2, FiAlertCircle, FiCheck } from "react-icons/fi";
 const FIELD_MAP = {
     english: ["english", "en", "word", "từ", "tu"],
     vietnamese: ["vietnamese", "vi", "meaning", "nghĩa", "nghia"],
+    pronunciation: ["pronunciation", "phien am", "phiên âm", "ipa"],
+    partOfSpeech: ["partofspeech", "part of speech", "partof speech", "từ loại", "tu loai", "pos", "type"],
     example: ["example", "ex", "sentence", "ví dụ", "vi du"],
     synonyms: ["synonyms", "synonym", "đồng nghĩa", "dong nghia"],
     antonyms: ["antonyms", "antonym", "trái nghĩa", "trai nghia"],
@@ -27,6 +29,8 @@ const ImportPreviewTable = ({ headers, rows, onConfirm, onCancel }) => {
             _id: i,
             english: row[headers.find((h) => detectField(h) === "english")] || "",
             vietnamese: row[headers.find((h) => detectField(h) === "vietnamese")] || "",
+            pronunciation: row[headers.find((h) => detectField(h) === "pronunciation")] || "",
+            partOfSpeech: row[headers.find((h) => detectField(h) === "partOfSpeech")] || "",
             example: row[headers.find((h) => detectField(h) === "example")] || "",
             synonyms: row[headers.find((h) => detectField(h) === "synonyms")] || "",
             antonyms: row[headers.find((h) => detectField(h) === "antonyms")] || "",
@@ -126,7 +130,7 @@ const ImportPreviewTable = ({ headers, rows, onConfirm, onCancel }) => {
                     <table style={{ width: "100%", borderCollapse: "collapse" }}>
                         <thead>
                             <tr style={{ position: "sticky", top: 0, zIndex: 10 }}>
-                                {["#", "English *", "Vietnamese *", "Example", "Synonyms", "Antonyms", ""].map((h) => (
+                                {["#", "English *", "Vietnamese *", "Phiên âm", "Từ loại", "Example", "Synonyms", "Antonyms", ""].map((h) => (
                                     <th key={h} style={{
                                         padding: "10px 12px",
                                         textAlign: "left",
@@ -155,11 +159,17 @@ const ImportPreviewTable = ({ headers, rows, onConfirm, onCancel }) => {
                                         }}
                                     >
                                         <td style={{ padding: "4px 12px", fontSize: "12px", color: "var(--chakra-colors-fg-subtle)", width: "40px" }}>{idx + 1}</td>
-                                        <td style={{ padding: "4px 8px", minWidth: "140px" }}>
+                                        <td style={{ padding: "4px 8px", minWidth: "140px", fontWeight: 600 }}>
                                             <EditableCell value={row.english} field="english" rowId={row._id} required />
                                         </td>
                                         <td style={{ padding: "4px 8px", minWidth: "140px" }}>
                                             <EditableCell value={row.vietnamese} field="vietnamese" rowId={row._id} required />
+                                        </td>
+                                        <td style={{ padding: "4px 8px", minWidth: "130px" }}>
+                                            <EditableCell value={row.pronunciation} field="pronunciation" rowId={row._id} />
+                                        </td>
+                                        <td style={{ padding: "4px 8px", minWidth: "110px" }}>
+                                            <EditableCell value={row.partOfSpeech} field="partOfSpeech" rowId={row._id} />
                                         </td>
                                         <td style={{ padding: "4px 8px", minWidth: "180px" }}>
                                             <EditableCell value={row.example} field="example" rowId={row._id} />
