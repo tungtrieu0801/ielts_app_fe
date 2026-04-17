@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from "react";
-import { Box, Flex, Text, Button, IconButton } from "@chakra-ui/react";
+import { Box, Flex, Text, Button, IconButton, Badge } from "@chakra-ui/react";
 import { FiVolume2 } from "react-icons/fi";
 
 const QUALITY_BUTTONS = [
@@ -138,10 +138,26 @@ const Flashcard = ({ word, onAnswer }) => {
                             textTransform="uppercase" letterSpacing="wider" mb={5}>
                             🇬🇧 Tiếng Anh
                         </Text>
-                        <Text fontSize={{ base: "3xl", md: "4xl" }}
-                            fontWeight="extrabold" textAlign="center" mb={3} color="fg">
+                        <Text fontSize={{ base: "4xl", md: "5xl" }}
+                            fontWeight="extrabold" textAlign="center" mb={2} color="fg">
                             {word.english}
                         </Text>
+
+                        {(word.pronunciation || word.partOfSpeech) && (
+                            <Flex gap={3} align="center" mb={3}>
+                                {word.partOfSpeech && (
+                                    <Badge colorPalette="blue" size="sm" variant="subtle">
+                                        {word.partOfSpeech}
+                                    </Badge>
+                                )}
+                                {word.pronunciation && (
+                                    <Text fontSize="15px" color="fg.muted" fontStyle="italic">
+                                        {word.pronunciation}
+                                    </Text>
+                                )}
+                            </Flex>
+                        )}
+
                         {word.synonyms?.length > 0 && (
                             <Text fontSize="sm" color="fg.muted" mt={1} textAlign="center">
                                 ≈ {word.synonyms.slice(0, 3).join(" · ")}
@@ -173,7 +189,7 @@ const Flashcard = ({ word, onAnswer }) => {
                             textTransform="uppercase" letterSpacing="wider" mb={5}>
                             🇻🇳 Nghĩa tiếng Việt
                         </Text>
-                        <Text fontSize={{ base: "2xl", md: "3xl" }}
+                        <Text fontSize={{ base: "3xl", md: "4xl" }}
                             fontWeight="extrabold" color="white" textAlign="center" mb={4}>
                             {word.vietnamese}
                         </Text>

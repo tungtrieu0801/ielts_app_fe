@@ -18,7 +18,7 @@ const FIELD_MAP = {
 const detectField = (header) => {
     const h = header.toLowerCase().trim();
     for (const [field, aliases] of Object.entries(FIELD_MAP)) {
-        if (aliases.some((a) => h.includes(a))) return field;
+        if (aliases.some((a) => h === a)) return field;
     }
     return null;
 };
