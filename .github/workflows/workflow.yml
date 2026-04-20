@@ -19,7 +19,12 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-
+      # ✅ THÊM ĐOẠN NÀY
+      - name: Create env file
+        run: |
+          echo "VITE_API_URL=${{ secrets.VITE_API_URL }}" >> .env.production
+          echo "VITE_GOOGLE_CLIENT_ID=${{ secrets.VITE_GOOGLE_CLIENT_ID }}" >> .env.production
+          echo "VITE_GOOGLE_USER_DETAIL=${{ secrets.VITE_GOOGLE_USER_DETAIL }}" >> .env.production
       # 3. Install & Build React/Vite
       - name: Install and build
         run: |
