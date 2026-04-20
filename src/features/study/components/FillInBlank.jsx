@@ -42,6 +42,23 @@ const FillInBlank = ({ word, onAnswer }) => {
         setCorrect(false);
     };
 
+    React.useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (submitted) {
+                if (e.key === "Enter" || e.code === "Space") {
+                    e.preventDefault();
+                    handleNext();
+                }
+            }
+        };
+
+        if (submitted) {
+            window.addEventListener("keydown", handleKeyDown);
+        }
+        return () => window.removeEventListener("keydown", handleKeyDown);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [submitted, correct, word?._id, input]);
+
     return (
         <Flex direction="column" align="center" w="full" maxW="620px" mx="auto" gap={6}>
             <Box

@@ -35,6 +35,35 @@ const Flashcard = ({ word, onAnswer }) => {
         setAnswered(false);
     }, [word?._id]);
 
+    // Lắng nghe phím tắt bàn phím (Shortcuts)
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            // Bỏ qua nếu đang gõ chữ vào ô input (VD: phần Fill-in)
+            if (['INPUT', 'TEXTAREA'].includes(e.target.tagName)) return;
+
+            if (e.code === 'Space') {
+                e.preventDefault(); // Ngăn trình duyệt cuộn trang
+                if (!answered) {
+                    setFlipped(prev => !prev);
+                }
+            }
+
+            if (flipped && !answered) {
+                const keyMap = { '1': 0, '2': 1, '3': 2, '4': 3 };
+                const quality = keyMap[e.key];
+                if (quality !== undefined) {
+                    e.preventDefault();
+                    // Gọi hàm đánh giá tương ứng
+                    handleAnswer(quality);
+                }
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [flipped, answered, word?._id]);
+
     const handleCardClick = useCallback(() => {
         if (answered) return;
         setFlipped((v) => !v);
