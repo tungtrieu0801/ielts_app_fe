@@ -14,7 +14,8 @@ export const GoogleLoginBox = () => {
     }, [token]);
 
     const handleLogin = () => {
-        window.location.href = "http://localhost:5000/auth/google";
+        const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
+        window.location.href = `${baseUrl}/auth/google`;
     };
 
     return (
@@ -110,7 +111,10 @@ export const GoogleLoginBox = () => {
                 {import.meta.env.DEV && (
                     <Button
                         w="full"
-                        onClick={() => { window.location.href = "http://localhost:5000/auth/dev-login"; }}
+                        onClick={() => { 
+                            const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
+                            window.location.href = `${baseUrl}/auth/dev-login`; 
+                        }}
                         h="44px"
                         borderRadius="xl"
                         borderWidth="1.5px"
