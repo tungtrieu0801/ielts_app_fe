@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { Box, Flex, Text, Input, Button } from "@chakra-ui/react";
 import { FiCheck, FiX } from "react-icons/fi";
+import { speak } from "../../../shared/utils/speech.js";
+import SpeakButton from "../../../shared/components/SpeakButton.jsx";
 
 // Tạo câu ví dụ với ô trống thay thế từ cần điền
 const createBlankSentence = (example, english) => {
@@ -13,6 +15,16 @@ const FillInBlank = ({ word, onAnswer }) => {
     const [input, setInput] = useState("");
     const [submitted, setSubmitted] = useState(false);
     const [correct, setCorrect] = useState(false);
+    const isFirstRender = React.useRef(true);
+
+    React.useEffect(() => {
+        if (!word?.example) return;
+        const timer = setTimeout(() => {
+            speak(word.example, "en-US", 0.9);
+        }, isFirstRender.current ? 500 : 300);
+        isFirstRender.current = false;
+        return () => clearTimeout(timer);
+    }, [word?._id]);
 
     const blankSentence = createBlankSentence(word.example, word.english)
         || `What is the English word for "${word.vietnamese}"?`;
@@ -42,9 +54,14 @@ const FillInBlank = ({ word, onAnswer }) => {
                 w="full"
                 textAlign="center"
             >
-                <Text color="fg.muted" fontSize="xs" textTransform="uppercase" letterSpacing="wider" mb={6}>
-                    Điền từ còn thiếu
-                </Text>
+                <Flex align="center" justify="center" gap={3} mb={6}>
+                    <Text color="fg.muted" fontSize="xs" textTransform="uppercase" letterSpacing="wider">
+                        Điền từ còn thiếu
+                    </Text>
+                    {word.example && (
+                        <SpeakButton text={word.example} lang="en-US" size="xs" label="Nghe lại câu ví dụ" />
+                    )}
+                </Flex>
                 <Text fontSize="xl" fontWeight="medium" mb={8} lineHeight="tall">
                     {blankSentence.split("______").map((part, i, arr) => (
                         <React.Fragment key={i}>

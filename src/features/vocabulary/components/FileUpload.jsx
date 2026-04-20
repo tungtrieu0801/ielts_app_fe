@@ -65,7 +65,7 @@ const FileUpload = ({ onFileProcessed }) => {
                 </Text>
                 <Text color="fg.subtle" fontSize="xs">
                     Cột bắt buộc: <strong>English</strong>, <strong>Vietnamese</strong> &nbsp;|&nbsp;
-                    Tùy chọn: Example, Synonyms, Antonyms
+                    Tùy chọn: Level, Example, Nghĩa Ví Dụ, Synonyms, Antonyms
                 </Text>
                 <Button colorPalette="blue" size="sm" mt={1} onClick={(e) => { e.stopPropagation(); fileRef.current?.click(); }}>
                     Chọn file

@@ -9,56 +9,8 @@ const QUALITY_BUTTONS = [
     { quality: 3, label: "Easy", color: "green", emoji: "✅", desc: "Dễ dàng" },
 ];
 
-// ── Speak helper ──────────────────────────────────────────────
-const speak = (text, lang = "en-US", rate = 0.9) => {
-    if (!window.speechSynthesis || !text) return;
-    window.speechSynthesis.cancel();
-    const utter = new SpeechSynthesisUtterance(text);
-    utter.lang = lang;
-    utter.rate = rate;
-    // Ưu tiên giọng nội địa (local) cho chất lượng tốt hơn
-    const voices = window.speechSynthesis.getVoices();
-    const preferred = voices.find((v) => v.lang.startsWith(lang.slice(0, 2)) && v.localService)
-        || voices.find((v) => v.lang.startsWith(lang.slice(0, 2)));
-    if (preferred) utter.voice = preferred;
-    window.speechSynthesis.speak(utter);
-};
-
-// ── SpeakButton ───────────────────────────────────────────────
-const SpeakButton = ({ text, lang = "en-US", size = "sm", label, rate }) => {
-    const [speaking, setSpeaking] = useState(false);
-
-    const handleSpeak = (e) => {
-        e.stopPropagation();
-        if (!window.speechSynthesis || !text) return;
-        window.speechSynthesis.cancel();
-        setSpeaking(true);
-        const utter = new SpeechSynthesisUtterance(text);
-        utter.lang = lang;
-        utter.rate = rate || 0.9;
-        utter.onend = () => setSpeaking(false);
-        utter.onerror = () => setSpeaking(false);
-        const voices = window.speechSynthesis.getVoices();
-        const preferred = voices.find((v) => v.lang.startsWith(lang.slice(0, 2)) && v.localService)
-            || voices.find((v) => v.lang.startsWith(lang.slice(0, 2)));
-        if (preferred) utter.voice = preferred;
-        window.speechSynthesis.speak(utter);
-    };
-
-    return (
-        <IconButton
-            size={size} variant="ghost" borderRadius="full"
-            onClick={handleSpeak}
-            color={speaking ? "blue.400" : "fg.muted"}
-            _hover={{ color: "blue.500", bg: "brand.muted" }}
-            transition="color 0.2s"
-            title={label || "Nghe phát âm"}
-            aria-label={label || "Speak"}
-        >
-            <FiVolume2 size={16} />
-        </IconButton>
-    );
-};
+import { speak } from "../../../shared/utils/speech.js";
+import SpeakButton from "../../../shared/components/SpeakButton.jsx";
 
 // ── Flashcard ─────────────────────────────────────────────────
 const Flashcard = ({ word, onAnswer }) => {
@@ -98,10 +50,10 @@ const Flashcard = ({ word, onAnswer }) => {
     };
 
     return (
-        <Flex direction="column" align="center" w="full" maxW="620px" mx="auto">
+        <Flex direction="column" align="center" w="full" maxW="800px" mx="auto">
             {/* ── Card 3D ── */}
             <Box
-                w="full" h="300px"
+                w="full" h={{ base: "350px", md: "420px" }}
                 cursor={answered ? "default" : "pointer"}
                 onClick={!answered ? handleCardClick : undefined}
                 style={{ perspective: "1200px" }}
@@ -133,25 +85,32 @@ const Flashcard = ({ word, onAnswer }) => {
                         <Box position="absolute" top={4} right={4}>
                             <SpeakButton text={word.english} lang="en-US" label="Nghe từ tiếng Anh" />
                         </Box>
+                        {word.level && (
+                            <Box position="absolute" top={4} left={4}>
+                                <Badge colorPalette="purple" variant="subtle" fontSize="xs" px={2} borderRadius="md" fontWeight="bold">
+                                    {word.level}
+                                </Badge>
+                            </Box>
+                        )}
 
-                        <Text color="fg.subtle" fontSize="xs" fontWeight="600"
+                        <Text color="fg.subtle" fontSize="sm" fontWeight="600"
                             textTransform="uppercase" letterSpacing="wider" mb={5}>
                             🇬🇧 Tiếng Anh
                         </Text>
-                        <Text fontSize={{ base: "4xl", md: "5xl" }}
+                        <Text fontSize={{ base: "5xl", md: "7xl" }}
                             fontWeight="extrabold" textAlign="center" mb={2} color="fg">
                             {word.english}
                         </Text>
 
                         {(word.pronunciation || word.partOfSpeech) && (
-                            <Flex gap={3} align="center" mb={3}>
+                            <Flex gap={3} align="center" mb={4}>
                                 {word.partOfSpeech && (
-                                    <Badge colorPalette="blue" size="sm" variant="subtle">
+                                    <Badge colorPalette="blue" variant="subtle" px={2} py={1} fontSize="sm">
                                         {word.partOfSpeech}
                                     </Badge>
                                 )}
                                 {word.pronunciation && (
-                                    <Text fontSize="15px" color="fg.muted" fontStyle="italic">
+                                    <Text fontSize="lg" color="fg.muted" fontStyle="italic">
                                         {word.pronunciation}
                                     </Text>
                                 )}
@@ -159,7 +118,7 @@ const Flashcard = ({ word, onAnswer }) => {
                         )}
 
                         {word.synonyms?.length > 0 && (
-                            <Text fontSize="sm" color="fg.muted" mt={1} textAlign="center">
+                            <Text fontSize="md" color="fg.muted" mt={2} textAlign="center">
                                 ≈ {word.synonyms.slice(0, 3).join(" · ")}
                             </Text>
                         )}
@@ -171,8 +130,10 @@ const Flashcard = ({ word, onAnswer }) => {
                     {/* ── Mặt sau: Tiếng Việt ── */}
                     <Box
                         position="absolute" inset={0}
-                        bg="blue.600"
+                        bg="brand.muted"
                         borderRadius="3xl"
+                        borderWidth="1.5px"
+                        borderColor="brand.solid"
                         shadow="xl"
                         display="flex" flexDirection="column"
                         alignItems="center" justifyContent="center" p={8}
@@ -182,25 +143,31 @@ const Flashcard = ({ word, onAnswer }) => {
                             <SpeakButton text={word.vietnamese} lang="vi-VN" label="Nghe nghĩa tiếng Việt" />
                         </Box>
                         <Box position="absolute" top={4} left={4}>
-                            <Text fontSize="xs" color="blue.200" opacity={0.7}>↩ Click để lật lại</Text>
+                            <Text fontSize="xs" color="brand.text" opacity={0.8}>↩ Click để lật lại</Text>
                         </Box>
 
-                        <Text color="blue.100" fontSize="xs" fontWeight="600"
+                        <Text color="brand.text" fontSize="sm" fontWeight="600"
                             textTransform="uppercase" letterSpacing="wider" mb={5}>
                             🇻🇳 Nghĩa tiếng Việt
                         </Text>
-                        <Text fontSize={{ base: "3xl", md: "4xl" }}
-                            fontWeight="extrabold" color="white" textAlign="center" mb={4}>
+                        <Text fontSize={{ base: "4xl", md: "6xl" }}
+                            fontWeight="extrabold" color="fg" textAlign="center" mb={6}>
                             {word.vietnamese}
                         </Text>
                         {word.example && (
-                            <Box bg="blue.500/50" borderRadius="xl" p={3} w="full" mt={2}>
-                                <Flex align="flex-start" gap={2}>
-                                    <Text fontSize="sm" color="blue.100"
-                                        fontStyle="italic" textAlign="center" flex={1}>
-                                        "{word.example}"
-                                    </Text>
-                                    <SpeakButton text={word.example} lang="en-US" size="xs" label="Nghe ví dụ" />
+                            <Box bg="bg.panel" borderRadius="xl" borderWidth="1px" borderColor="border.subtle" p={4} w="full" mt={2} shadow="sm">
+                                <Flex align="flex-start" gap={3}>
+                                    <Box flex={1} textAlign="center">
+                                        <Text fontSize="lg" color="fg" fontStyle="italic" lineHeight="tall">
+                                            "{word.example}"
+                                        </Text>
+                                        {word.exampleTranslation && (
+                                            <Text fontSize="sm" color="fg.muted" mt={1.5} lineHeight="base">
+                                                {word.exampleTranslation}
+                                            </Text>
+                                        )}
+                                    </Box>
+                                    <SpeakButton text={word.example} lang="en-US" size="sm" label="Nghe ví dụ" />
                                 </Flex>
                             </Box>
                         )}

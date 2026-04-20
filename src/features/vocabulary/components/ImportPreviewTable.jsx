@@ -11,8 +11,10 @@ const FIELD_MAP = {
     pronunciation: ["pronunciation", "phien am", "phiên âm", "ipa"],
     partOfSpeech: ["partofspeech", "part of speech", "partof speech", "từ loại", "tu loai", "pos", "type"],
     example: ["example", "ex", "sentence", "ví dụ", "vi du"],
+    exampleTranslation: ["exampletranslation", "example translation", "nghĩa ví dụ", "nghia vi du", "dịch ví dụ", "dich vi du", "nghĩa của ví dụ"],
     synonyms: ["synonyms", "synonym", "đồng nghĩa", "dong nghia"],
     antonyms: ["antonyms", "antonym", "trái nghĩa", "trai nghia"],
+    level: ["level", "cấp độ", "trình độ", "cefr"],
 };
 
 const detectField = (header) => {
@@ -32,8 +34,10 @@ const ImportPreviewTable = ({ headers, rows, onConfirm, onCancel }) => {
             pronunciation: row[headers.find((h) => detectField(h) === "pronunciation")] || "",
             partOfSpeech: row[headers.find((h) => detectField(h) === "partOfSpeech")] || "",
             example: row[headers.find((h) => detectField(h) === "example")] || "",
+            exampleTranslation: row[headers.find((h) => detectField(h) === "exampleTranslation")] || "",
             synonyms: row[headers.find((h) => detectField(h) === "synonyms")] || "",
             antonyms: row[headers.find((h) => detectField(h) === "antonyms")] || "",
+            level: row[headers.find((h) => detectField(h) === "level")] || "",
         }))
     );
     const [saving, setSaving] = useState(false);
@@ -130,7 +134,7 @@ const ImportPreviewTable = ({ headers, rows, onConfirm, onCancel }) => {
                     <table style={{ width: "100%", borderCollapse: "collapse" }}>
                         <thead>
                             <tr style={{ position: "sticky", top: 0, zIndex: 10 }}>
-                                {["#", "English *", "Vietnamese *", "Phiên âm", "Từ loại", "Example", "Synonyms", "Antonyms", ""].map((h) => (
+                                {["#", "English *", "Vietnamese *", "Level", "Phiên âm", "Từ loại", "Example", "Nghĩa ví dụ", "Synonyms", "Antonyms", ""].map((h) => (
                                     <th key={h} style={{
                                         padding: "10px 12px",
                                         textAlign: "left",
@@ -165,6 +169,9 @@ const ImportPreviewTable = ({ headers, rows, onConfirm, onCancel }) => {
                                         <td style={{ padding: "4px 8px", minWidth: "140px" }}>
                                             <EditableCell value={row.vietnamese} field="vietnamese" rowId={row._id} required />
                                         </td>
+                                        <td style={{ padding: "4px 8px", minWidth: "80px" }}>
+                                            <EditableCell value={row.level} field="level" rowId={row._id} />
+                                        </td>
                                         <td style={{ padding: "4px 8px", minWidth: "130px" }}>
                                             <EditableCell value={row.pronunciation} field="pronunciation" rowId={row._id} />
                                         </td>
@@ -173,6 +180,9 @@ const ImportPreviewTable = ({ headers, rows, onConfirm, onCancel }) => {
                                         </td>
                                         <td style={{ padding: "4px 8px", minWidth: "180px" }}>
                                             <EditableCell value={row.example} field="example" rowId={row._id} />
+                                        </td>
+                                        <td style={{ padding: "4px 8px", minWidth: "180px" }}>
+                                            <EditableCell value={row.exampleTranslation} field="exampleTranslation" rowId={row._id} />
                                         </td>
                                         <td style={{ padding: "4px 8px", minWidth: "120px" }}>
                                             <EditableCell value={row.synonyms} field="synonyms" rowId={row._id} />
