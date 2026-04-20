@@ -61,22 +61,38 @@ const StudySidebarStats = ({ reviewedCount, queueLength }) => {
             <Flex direction="column" align="center" justify="center" gap={6}>
                 <CustomProgressRing value={progressPerc} />
 
-                <Flex w="full" gap={3} mt={2}>
-                    <Box
-                        bg="green.50" _dark={{ bg: "green.900" }}
-                        p={4} borderRadius="2xl" flex={1} textAlign="center"
-                    >
-                        <Text fontSize="3xl" fontWeight="black" color="green.600" _dark={{ color: "green.300" }}>{reviewedCount}</Text>
-                        <Text fontSize="10px" fontWeight="bold" textTransform="uppercase" letterSpacing="wider" color="green.600" _dark={{ color: "green.300" }} opacity={0.8} mt={1}>Đã học</Text>
-                    </Box>
-                    <Box
-                        bg="blue.50" _dark={{ bg: "blue.900" }}
-                        p={4} borderRadius="2xl" flex={1} textAlign="center"
-                    >
-                        <Text fontSize="3xl" fontWeight="black" color="blue.600" _dark={{ color: "blue.300" }}>{remaining}</Text>
-                        <Text fontSize="10px" fontWeight="bold" textTransform="uppercase" letterSpacing="wider" color="blue.600" _dark={{ color: "blue.300" }} opacity={0.8} mt={1}>Còn lại</Text>
-                    </Box>
-                </Flex>
+                <Box w="full" mt={2}>
+                    <Text fontSize="xs" fontWeight="bold" color="fg.subtle" mb={4} textTransform="uppercase" letterSpacing="wider">
+                        Danh sách thẻ
+                    </Text>
+                    <Flex wrap="wrap" gap={2} justify="flex-start">
+                        {Array.from({ length: total }).map((_, idx) => {
+                            const isCompleted = idx < reviewedCount;
+                            
+                            return (
+                                <Flex
+                                    key={idx}
+                                    w="36px" h="36px"
+                                    align="center" justify="center"
+                                    bg={isCompleted ? "green.100" : "red.50"}
+                                    color={isCompleted ? "green.800" : "red.800"}
+                                    _dark={{
+                                        bg: isCompleted ? "green.900/60" : "red.900/40",
+                                        color: isCompleted ? "green.300" : "red.300",
+                                        borderColor: isCompleted ? "green.600" : "red.600"
+                                    }}
+                                    borderRadius="md"
+                                    borderWidth="1px"
+                                    borderColor={isCompleted ? "green.500" : "red.400"}
+                                    fontSize="sm" fontWeight="bold"
+                                    shadow="sm"
+                                >
+                                    {idx + 1}
+                                </Flex>
+                            );
+                        })}
+                    </Flex>
+                </Box>
             </Flex>
         </Box>
     );
