@@ -35,13 +35,15 @@ const StudyPage = () => {
     useEffect(() => {
         if (!wordSets.length) fetchWordSets();
         
-        // Prevent F5 reload from wiping an active session
-        if (currentSetId === setId && queue.length > 0 && !sessionComplete) {
+        // Prevent F5 reload from wiping an IN-PROGRESS session 
+        // We only block the refetch if they are resuming an UNFINISHED session of the same set.
+        if (currentSetId === setId && !sessionComplete) {
             return;
         }
 
         startSession(setId, "flashcard");
-    }, [setId, currentSetId, queue.length, sessionComplete]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [setId, currentSetId]);
 
     const currentWord = queue[currentIndex];
 
@@ -58,46 +60,69 @@ const StudyPage = () => {
         );
     }
 
-    if (sessionComplete) {
-        return (
-            <Box p={8}>
-                <StudyComplete
-                    reviewedCount={reviewedCount}
-                    setId={setId}
-                    setTitle={currentSet?.title}
-                />
-            </Box>
-        );
-    }
-
     return (
-        <Box minH="100vh" bg="bg.main" p={{ base: 4, md: 8 }}>
+        <Box minH="100vh" bg="bg.main" p={{ base: 4, md: 8 }} position="relative">
+            {/* Completion Popup Overlay */}
+            {sessionComplete && (
+                <Flex
+                    position="fixed" inset={0} zIndex={100}
+                    align="center" justify="center"
+                    bg="blackAlpha.600" backdropFilter="blur(5px)"
+                >
+                    <StudyComplete
+                        reviewedCount={reviewedCount}
+                        setId={setId}
+                        setTitle={currentSet?.title}
+                    />
+                </Flex>
+            )}
             
             {/* Header / Navbar */}
             <Flex
-                align="center" justify="space-between" mb={8}
-                maxW="1300px" mx="auto" bg="bg.panel" p={3} px={6}
+                direction={{ base: "column", lg: "row" }}
+                align={{ base: "stretch", lg: "center" }} 
+                justify="space-between" mb={8} gap={4}
+                maxW="1300px" mx="auto" bg="bg.panel" p={4} px={{ base: 4, md: 6 }}
                 borderRadius="2xl" borderWidth="1px" borderColor="border.subtle" shadow="sm"
             >
                 {/* Left: Tên bộ thẻ */}
-                <Flex align="center" gap={4} flex={1}>
-                    <IconButton variant="ghost" size="sm" onClick={() => navigate(`/sets/${setId}`)} _hover={{ bg: "bg.subtle" }}>
-                        <FiArrowLeft size={18} />
-                    </IconButton>
-                    <Box>
-                        <Text fontWeight="bold" fontSize="lg" color="fg">{currentSet?.title || "Học từ vựng"}</Text>
-                        <Text fontSize="xs" fontWeight="medium" color="fg.muted" letterSpacing="wide">
-                            {queue.length > 0 ? `${queue.length} THẺ HÔM NAY` : "ĐANG TẢI"}
-                        </Text>
+                <Flex align="center" justify={{ base: "space-between", lg: "flex-start" }} gap={4} flex={{ lg: 1 }}>
+                    <Flex align="center" gap={3}>
+                        <IconButton variant="ghost" size="sm" onClick={() => navigate(`/sets/${setId}`)} _hover={{ bg: "bg.subtle" }}>
+                            <FiArrowLeft size={18} />
+                        </IconButton>
+                        <Box>
+                            <Text fontWeight="bold" fontSize="lg" color="fg">{currentSet?.title || "Học từ vựng"}</Text>
+                            <Text fontSize="xs" fontWeight="medium" color="fg.muted" letterSpacing="wide">
+                                {queue.length > 0 ? `${queue.length} THẺ HÔM NAY` : "ĐANG TẢI"}
+                            </Text>
+                        </Box>
+                    </Flex>
+                    
+                    {/* Move Streak to Right on mobile, inside the same row to save space */}
+                    <Box display={{ base: "block", lg: "none" }}>
+                        <Flex
+                            align="center" gap={1.5}
+                            px={3} py={1.5}
+                            borderRadius="lg"
+                            bg="warning.bg"
+                            borderWidth="1px"
+                            borderColor="border.muted"
+                            className="streak-badge"
+                        >
+                            <Box as={FaFire} color="orange.400" fontSize="sm" />
+                            <Text fontSize="sm" fontWeight="bold" color="orange.500">{streakInfo?.currentStreak ?? 0}</Text>
+                        </Flex>
                     </Box>
                 </Flex>
 
                 {/* Center: Mode switcher */}
-                <Flex justify="center" flex={1}>
+                <Flex justify="center" flex={{ lg: 1 }} w="full">
                     <Flex
                         bg="bg.subtle" borderRadius="xl" p={1}
                         borderWidth="1px" borderColor="border.muted"
                         gap={1}
+                        w={{ base: "full", sm: "auto" }}
                     >
                         {[
                             { key: "flashcard", label: "🃏 Flashcard" },
@@ -105,6 +130,7 @@ const StudyPage = () => {
                         ].map(({ key, label }) => (
                             <Button
                                 key={key}
+                                flex={{ base: 1, sm: "auto" }}
                                 size="sm"
                                 variant={mode === key ? "solid" : "ghost"}
                                 colorPalette={mode === key ? "blue" : "gray"}
@@ -118,26 +144,23 @@ const StudyPage = () => {
                     </Flex>
                 </Flex>
 
-                {/* Right: User Info & Streak */}
-                <Flex align="center" justify="flex-end" gap={4} flex={1}>
-                    {/* Streak badge */}
-                    <Flex
-                        align="center" gap={1.5}
-                        px={3} py={1.5}
-                        borderRadius="lg"
-                        bg="warning.bg"
-                        borderWidth="1px"
-                        borderColor="border.muted"
-                        className="streak-badge"
-                    >
-                        <style>{`
-                            .streak-badge { border-color: var(--chakra-colors-border-muted); }
-                            .dark .streak-badge { border-color: rgba(251,146,60,0.2); }
-                        `}</style>
-                        <Box as={FaFire} color="orange.400" fontSize="sm" />
-                        <Text fontSize="sm" fontWeight="bold" color="orange.500">{streakInfo?.currentStreak ?? 0}</Text>
-                        <Text fontSize="xs" color="fg.muted">streak</Text>
-                    </Flex>
+                {/* Right: User Info & Streak (Desktop only for streak here) */}
+                <Flex align="center" justify={{ base: "center", lg: "flex-end" }} gap={4} flex={{ lg: 1 }}>
+                    <Box display={{ base: "none", lg: "block" }}>
+                        <Flex
+                            align="center" gap={1.5}
+                            px={3} py={1.5}
+                            borderRadius="lg"
+                            bg="warning.bg"
+                            borderWidth="1px"
+                            borderColor="border.muted"
+                            className="streak-badge"
+                        >
+                            <Box as={FaFire} color="orange.400" fontSize="sm" />
+                            <Text fontSize="sm" fontWeight="bold" color="orange.500">{streakInfo?.currentStreak ?? 0}</Text>
+                            <Text fontSize="xs" color="fg.muted">streak</Text>
+                        </Flex>
+                    </Box>
 
                     <Box position="relative">
                         <Flex 
