@@ -64,21 +64,24 @@ function useYouTubePlayer(divRef, videoId) {
         if (!p?.seekTo) return;
 
         clearInterval(pauseTimerRef.current);
-        p.seekTo(Math.max(0, start - 0.2), true);
+        // Seek slightly before start to avoid clipping the first consonant
+        p.seekTo(Math.max(0, start - 0.05), true);
         p.playVideo();
 
         if (end != null) {
+            // High-frequency polling (30ms) for frame-accurate pausing
             pauseTimerRef.current = setInterval(() => {
                 try {
                     const t = p.getCurrentTime?.();
-                    if (typeof t === "number" && t >= end + 0.15) {
+                    // Pause slightly before the 'end' time to account for JS execution delay
+                    if (typeof t === "number" && t >= end - 0.02) {
                         p.pauseVideo?.();
                         clearInterval(pauseTimerRef.current);
                     }
                 } catch (_) {
                     clearInterval(pauseTimerRef.current);
                 }
-            }, 150);
+            }, 30);
         }
     }, []);
 
