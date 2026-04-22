@@ -26,48 +26,70 @@ function loadYouTubeIframeAPI() {
 // ── useYouTubePlayer hook ─────────────────────────────────────────────────
 function useYouTubePlayer(divRef, videoId) {
     const playerRef = useRef(null);
-    const pauseTimer = useRef(null);
+    const pauseTimerRef = useRef(null);  // setInterval id for polling
+    const readyRef = useRef(false);
 
     useEffect(() => {
         if (!divRef.current || !videoId) return;
         let destroyed = false;
+        readyRef.current = false;
 
         loadYouTubeIframeAPI().then((YT) => {
             if (destroyed) return;
             playerRef.current = new YT.Player(divRef.current, {
                 videoId,
                 playerVars: { rel: 0, modestbranding: 1, playsinline: 1 },
+                events: {
+                    onReady: () => { readyRef.current = true; },
+                },
             });
         });
 
         return () => {
             destroyed = true;
-            clearTimeout(pauseTimer.current);
+            clearInterval(pauseTimerRef.current);
             try { playerRef.current?.destroy(); } catch (_) {}
             playerRef.current = null;
+            readyRef.current = false;
         };
     }, [videoId]); // eslint-disable-line
 
-    /** Seek to `start` seconds and play; auto-pause after sentence ends. */
+    /**
+     * Seek to `start` seconds and play.
+     * Polls getCurrentTime() every 150 ms and pauses exactly at `end` seconds.
+     * This avoids setTimeout drift caused by buffering.
+     */
     const seekAndPlay = useCallback((start, end) => {
         const p = playerRef.current;
         if (!p?.seekTo) return;
-        clearTimeout(pauseTimer.current);
+
+        clearInterval(pauseTimerRef.current);
         p.seekTo(Math.max(0, start - 0.2), true);
         p.playVideo();
+
         if (end != null) {
-            const durMs = Math.max((end - start + 1.0) * 1000, 3000);
-            pauseTimer.current = setTimeout(() => p.pauseVideo?.(), durMs);
+            pauseTimerRef.current = setInterval(() => {
+                try {
+                    const t = p.getCurrentTime?.();
+                    if (typeof t === "number" && t >= end + 0.15) {
+                        p.pauseVideo?.();
+                        clearInterval(pauseTimerRef.current);
+                    }
+                } catch (_) {
+                    clearInterval(pauseTimerRef.current);
+                }
+            }, 150);
         }
     }, []);
 
     const pauseVideo = useCallback(() => {
-        clearTimeout(pauseTimer.current);
+        clearInterval(pauseTimerRef.current);
         playerRef.current?.pauseVideo?.();
     }, []);
 
     return { seekAndPlay, pauseVideo };
 }
+
 
 // ── Scoring ───────────────────────────────────────────────────────────────
 const normalize = (s) =>
