@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { Box, Flex, Text, VStack, Image, Button } from '@chakra-ui/react';
-import { FiHome, FiBook, FiLogOut } from 'react-icons/fi';
+import { FiHome, FiBook, FiLogOut, FiMic } from 'react-icons/fi';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ColorModeButton, useColorMode } from '../../components/ui/color-mode.jsx';
 import { useAuthStore } from '../../stores/useAuthStore.js';
@@ -8,6 +8,7 @@ import { useAuthStore } from '../../stores/useAuthStore.js';
 const menuItems = [
     { name: 'Trang chủ', icon: FiHome, path: '/home' },
     { name: 'Bộ từ của tôi', icon: FiBook, path: '/sets' },
+    { name: 'Dictation', icon: FiMic, path: '/dictation' },
 ];
 
 const Sidebar = () => {
@@ -82,7 +83,8 @@ const Sidebar = () => {
                 <VStack align="stretch" gap={1}>
                     {menuItems.map((item) => {
                         const isActive = location.pathname === item.path
-                            || (item.path === '/sets' && location.pathname.startsWith('/sets'));
+                            || (item.path === '/sets' && location.pathname.startsWith('/sets'))
+                            || (item.path === '/dictation' && location.pathname.startsWith('/dictation'));
                         return (
                             <Flex
                                 key={item.name}

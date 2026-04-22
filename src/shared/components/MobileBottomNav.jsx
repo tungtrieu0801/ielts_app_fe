@@ -1,11 +1,12 @@
 import React from "react";
 import { Box, Flex, Text } from "@chakra-ui/react";
 import { Link, useLocation } from "react-router-dom";
-import { FiHome, FiBook } from "react-icons/fi";
+import { FiHome, FiBook, FiMic } from "react-icons/fi";
 
 const tabs = [
     { name: "Trang chủ", icon: FiHome, path: "/home" },
     { name: "Bộ từ", icon: FiBook, path: "/sets" },
+    { name: "Dictation", icon: FiMic, path: "/dictation" },
 ];
 
 /**
@@ -31,7 +32,8 @@ const MobileBottomNav = () => {
         >
             {tabs.map(({ name, icon: Icon, path }) => {
                 const isActive = location.pathname === path
-                    || (path === "/sets" && location.pathname.startsWith("/sets"));
+                    || (path === "/sets" && location.pathname.startsWith("/sets"))
+                    || (path === "/dictation" && location.pathname.startsWith("/dictation"));
                 return (
                     <Flex
                         key={name}
