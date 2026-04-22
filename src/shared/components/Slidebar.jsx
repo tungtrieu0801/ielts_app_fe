@@ -7,11 +7,11 @@ import { useAuthStore } from '../../stores/useAuthStore.js';
 
 const menuItems = [
     { name: 'Trang chủ', icon: FiHome, path: '/home' },
-    { name: 'Bộ từ của tôi', icon: FiBook, path: '/sets' },
+    { name: 'Bộ từ', icon: FiBook, path: '/sets' },
     { name: 'Dictation', icon: FiMic, path: '/dictation' },
 ];
 
-const Sidebar = () => {
+const Sidebar = ({ onNavigate }) => {
     const location = useLocation();
     const navigate = useNavigate();
     const { user, logout, colorMode: savedMode, setColorModePreference } = useAuthStore();
@@ -35,6 +35,8 @@ const Sidebar = () => {
         logout();
         navigate('/');
     };
+
+    const [imgError, setImgError] = React.useState(false);
 
     return (
         <Box
@@ -62,7 +64,7 @@ const Sidebar = () => {
             {/* ── Top: Logo + Menu ── */}
             <Box pt={5} px={3}>
                 {/* Brand */}
-                <Flex align="center" justify="space-between" px={3} mb={7}>
+                <Flex align="center" justify="space-between" pl={3} pr={{ base: 10, md: 3 }} mb={7}>
                     <Flex align="center" gap={2}>
                         <Box
                             w="30px" h="30px" borderRadius="lg"
@@ -90,6 +92,7 @@ const Sidebar = () => {
                                 key={item.name}
                                 as={Link}
                                 to={item.path}
+                                onClick={onNavigate}
                                 align="center"
                                 p={3}
                                 borderRadius="xl"
@@ -138,10 +141,12 @@ const Sidebar = () => {
                             borderColor="border.muted"
                             mb={2}
                         >
-                            {user?.picture ? (
+                            {user?.picture && !imgError ? (
                                 <Image
                                     src={user.picture}
                                     alt="Avatar"
+                                    referrerPolicy="no-referrer"
+                                    onError={() => setImgError(true)}
                                     borderRadius="full"
                                     boxSize="34px"
                                     flexShrink={0}

@@ -1,15 +1,18 @@
-import React from "react";
+import React, { useState } from "react";
 import { Flex, Text, IconButton, Box, Button } from "@chakra-ui/react";
-import { FiBell, FiSearch } from "react-icons/fi";
+import { FiBell, FiSearch, FiMenu } from "react-icons/fi";
 import { FaFire } from "react-icons/fa";
 import { useLocation } from "react-router-dom";
 import { menuItems } from "../../shared/const/menuConfig.js";
 import { useStudyStore } from "../../stores/useStudyStore.js";
+import { DrawerRoot, DrawerTrigger, DrawerContent, DrawerBody, DrawerCloseTrigger } from "../../components/ui/drawer.jsx";
+import Sidebar from "../../shared/components/Slidebar.jsx";
 
 const Header = () => {
     const location = useLocation();
     const { streakInfo } = useStudyStore();
     const currentStreak = streakInfo?.currentStreak ?? 0;
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
     const activeMenu = menuItems.find((item) =>
         location.pathname === item.path ||
@@ -19,7 +22,7 @@ const Header = () => {
     return (
         <Flex
             w="100%"
-            px={6}
+            px={{ base: 4, md: 6 }}
             h="60px"
             align="center"
             justify="space-between"
@@ -28,15 +31,35 @@ const Header = () => {
             bg="bg.panel"
             flexShrink={0}
         >
-            {/* Left: Page title */}
-            <Text fontSize="lg" fontWeight="bold" color="fg">
-                {activeMenu?.name || 'Dashboard'}
-            </Text>
+            {/* Left: Mobile Menu & Page title */}
+            <Flex align="center" gap={{ base: 2, md: 0 }}>
+                {/* Mobile Hamburger Menu */}
+                <Box display={{ base: "block", md: "none" }}>
+                    <DrawerRoot placement="start" open={isMobileMenuOpen} onOpenChange={(e) => setIsMobileMenuOpen(e.open)}>
+                        <DrawerTrigger asChild>
+                            <IconButton variant="ghost" size="sm" color="fg.muted">
+                                <FiMenu size={20} />
+                            </IconButton>
+                        </DrawerTrigger>
+                        <DrawerContent>
+                            <DrawerCloseTrigger zIndex={10} top="3" right="3" />
+                            <DrawerBody p={0}>
+                                <Sidebar onNavigate={() => setIsMobileMenuOpen(false)} />
+                            </DrawerBody>
+                        </DrawerContent>
+                    </DrawerRoot>
+                </Box>
+
+                <Text fontSize="lg" fontWeight="bold" color="fg" ml={{ base: 1, md: 0 }}>
+                    {activeMenu?.name || 'Dashboard'}
+                </Text>
+            </Flex>
 
             {/* Right: Actions */}
             <Flex gap={2} align="center">
                 <IconButton
                     variant="ghost" size="sm" borderRadius="lg"
+                    display={{ base: "none", sm: "flex" }}
                     color="fg.muted"
                     _hover={{ bg: 'bg.subtle', color: 'fg' }}
                 >
