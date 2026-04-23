@@ -3,7 +3,6 @@ import { Box, Flex, Text, useBreakpointValue } from "@chakra-ui/react";
 import { useStudyStore } from "../../../stores/useStudyStore.js";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
-const WEEKS = 53;
 const DAY_LABELS = ["", "T2", "", "T4", "", "T6", ""];
 const MONTH_NAMES = ["Th1", "Th2", "Th3", "Th4", "Th5", "Th6", "Th7", "Th8", "Th9", "Th10", "Th11", "Th12"];
 
@@ -47,8 +46,8 @@ const formatDate = (dateStr) => {
 };
 
 // ─── Build 53-week grid ───────────────────────────────────────────────────────
-// Returns array of 53 columns, each column is array of 7 days (Mon–Sun)
-const buildGrid = () => {
+// Returns array of N columns, each column is array of 7 days (Mon–Sun)
+const buildGrid = (weeks) => {
     const today = new Date();
     today.setUTCHours(0, 0, 0, 0);
 
@@ -57,13 +56,13 @@ const buildGrid = () => {
     const dayOfWeek = today.getUTCDay(); // 0=Sun, 1=Mon,...
     const endDate = addDays(today, 6 - dayOfWeek); // next Sunday (or today if Sunday)
 
-    // Start = endDate - 52 weeks - 6 days
-    const startDate = addDays(endDate, -(WEEKS * 7 - 1));
+    // Start = endDate - (weeks - 1) weeks - 6 days
+    const startDate = addDays(endDate, -(weeks * 7 - 1));
 
     const grid = []; // grid[week][day]
     let current = new Date(startDate);
 
-    for (let w = 0; w < WEEKS; w++) {
+    for (let w = 0; w < weeks; w++) {
         const week = [];
         for (let d = 0; d < 7; d++) {
             week.push(toDateStr(current));
@@ -146,7 +145,9 @@ const StudyStreakHeatmap = () => {
         return m;
     }, [heatmapData]);
 
-    const { grid } = useMemo(() => buildGrid(), []);
+    const weeks = useBreakpointValue({ base: 10, md: 53 }) || 53;
+
+    const { grid } = useMemo(() => buildGrid(weeks), [weeks]);
     const monthLabels = useMemo(() => buildMonthLabels(grid), [grid]);
 
     const colors = isDark ? LEVEL_COLORS_DARK : LEVEL_COLORS_LIGHT;
@@ -189,32 +190,34 @@ const StudyStreakHeatmap = () => {
             overflow="hidden"
         >
             {/* ── Header ─────────────────────────────────────────────────────── */}
-            <Box px={6} pt={5} pb={4}>
+            <Box px={{ base: 4, md: 6 }} pt={5} pb={4}>
                 {/* Title row */}
-                <Flex justify="space-between" align="flex-start" mb={3}>
-                    <Box>
-                        <Text fontSize="md" fontWeight="bold" mb={0.5}>
-                            📅 Lịch sử học tập
-                        </Text>
-                        <Text fontSize="xs" color="fg.muted">
-                            {streakInfo
-                                ? `${streakInfo.totalStudyDays} ngày đã học trong năm qua`
-                                : "Đang tải..."}
-                        </Text>
-                    </Box>
+                <Flex direction={{ base: "column", sm: "row" }} justify="space-between" align={{ base: "stretch", sm: "flex-start" }} mb={4} gap={3}>
+                    <Flex justify="space-between" align="center" w="full">
+                        <Box>
+                            <Text fontSize="md" fontWeight="bold" mb={0.5}>
+                                📅 Lịch sử học tập
+                            </Text>
+                            <Text fontSize="xs" color="fg.muted">
+                                {streakInfo
+                                    ? `${streakInfo.totalStudyDays} ngày đã học trong năm qua`
+                                    : "Đang tải..."}
+                            </Text>
+                        </Box>
 
-                    {/* Legend — top right corner */}
-                    <Flex align="center" gap={1.5} mt={0.5}>
-                        <Text fontSize="10px" color="fg.subtle">Ít</Text>
-                        {[0, 1, 2, 3, 4].map((level) => (
-                            <Box
-                                key={level}
-                                w="11px" h="11px"
-                                borderRadius="2px"
-                                style={{ backgroundColor: colors[level] }}
-                            />
-                        ))}
-                        <Text fontSize="10px" color="fg.subtle">Nhiều</Text>
+                        {/* Legend — top right corner */}
+                        <Flex align="center" gap={1.5} mt={0.5} display={{ base: "flex", sm: "flex" }}>
+                            <Text fontSize="10px" color="fg.subtle">Ít</Text>
+                            {[0, 1, 2, 3, 4].map((level) => (
+                                <Box
+                                    key={level}
+                                    w="11px" h="11px"
+                                    borderRadius="2px"
+                                    style={{ backgroundColor: colors[level] }}
+                                />
+                            ))}
+                            <Text fontSize="10px" color="fg.subtle">Nhiều</Text>
+                        </Flex>
                     </Flex>
                 </Flex>
 

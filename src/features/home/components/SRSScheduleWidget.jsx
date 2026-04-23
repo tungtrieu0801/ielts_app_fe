@@ -182,20 +182,20 @@ const SRSScheduleWidget = () => {
                                         key={i}
                                         align="center"
                                         justify="flex-start"
-                                        gap={6}
-                                        px={4} py={2.5}
+                                        gap={{ base: 4, sm: 6 }}
+                                        px={{ base: 3, sm: 4 }} py={{ base: 2, sm: 2.5 }}
                                         borderRadius="lg"
                                         bg="bg.subtle"
                                         borderWidth="1px"
                                         borderColor="border.muted"
                                     >
-                                        <Flex align="center" gap={2} w="90px">
+                                        <Flex align="center" gap={2} w={{ base: "75px", sm: "90px" }}>
                                             <Box
                                                 w="6px" h="6px" borderRadius="full"
                                                 bg={i === 0 ? "blue.400" : "fg.subtle"}
                                                 flexShrink={0}
                                             />
-                                            <Text fontSize="sm" color="fg.muted" fontWeight="500">{bucket.label}</Text>
+                                            <Text fontSize="sm" color="fg.muted" fontWeight="500" noOfLines={1}>{bucket.label}</Text>
                                         </Flex>
                                         <Flex align="center" gap={1.5}>
                                             <Text fontSize="sm" fontWeight="800" color="fg">

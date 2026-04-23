@@ -95,7 +95,7 @@ const HomePage = () => {
 
     return (
         <BaseLayout>
-            <Box maxW="1200px" mx="auto">
+            <Box maxW="1200px" mx="auto" px={{ base: 4, md: 8 }} py={{ base: 4, md: 8 }}>
                 {/* Welcome */}
                 <Box mb={6}>
                     <Text fontSize={{ base: "2xl", md: "3xl" }} fontWeight="extrabold" mb={1}>
