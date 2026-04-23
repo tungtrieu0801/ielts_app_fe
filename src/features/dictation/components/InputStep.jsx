@@ -82,7 +82,7 @@ const InputStep = ({ onReady }) => {
                 >
                     {[
                         { key: "text", label: "📄 Đoạn văn", Icon: FiFileText },
-                        { key: "youtube", label: "▶️ YouTube", Icon: FiYoutube },
+                        // { key: "youtube", label: "▶️ YouTube", Icon: FiYoutube },
                     ].map(({ key, label }) => (
                         <Flex
                             key={key} flex={1}
