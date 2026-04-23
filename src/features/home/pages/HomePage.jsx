@@ -118,15 +118,15 @@ const HomePage = () => {
                     <StatCard icon={FiAward} label="Từ đã thuộc (Lv5)" value={stats?.masteredCards} color="orange" />
                 </SimpleGrid>
 
+                {/* Study Streak Heatmap — full width */}
+                <StudyStreakHeatmap />
+
                 {/* Main 2-column layout */}
                 <Flex direction={{ base: "column", lg: "row" }} gap={6} alignItems="flex-start">
                     {/* Left Column (Main Content) */}
                     <Box flex="1" minW="0">
                         {/* SRS Schedule Widget */}
                         <SRSScheduleWidget />
-
-                        {/* Study Streak Heatmap */}
-                        <StudyStreakHeatmap />
 
                         {/* Recent Sets */}
                         <Box>

@@ -1,37 +1,42 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Box, Flex, Text, useBreakpointValue } from "@chakra-ui/react";
+import { Box, Flex, Text } from "@chakra-ui/react";
 import { useStudyStore } from "../../../stores/useStudyStore.js";
 
-// ─── Constants ───────────────────────────────────────────────────────────────
-const DAY_LABELS = ["", "T2", "", "T4", "", "T6", ""];
-const MONTH_NAMES = ["Th1", "Th2", "Th3", "Th4", "Th5", "Th6", "Th7", "Th8", "Th9", "Th10", "Th11", "Th12"];
+const MONTH_NAMES = ["Th1","Th2","Th3","Th4","Th5","Th6","Th7","Th8","Th9","Th10","Th11","Th12"];
+const WEEKS = 53;
+const CELL_GAP = 3;
 
-// ─── Color levels ────────────────────────────────────────────────────────────
-const getLevel = (words) => {
-    if (!words || words === 0) return 0;
-    if (words <= 5) return 1;
-    if (words <= 15) return 2;
-    if (words <= 30) return 3;
-    return 4;
+// Dark mode — LeetCode-style
+const COLORS_DARK = {
+    bg: "#0d1117",
+    border: "rgba(255,255,255,0.08)",
+    text: "white",
+    textMuted: "rgba(255,255,255,0.4)",
+    badgeBg: "rgba(255,255,255,0.05)",
+    badgeBorder: "rgba(255,255,255,0.1)",
+    tooltipBg: "#1c2128",
+    tooltipBorder: "rgba(255,255,255,0.15)",
+    cells: ["#161b22", "#0e4429", "#006d32", "#26a641", "#39d353"],
+    today: "#39d353",
 };
 
-const LEVEL_COLORS_LIGHT = [
-    "hsl(220, 13%, 91%)",   // 0 — xám nhạt
-    "hsl(141, 55%, 85%)",   // 1 — xanh rất nhạt
-    "hsl(141, 60%, 65%)",   // 2 — xanh nhạt
-    "hsl(141, 65%, 42%)",   // 3 — xanh vừa
-    "hsl(141, 70%, 25%)",   // 4 — xanh đậm
-];
+// Light mode — clean GitHub-like
+const COLORS_LIGHT = {
+    bg: "#ffffff",
+    border: "rgba(0,0,0,0.08)",
+    text: "#1a202c",
+    textMuted: "rgba(0,0,0,0.45)",
+    badgeBg: "rgba(0,0,0,0.03)",
+    badgeBorder: "rgba(0,0,0,0.08)",
+    tooltipBg: "#1c2128",
+    tooltipBorder: "rgba(255,255,255,0.15)",
+    cells: ["#ebedf0", "#9be9a8", "#40c463", "#30a14e", "#216e39"],
+    today: "#216e39",
+};
 
-const LEVEL_COLORS_DARK = [
-    "hsl(220, 13%, 18%)",   // 0
-    "hsl(141, 40%, 18%)",   // 1
-    "hsl(141, 50%, 28%)",   // 2
-    "hsl(141, 60%, 40%)",   // 3
-    "hsl(141, 65%, 55%)",   // 4
-];
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+const getLevel = (w) => !w ? 0 : w <= 5 ? 1 : w <= 15 ? 2 : w <= 30 ? 3 : 4;
+
 const toDateStr = (d) => d.toISOString().split("T")[0];
 
 const addDays = (date, days) => {
@@ -40,91 +45,48 @@ const addDays = (date, days) => {
     return d;
 };
 
-const formatDate = (dateStr) => {
-    const d = new Date(dateStr + "T00:00:00Z");
-    return d.toLocaleDateString("vi-VN", { timeZone: "UTC", day: "numeric", month: "long", year: "numeric" });
-};
+const formatDate = (s) =>
+    new Date(s + "T00:00:00Z").toLocaleDateString("vi-VN", {
+        timeZone: "UTC", day: "numeric", month: "long", year: "numeric",
+    });
 
-// ─── Build 53-week grid ───────────────────────────────────────────────────────
-// Returns array of N columns, each column is array of 7 days (Mon–Sun)
 const buildGrid = (weeks) => {
     const today = new Date();
     today.setUTCHours(0, 0, 0, 0);
-
-    // Find the Sunday of the current week (end of visible grid)
-    // We align grid to Sunday as last cell
-    const dayOfWeek = today.getUTCDay(); // 0=Sun, 1=Mon,...
-    const endDate = addDays(today, 6 - dayOfWeek); // next Sunday (or today if Sunday)
-
-    // Start = endDate - (weeks - 1) weeks - 6 days
-    const startDate = addDays(endDate, -(weeks * 7 - 1));
-
-    const grid = []; // grid[week][day]
-    let current = new Date(startDate);
-
+    const dow = today.getUTCDay();
+    const end = addDays(today, 6 - dow);
+    const start = addDays(end, -(weeks * 7 - 1));
+    const grid = [];
+    let cur = new Date(start);
     for (let w = 0; w < weeks; w++) {
         const week = [];
-        for (let d = 0; d < 7; d++) {
-            week.push(toDateStr(current));
-            current = addDays(current, 1);
-        }
+        for (let d = 0; d < 7; d++) { week.push(toDateStr(cur)); cur = addDays(cur, 1); }
         grid.push(week);
     }
-
-    return { grid, startDate, endDate };
+    return grid;
 };
 
-// ─── Month label positions ────────────────────────────────────────────────────
 const buildMonthLabels = (grid) => {
     const labels = [];
-    let lastMonth = -1;
+    let last = -1;
     grid.forEach((week, wi) => {
-        const firstDay = new Date(week[0] + "T00:00:00Z");
-        const month = firstDay.getUTCMonth();
-        if (month !== lastMonth) {
-            labels.push({ month, weekIndex: wi });
-            lastMonth = month;
-        }
+        const m = new Date(week[0] + "T00:00:00Z").getUTCMonth();
+        if (m !== last) { labels.push({ month: m, wi }); last = m; }
     });
     return labels;
 };
 
-// ─── Tooltip Component ────────────────────────────────────────────────────────
-const Tooltip = ({ tooltip }) => {
-    if (!tooltip) return null;
-    return (
-        <Box
-            position="fixed"
-            left={`${tooltip.x}px`}
-            top={`${tooltip.y}px`}
-            transform="translate(-50%, -100%)"
-            mt={-2}
-            bg="gray.800"
-            color="white"
-            fontSize="xs"
-            px={3}
-            py={1.5}
-            borderRadius="md"
-            pointerEvents="none"
-            zIndex={9999}
-            whiteSpace="nowrap"
-            boxShadow="lg"
-        >
-            {tooltip.content}
-        </Box>
-    );
-};
-
-// ─── Main Component ───────────────────────────────────────────────────────────
 const StudyStreakHeatmap = () => {
     const { streakInfo, fetchStreakInfo } = useStudyStore();
     const [heatmapData, setHeatmapData] = useState(null);
     const [tooltip, setTooltip] = useState(null);
+    const [cellSize, setCellSize] = useState(14);
+    const [weeks, setWeeks] = useState(WEEKS);
     const [isDark, setIsDark] = useState(false);
-    const scrollContainerRef = useRef(null);
+    const containerRef = useRef(null);
+    const C = isDark ? COLORS_DARK : COLORS_LIGHT;
 
     useEffect(() => {
-        // Fetch heatmap directly (no longer in store)
         import("../../../services/studyApi.js").then(({ getHeatmap }) => {
             getHeatmap().then((data) => setHeatmapData(Array.isArray(data) ? data : [])).catch(() => {});
         });
@@ -138,264 +100,178 @@ const StudyStreakHeatmap = () => {
         return () => observer.disconnect();
     }, []);
 
-    // Map date -> wordsReviewed
+    // Auto-compute weeks + cellSize to exactly fill container — no scroll ever
+    useEffect(() => {
+        if (!containerRef.current) return;
+        const compute = () => {
+            const w = containerRef.current?.clientWidth ?? 0;
+            const available = w - 48; // 24px padding each side
+            const MIN_CELL = 10;
+            // How many weeks fit at minimum cell size?
+            const maxWeeks = Math.min(WEEKS, Math.floor((available + CELL_GAP) / (MIN_CELL + CELL_GAP)));
+            const w2 = Math.max(4, maxWeeks);
+            // Fill the width perfectly with those weeks
+            const size = Math.floor((available - (w2 - 1) * CELL_GAP) / w2);
+            setWeeks(w2);
+            setCellSize(Math.max(MIN_CELL, Math.min(18, size)));
+        };
+        compute();
+        const ro = new ResizeObserver(compute);
+        ro.observe(containerRef.current);
+        return () => ro.disconnect();
+    }, []);
+
+
     const dataMap = useMemo(() => {
         const m = {};
         (heatmapData ?? []).forEach((log) => { m[log.date] = log.wordsReviewed; });
         return m;
     }, [heatmapData]);
 
-    const weeks = useBreakpointValue({ base: 10, md: 53 }) || 53;
-
-    const { grid } = useMemo(() => buildGrid(weeks), [weeks]);
+    const grid = useMemo(() => buildGrid(weeks), [weeks]);
     const monthLabels = useMemo(() => buildMonthLabels(grid), [grid]);
-
-    const colors = isDark ? LEVEL_COLORS_DARK : LEVEL_COLORS_LIGHT;
-
     const todayStr = toDateStr(new Date());
+    const STEP = cellSize + CELL_GAP;
 
     const handleMouseEnter = (e, dateStr) => {
         const words = dataMap[dateStr] || 0;
-        const dateLabel = formatDate(dateStr);
-        const content = words === 0
-            ? `${dateLabel} • Chưa học`
-            : `${dateLabel} • ${words} từ đã ôn`;
         const rect = e.currentTarget.getBoundingClientRect();
         setTooltip({
             x: rect.left + rect.width / 2,
-            y: rect.top + window.scrollY - 8,
-            content,
+            y: rect.top - 8,
+            content: words === 0
+                ? `${formatDate(dateStr)} • Chưa học`
+                : `${formatDate(dateStr)} • ${words} từ đã ôn`,
         });
     };
 
-    const handleMouseLeave = () => setTooltip(null);
-
-    const CELL_SIZE = useBreakpointValue({ base: 9, md: 10, lg: 12 }) || 12;
-    const CELL_GAP = useBreakpointValue({ base: 2, md: 3 }) || 3;
-
-    // Scroll to the far right so today is visible
-    useEffect(() => {
-        if (scrollContainerRef.current) {
-            scrollContainerRef.current.scrollLeft = scrollContainerRef.current.scrollWidth;
-        }
-    }, [grid, CELL_SIZE]); // re-run if grid or cell size changes
-
     return (
         <Box
-            bg="bg.panel"
+            ref={containerRef}
             borderRadius="2xl"
-            borderWidth="1px"
-            borderColor="border.muted"
             mb={8}
             overflow="hidden"
+            borderWidth="1px"
+            style={{ backgroundColor: C.bg, borderColor: C.border }}
         >
-            {/* ── Header ─────────────────────────────────────────────────────── */}
-            <Box px={{ base: 4, md: 6 }} pt={5} pb={4}>
-                {/* Title row */}
-                <Flex direction={{ base: "column", sm: "row" }} justify="space-between" align={{ base: "stretch", sm: "flex-start" }} mb={4} gap={3}>
-                    <Flex justify="space-between" align="center" w="full">
-                        <Box>
-                            <Text fontSize="md" fontWeight="bold" mb={0.5}>
-                                📅 Lịch sử học tập
-                            </Text>
-                            <Text fontSize="xs" color="fg.muted">
-                                {streakInfo
-                                    ? `${streakInfo.totalStudyDays} ngày đã học trong năm qua`
-                                    : "Đang tải..."}
-                            </Text>
-                        </Box>
-
-                        {/* Legend — top right corner */}
-                        <Flex align="center" gap={1.5} mt={0.5} display={{ base: "flex", sm: "flex" }}>
-                            <Text fontSize="10px" color="fg.subtle">Ít</Text>
-                            {[0, 1, 2, 3, 4].map((level) => (
-                                <Box
-                                    key={level}
-                                    w="11px" h="11px"
-                                    borderRadius="2px"
-                                    style={{ backgroundColor: colors[level] }}
-                                />
-                            ))}
-                            <Text fontSize="10px" color="fg.subtle">Nhiều</Text>
-                        </Flex>
-                    </Flex>
-                </Flex>
-
-                {/* Streak chips row */}
-                <Flex gap={2} flexWrap="wrap">
-                    {/* Current streak */}
-                    <Flex
-                        align="center" gap={1.5}
-                        px={3} py={1.5}
-                        borderRadius="full"
-                        bg={isDark ? "orange.900/40" : "orange.50"}
-                        borderWidth="1px"
-                        borderColor={isDark ? "orange.700" : "orange.200"}
+            {/* Header */}
+            <Flex px={6} pt={5} pb={4} justify="space-between" align="center" flexWrap="wrap" gap={3}>
+                <Box>
+                    <Text fontSize="md" fontWeight="bold" mb={0.5} style={{ color: C.text }}>
+                        📅 Lịch sử học tập
+                    </Text>
+                    <Text fontSize="xs" style={{ color: C.textMuted }}>
+                        {streakInfo ? `${streakInfo.totalStudyDays} ngày đã học trong năm qua` : "Đang tải..."}
+                    </Text>
+                </Box>
+                <Flex gap={3} align="center" flexWrap="wrap">
+                    <Flex align="center" gap={1.5} px={3} py={1.5} borderRadius="full"
+                        style={{ backgroundColor: C.badgeBg, border: `1px solid ${C.badgeBorder}` }}
                     >
                         <Text fontSize="sm">🔥</Text>
-                        <Text fontSize="sm" fontWeight="700" color="orange.500">
-                            {streakInfo?.currentStreak ?? "–"}
-                        </Text>
-                        <Text fontSize="xs" color="fg.muted">ngày liên tiếp</Text>
+                        <Text fontSize="sm" fontWeight="700" color="orange.500">{streakInfo?.currentStreak ?? "–"}</Text>
+                        <Text fontSize="xs" style={{ color: C.textMuted }}>ngày liên tiếp</Text>
                     </Flex>
-
-                    {/* Longest streak */}
-                    <Flex
-                        align="center" gap={1.5}
-                        px={3} py={1.5}
-                        borderRadius="full"
-                        bg={isDark ? "purple.900/40" : "purple.50"}
-                        borderWidth="1px"
-                        borderColor={isDark ? "purple.700" : "purple.200"}
+                    <Flex align="center" gap={1.5} px={3} py={1.5} borderRadius="full"
+                        style={{ backgroundColor: C.badgeBg, border: `1px solid ${C.badgeBorder}` }}
                     >
                         <Text fontSize="sm">🏆</Text>
-                        <Text fontSize="sm" fontWeight="700" color="purple.500">
-                            {streakInfo?.longestStreak ?? "–"}
-                        </Text>
-                        <Text fontSize="xs" color="fg.muted">kỷ lục</Text>
+                        <Text fontSize="sm" fontWeight="700" color="purple.500">{streakInfo?.longestStreak ?? "–"}</Text>
+                        <Text fontSize="xs" style={{ color: C.textMuted }}>kỷ lục</Text>
                     </Flex>
-
-                    {/* Total days */}
                     {streakInfo?.totalStudyDays > 0 && (
-                        <Flex
-                            align="center" gap={1.5}
-                            px={3} py={1.5}
-                            borderRadius="full"
-                            bg={isDark ? "green.900/40" : "green.50"}
-                            borderWidth="1px"
-                            borderColor={isDark ? "green.700" : "green.200"}
+                        <Flex align="center" gap={1.5} px={3} py={1.5} borderRadius="full"
+                            style={{ backgroundColor: C.badgeBg, border: `1px solid ${C.badgeBorder}` }}
                         >
                             <Text fontSize="sm">📚</Text>
-                            <Text fontSize="sm" fontWeight="700" color="green.500">
-                                {streakInfo.totalStudyDays}
-                            </Text>
-                            <Text fontSize="xs" color="fg.muted">ngày đã học</Text>
+                            <Text fontSize="sm" fontWeight="700" color="green.500">{streakInfo.totalStudyDays}</Text>
+                            <Text fontSize="xs" style={{ color: C.textMuted }}>ngày đã học</Text>
                         </Flex>
                     )}
                 </Flex>
-            </Box>
+            </Flex>
 
-            {/* Divider */}
-            <Box h="1px" bg="border.muted" mx={0} />
-
-            {/* Heatmap grid */}
-            <Box
-                ref={scrollContainerRef}
-                overflowX="auto"
-                pb={4}
-                sx={{
-                    "&::-webkit-scrollbar": {
-                        height: "6px",
-                    },
-                    "&::-webkit-scrollbar-track": {
-                        background: "transparent",
-                    },
-                    "&::-webkit-scrollbar-thumb": {
-                        background: isDark ? "whiteAlpha.200" : "blackAlpha.200",
-                        borderRadius: "full",
-                    },
-                    "&::-webkit-scrollbar-thumb:hover": {
-                        background: isDark ? "whiteAlpha.300" : "blackAlpha.300",
-                    },
-                }}
-            >
-                <Box
-                    display="inline-flex"
-                    gap={0}
-                    flexDirection="column"
-                    minW="max-content"
-                    mx="auto"
-                    px={{ base: 4, md: 6 }}
-                    pt={4}
-                >
-                    {/* Month labels */}
-                    <Box
-                        display="flex"
-                        mb={1}
-                        pl={`${CELL_SIZE + CELL_GAP + 4}px`}
-                        position="relative"
-                        h="16px"
-                    >
-                        {monthLabels.map(({ month, weekIndex }, i) => (
-                            <Box
-                                key={i}
-                                position="absolute"
-                                left={`${(CELL_SIZE + CELL_GAP + 4) + weekIndex * (CELL_SIZE + CELL_GAP)}px`}
-                                fontSize="11px"
-                                color="fg.muted"
-                                fontWeight="500"
-                                whiteSpace="nowrap"
-                            >
-                                {MONTH_NAMES[month]}
-                            </Box>
-                        ))}
-                    </Box>
-
-                    {/* Grid body: day labels + cells */}
-                    <Box display="flex" gap={`${CELL_GAP}px`}>
-                        {/* Day of week labels */}
-                        <Box display="flex" flexDirection="column" gap={`${CELL_GAP}px`} mr={1}>
-                            {DAY_LABELS.map((label, i) => (
-                                <Box
-                                    key={i}
-                                    h={`${CELL_SIZE}px`}
-                                    w="18px"
-                                    fontSize="10px"
-                                    color="fg.muted"
-                                    display="flex"
-                                    alignItems="center"
-                                    justifyContent="flex-end"
-                                    pr={1}
-                                    flexShrink={0}
-                                >
-                                    {label}
-                                </Box>
-                            ))}
+            {/* Grid */}
+            <Box px={6} pb={5}>
+                {/* Cells */}
+                <Box display="flex" gap={`${CELL_GAP}px`}>
+                    {grid.map((week, wi) => (
+                        <Box key={wi} display="flex" flexDirection="column" gap={`${CELL_GAP}px`}>
+                            {week.map((dateStr, di) => {
+                                const level = getLevel(dataMap[dateStr] || 0);
+                                const isToday = dateStr === todayStr;
+                                const isFuture = dateStr > todayStr;
+                                return (
+                                    <Box
+                                        key={di}
+                                        w={`${cellSize}px`}
+                                        h={`${cellSize}px`}
+                                        borderRadius="2px"
+                                        flexShrink={0}
+                                        style={{
+                                            backgroundColor: isFuture ? "transparent" : C.cells[level],
+                                            outline: isToday ? `2px solid ${C.today}` : "none",
+                                            outlineOffset: "1px",
+                                            cursor: isFuture ? "default" : "pointer",
+                                            transition: "transform 0.1s, filter 0.1s",
+                                        }}
+                                        onMouseEnter={isFuture ? undefined : (e) => handleMouseEnter(e, dateStr)}
+                                        onMouseLeave={isFuture ? undefined : () => setTooltip(null)}
+                                        _hover={isFuture ? {} : { filter: "brightness(1.4)", transform: "scale(1.3)" }}
+                                    />
+                                );
+                            })}
                         </Box>
-
-                        {/* Weeks */}
-                        {grid.map((week, wi) => (
-                            <Box key={wi} display="flex" flexDirection="column" gap={`${CELL_GAP}px`}>
-                                {week.map((dateStr, di) => {
-                                    const words = dataMap[dateStr] || 0;
-                                    const level = getLevel(words);
-                                    const isToday = dateStr === todayStr;
-                                    const isFuture = dateStr > todayStr;
-
-                                    return (
-                                        <Box
-                                            key={di}
-                                            w={`${CELL_SIZE}px`}
-                                            h={`${CELL_SIZE}px`}
-                                            borderRadius="2px"
-                                            flexShrink={0}
-                                            style={{
-                                                backgroundColor: isFuture
-                                                    ? "transparent"
-                                                    : colors[level],
-                                                outline: isToday
-                                                    ? `2px solid ${isDark ? "hsl(141,65%,55%)" : "hsl(141,70%,35%)"}`
-                                                    : "none",
-                                                outlineOffset: "1px",
-                                                cursor: isFuture ? "default" : "pointer",
-                                                transition: "transform 0.1s ease, filter 0.1s ease",
-                                            }}
-                                            onMouseEnter={isFuture ? undefined : (e) => handleMouseEnter(e, dateStr)}
-                                            onMouseLeave={isFuture ? undefined : handleMouseLeave}
-                                            _hover={isFuture ? {} : { filter: "brightness(1.2)", transform: "scale(1.3)" }}
-                                        />
-                                    );
-                                })}
-                            </Box>
-                        ))}
-                    </Box>
-
+                    ))}
                 </Box>
-            </Box>
 
+                {/* Month labels */}
+                <Box position="relative" h="18px" mt={1}>
+                    {monthLabels.map(({ month, wi }, i) => (
+                        <Box
+                            key={i}
+                            position="absolute"
+                            left={`${wi * STEP}px`}
+                            fontSize="11px"
+                            fontWeight="500"
+                            whiteSpace="nowrap"
+                            style={{ color: C.textMuted }}
+                        >
+                            {MONTH_NAMES[month]}
+                        </Box>
+                    ))}
+                </Box>
+
+                {/* Legend */}
+                <Flex justify="flex-end" align="center" gap={1.5} mt={2}>
+                    <Text fontSize="10px" style={{ color: C.textMuted }}>Ít</Text>
+                    {C.cells.map((color, i) => (
+                        <Box key={i} w="12px" h="12px" borderRadius="2px" style={{ backgroundColor: color }} />
+                    ))}
+                    <Text fontSize="10px" style={{ color: C.textMuted }}>Nhiều</Text>
+                </Flex>
+            </Box>
 
             {/* Tooltip */}
-            <Tooltip tooltip={tooltip} />
+            {tooltip && (
+                <Box
+                    position="fixed"
+                    left={`${tooltip.x}px`}
+                    top={`${tooltip.y}px`}
+                    transform="translate(-50%, -100%)"
+                    color="white"
+                    fontSize="xs"
+                    px={3} py={1.5}
+                    borderRadius="md"
+                    pointerEvents="none"
+                    zIndex={9999}
+                    whiteSpace="nowrap"
+                    boxShadow="0 4px 12px rgba(0,0,0,0.5)"
+                    style={{ backgroundColor: C.tooltipBg, border: `1px solid ${C.tooltipBorder}` }}
+                >
+                    {tooltip.content}
+                </Box>
+            )}
         </Box>
     );
 };
