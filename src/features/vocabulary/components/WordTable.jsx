@@ -1,9 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
     Box, Flex, Text, Input, Badge, IconButton, Spinner, Button,
 } from "@chakra-ui/react";
-import { FiTrash2, FiEdit2, FiCheck, FiX } from "react-icons/fi";
+import { FiTrash2, FiEdit2, FiCheck, FiX, FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import { useVocabularyStore } from "../../../stores/useVocabularyStore.js";
+
+const PAGE_SIZE = 10;
 
 const WordRow = ({ word, setId, index }) => {
     const { updateWord, deleteWord } = useVocabularyStore();
@@ -93,21 +95,28 @@ const WordRow = ({ word, setId, index }) => {
 };
 
 const WordTable = ({ words, setId, loading }) => {
+    const [page, setPage] = useState(1);
+
+    // Reset to page 1 whenever the word list changes (search/filter)
+    useEffect(() => { setPage(1); }, [words]);
+
     if (loading) return <Flex justify="center" py={10}><Spinner /></Flex>;
 
     if (words.length === 0) return (
-        <Flex
-            direction="column" align="center" py={12} gap={3}
-            color="fg.muted"
-        >
+        <Flex direction="column" align="center" py={12} gap={3} color="fg.muted">
             <Text fontSize="3xl">📭</Text>
             <Text>Chưa có từ nào trong bộ này. Import file Excel để thêm từ!</Text>
         </Flex>
     );
 
+    const totalPages = Math.ceil(words.length / PAGE_SIZE);
+    const pageWords = words.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+    // Absolute index for row numbering
+    const offset = (page - 1) * PAGE_SIZE;
+
     return (
         <Box borderWidth="1px" borderColor="border.muted" borderRadius="xl" overflow="hidden">
-            <Box overflowX="auto" maxH="520px" overflowY="auto">
+            <Box overflowX="auto">
                 <table style={{ width: "100%", borderCollapse: "collapse" }}>
                     <thead>
                         <tr>
@@ -131,12 +140,70 @@ const WordTable = ({ words, setId, loading }) => {
                         </tr>
                     </thead>
                     <tbody>
-                        {words.map((word, idx) => (
-                            <WordRow key={word._id} word={word} setId={setId} index={idx} />
+                        {pageWords.map((word, idx) => (
+                            <WordRow key={word._id} word={word} setId={setId} index={offset + idx} />
                         ))}
                     </tbody>
                 </table>
             </Box>
+
+            {/* Pagination Controls */}
+            <Flex
+                align="center" justify="space-between"
+                px={4} py={3}
+                borderTop="1px solid"
+                borderColor="border.muted"
+                bg="bg.subtle"
+            >
+                <Text fontSize="sm" color="fg.muted">
+                    Hiển thị <strong>{offset + 1}–{Math.min(offset + PAGE_SIZE, words.length)}</strong> / {words.length} từ
+                </Text>
+
+                <Flex align="center" gap={2}>
+                    <IconButton
+                        size="sm" variant="ghost"
+                        disabled={page === 1}
+                        onClick={() => setPage((p) => p - 1)}
+                        aria-label="Trang trước"
+                    >
+                        <FiChevronLeft />
+                    </IconButton>
+
+                    {/* Page number buttons — show up to 5 pages */}
+                    {Array.from({ length: totalPages }, (_, i) => i + 1)
+                        .filter((p) => p === 1 || p === totalPages || Math.abs(p - page) <= 1)
+                        .reduce((acc, p, i, arr) => {
+                            if (i > 0 && p - arr[i - 1] > 1) acc.push("...");
+                            acc.push(p);
+                            return acc;
+                        }, [])
+                        .map((p, i) =>
+                            p === "..." ? (
+                                <Text key={`dot-${i}`} fontSize="sm" color="fg.muted" px={1}>…</Text>
+                            ) : (
+                                <Button
+                                    key={p}
+                                    size="sm"
+                                    variant={p === page ? "solid" : "ghost"}
+                                    colorPalette={p === page ? "blue" : "gray"}
+                                    onClick={() => setPage(p)}
+                                    minW="32px"
+                                >
+                                    {p}
+                                </Button>
+                            )
+                        )}
+
+                    <IconButton
+                        size="sm" variant="ghost"
+                        disabled={page === totalPages}
+                        onClick={() => setPage((p) => p + 1)}
+                        aria-label="Trang sau"
+                    >
+                        <FiChevronRight />
+                    </IconButton>
+                </Flex>
+            </Flex>
         </Box>
     );
 };
