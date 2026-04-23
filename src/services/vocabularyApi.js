@@ -4,6 +4,9 @@ import axiosClient from "../config/axios.js";
 export const getWordSets = () =>
     axiosClient.get("/wordsets").then((r) => r.data.data);
 
+export const getPublicSets = () =>
+    axiosClient.get("/wordsets/public").then((r) => r.data.data);
+
 export const createWordSet = (data) =>
     axiosClient.post("/wordsets", data).then((r) => r.data.data);
 
@@ -12,6 +15,9 @@ export const updateWordSet = (id, data) =>
 
 export const deleteWordSet = (id) =>
     axiosClient.delete(`/wordsets/${id}`).then((r) => r.data);
+
+export const forkWordSet = (id) =>
+    axiosClient.post(`/wordsets/${id}/fork`).then((r) => r.data);
 
 // Words CRUD
 export const getWords = (setId, params = {}) =>

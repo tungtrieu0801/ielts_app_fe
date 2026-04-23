@@ -3,13 +3,15 @@ import * as vocab from "../services/vocabularyApi.js";
 
 export const useVocabularyStore = create((set, get) => ({
     wordSets: [],
+    publicSets: [],
     currentSet: null,
     words: [],
     totalWords: 0,
     loading: false,
+    publicLoading: false,
     error: null,
 
-    // --- WordSets ---
+    // --- My WordSets ---
     fetchWordSets: async () => {
         set({ loading: true, error: null });
         try {
@@ -39,6 +41,26 @@ export const useVocabularyStore = create((set, get) => ({
     },
 
     setCurrentSet: (set_) => set({ currentSet: set_ }),
+
+    // --- Public WordSets ---
+    fetchPublicSets: async () => {
+        set({ publicLoading: true });
+        try {
+            const data = await vocab.getPublicSets();
+            set({ publicSets: data, publicLoading: false });
+        } catch (e) {
+            set({ publicLoading: false });
+        }
+    },
+
+    forkWordSet: async (id) => {
+        const res = await vocab.forkWordSet(id);
+        if (res.data && !res.alreadyForked) {
+            // Add forked set to my sets
+            set((s) => ({ wordSets: [res.data, ...s.wordSets] }));
+        }
+        return res;
+    },
 
     // --- Words ---
     fetchWords: async (setId, params) => {
