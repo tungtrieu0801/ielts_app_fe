@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useLayoutEffect, useRef, useCallback } from "react";
 import { Box, Flex, Text, Button, Badge } from "@chakra-ui/react";
 import { speak } from "../../../shared/utils/speech.js";
 import SpeakButton from "../../../shared/components/SpeakButton.jsx";
@@ -42,7 +42,9 @@ const LEVEL_COLORS = ["gray", "orange", "yellow", "blue", "purple", "green"];
 
 const Flashcard = ({ word, onAnswer, existingAnswer }) => {
     const [flipped, setFlipped] = useState(false);
+    const [isResetting, setIsResetting] = useState(false);
     const isFirstRender = useRef(true);
+    const rafRef = useRef(null);
 
     // Auto-read when new word appears
     useEffect(() => {
@@ -55,9 +57,19 @@ const Flashcard = ({ word, onAnswer, existingAnswer }) => {
         return () => clearTimeout(timer);
     }, [word?._id]);
 
-    // Reset flip when card changes
-    useEffect(() => {
+    // Reset flip instantly (no animation) when card changes.
+    // useLayoutEffect fires synchronously before paint — React batches the two
+    // state updates into a single render, so the browser NEVER sees the new
+    // card's back face, not even for one frame.
+    useLayoutEffect(() => {
+        if (rafRef.current) cancelAnimationFrame(rafRef.current);
+        setIsResetting(true);
         setFlipped(false);
+        rafRef.current = requestAnimationFrame(() => {
+            setIsResetting(false);
+            rafRef.current = null;
+        });
+        return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
     }, [word?._id]);
 
     // Keyboard shortcuts
@@ -108,7 +120,7 @@ const Flashcard = ({ word, onAnswer, existingAnswer }) => {
                     position="relative"
                     style={{
                         transformStyle: "preserve-3d",
-                        transition: "transform 0.55s cubic-bezier(0.4,0,0.2,1)",
+                        transition: isResetting ? "none" : "transform 0.55s cubic-bezier(0.4,0,0.2,1)",
                         transform: flipped ? "rotateY(180deg)" : "rotateY(0deg)",
                     }}
                 >
