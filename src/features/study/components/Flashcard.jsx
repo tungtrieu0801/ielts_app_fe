@@ -1,96 +1,110 @@
-import React, { useState, useCallback, useEffect, useRef } from "react";
-import { Box, Flex, Text, Button, IconButton, Badge } from "@chakra-ui/react";
-import { FiVolume2 } from "react-icons/fi";
-
-const QUALITY_BUTTONS = [
-    { quality: 0, label: "Again", color: "red", emoji: "❌", desc: "Không nhớ" },
-    { quality: 1, label: "Hard", color: "orange", emoji: "😓", desc: "Rất khó" },
-    { quality: 2, label: "Good", color: "blue", emoji: "👍", desc: "Nhớ được" },
-    { quality: 3, label: "Easy", color: "green", emoji: "✅", desc: "Dễ dàng" },
-];
-
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { Box, Flex, Text, Button, Badge } from "@chakra-ui/react";
 import { speak } from "../../../shared/utils/speech.js";
 import SpeakButton from "../../../shared/components/SpeakButton.jsx";
 
-// ── Flashcard ─────────────────────────────────────────────────
-const Flashcard = ({ word, onAnswer }) => {
+const QUALITY_BUTTONS = [
+    {
+        quality: "AGAIN",
+        label: "Again",
+        emoji: "❌",
+        desc: "Không nhớ",
+        color: "red",
+        key: "1",
+    },
+    {
+        quality: "HARD",
+        label: "Hard",
+        emoji: "😓",
+        desc: "Rất khó",
+        color: "orange",
+        key: "2",
+    },
+    {
+        quality: "GOOD",
+        label: "Good",
+        emoji: "👍",
+        desc: "Nhớ được",
+        color: "blue",
+        key: "3",
+    },
+    {
+        quality: "EASY",
+        label: "Easy",
+        emoji: "✅",
+        desc: "Dễ dàng",
+        color: "green",
+        key: "4",
+    },
+];
+
+const LEVEL_COLORS = ["gray", "orange", "yellow", "blue", "purple", "green"];
+
+const Flashcard = ({ word, onAnswer, existingAnswer }) => {
     const [flipped, setFlipped] = useState(false);
-    const [answered, setAnswered] = useState(false);
     const isFirstRender = useRef(true);
 
-    // ✅ Auto-read: đọc từ tiếng Anh ngay khi thẻ mới xuất hiện
+    // Auto-read when new word appears
     useEffect(() => {
         if (!word?.english) return;
-        // Delay nhỏ để không xung đột với animation lật thẻ cũ
-        const timer = setTimeout(() => {
-            speak(word.english, "en-US", 0.9);
-        }, isFirstRender.current ? 500 : 300);
+        const timer = setTimeout(
+            () => speak(word.english, "en-US", 0.9),
+            isFirstRender.current ? 500 : 300
+        );
         isFirstRender.current = false;
         return () => clearTimeout(timer);
-    }, [word?._id]); // chỉ kích hoạt khi _id thay đổi (từ mới)
-
-    // Reset state khi từ mới
-    useEffect(() => {
-        setFlipped(false);
-        setAnswered(false);
     }, [word?._id]);
 
-    // Lắng nghe phím tắt bàn phím (Shortcuts)
+    // Reset flip when card changes
+    useEffect(() => {
+        setFlipped(false);
+    }, [word?._id]);
+
+    // Keyboard shortcuts
     useEffect(() => {
         const handleKeyDown = (e) => {
-            // Bỏ qua nếu đang gõ chữ vào ô input (VD: phần Fill-in)
-            if (['INPUT', 'TEXTAREA'].includes(e.target.tagName)) return;
+            if (["INPUT", "TEXTAREA"].includes(e.target.tagName)) return;
 
-            if (e.code === 'Space') {
-                e.preventDefault(); // Ngăn trình duyệt cuộn trang
-                if (!answered) {
-                    setFlipped(prev => !prev);
-                }
+            if (e.code === "Space") {
+                e.preventDefault();
+                setFlipped((v) => !v);
             }
 
-            if (flipped && !answered) {
-                const keyMap = { '1': 0, '2': 1, '3': 2, '4': 3 };
-                const quality = keyMap[e.key];
-                if (quality !== undefined) {
+            if (flipped) {
+                const btn = QUALITY_BUTTONS.find((b) => b.key === e.key);
+                if (btn) {
                     e.preventDefault();
-                    // Gọi hàm đánh giá tương ứng
-                    handleAnswer(quality);
+                    onAnswer(word.cardId, btn.quality);
                 }
             }
         };
-
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [flipped, answered, word?._id]);
+    }, [flipped, word?._id]);
 
     const handleCardClick = useCallback(() => {
-        if (answered) return;
         setFlipped((v) => !v);
-    }, [answered]);
+    }, []);
 
-    const handleAnswer = (quality) => {
-        setAnswered(true);
-        setTimeout(() => {
-            setFlipped(false);
-            setAnswered(false);
-            onAnswer(word._id, quality);
-        }, 350);
-    };
+    const srsLevel = word?.srs?.level ?? 0;
+    const srsStatus = word?.srs?.status ?? "NEW";
 
     return (
         <Flex direction="column" align="center" w="full" maxW="800px" mx="auto">
             {/* ── Card 3D ── */}
             <Box
-                w="full" h={{ base: "350px", md: "420px" }}
-                cursor={answered ? "default" : "pointer"}
-                onClick={!answered ? handleCardClick : undefined}
+                w="full"
+                h={{ base: "340px", md: "420px" }}
+                cursor="pointer"
+                onClick={handleCardClick}
                 style={{ perspective: "1200px" }}
                 mb={6}
                 userSelect="none"
             >
                 <Box
-                    w="full" h="full"
+                    w="full"
+                    h="full"
                     position="relative"
                     style={{
                         transformStyle: "preserve-3d",
@@ -98,41 +112,82 @@ const Flashcard = ({ word, onAnswer }) => {
                         transform: flipped ? "rotateY(180deg)" : "rotateY(0deg)",
                     }}
                 >
-                    {/* ── Mặt trước: Tiếng Anh ── */}
+                    {/* ── Front: English ── */}
                     <Box
-                        position="absolute" inset={0}
+                        position="absolute"
+                        inset={0}
                         bg="bg.panel"
                         borderRadius="3xl"
                         borderWidth="1.5px"
                         borderColor={flipped ? "border.muted" : "brand.solid"}
                         shadow="xl"
-                        display="flex" flexDirection="column"
-                        alignItems="center" justifyContent="center" p={8}
+                        display="flex"
+                        flexDirection="column"
+                        alignItems="center"
+                        justifyContent="center"
+                        p={8}
                         style={{ backfaceVisibility: "hidden" }}
                         transition="border-color 0.3s"
                     >
+                        {/* SRS level badge */}
+                        <Flex position="absolute" top={4} left={4} gap={2}>
+                            <Badge
+                                colorPalette={LEVEL_COLORS[srsLevel]}
+                                variant="subtle"
+                                fontSize="xs"
+                                px={2}
+                                borderRadius="md"
+                                fontWeight="bold"
+                            >
+                                Level {srsLevel}
+                            </Badge>
+                            {srsStatus === "NEW" && (
+                                <Badge colorPalette="cyan" variant="subtle" fontSize="xs" px={2} borderRadius="md">
+                                    NEW
+                                </Badge>
+                            )}
+                        </Flex>
+
                         <Box position="absolute" top={4} right={4}>
                             <SpeakButton text={word.english} lang="en-US" label="Nghe từ tiếng Anh" />
                         </Box>
+
                         {word.level && (
-                            <Box position="absolute" top={4} left={4}>
-                                <Badge colorPalette="purple" variant="subtle" fontSize="xs" px={2} borderRadius="md" fontWeight="bold">
-                                    {word.level}
-                                </Badge>
-                            </Box>
+                            <Badge
+                                colorPalette="purple"
+                                variant="subtle"
+                                fontSize="xs"
+                                px={2}
+                                borderRadius="md"
+                                fontWeight="bold"
+                                mb={4}
+                            >
+                                {word.level}
+                            </Badge>
                         )}
 
-                        <Text color="fg.subtle" fontSize="sm" fontWeight="600"
-                            textTransform="uppercase" letterSpacing="wider" mb={5}>
+                        <Text
+                            color="fg.subtle"
+                            fontSize="sm"
+                            fontWeight="600"
+                            textTransform="uppercase"
+                            letterSpacing="wider"
+                            mb={4}
+                        >
                             🇬🇧 Tiếng Anh
                         </Text>
-                        <Text fontSize={{ base: "5xl", md: "7xl" }}
-                            fontWeight="extrabold" textAlign="center" mb={2} color="fg">
+                        <Text
+                            fontSize={{ base: "4xl", md: "6xl" }}
+                            fontWeight="extrabold"
+                            textAlign="center"
+                            mb={2}
+                            color="fg"
+                        >
                             {word.english}
                         </Text>
 
                         {(word.pronunciation || word.partOfSpeech) && (
-                            <Flex gap={3} align="center" mb={4}>
+                            <Flex gap={3} align="center" mb={3}>
                                 {word.partOfSpeech && (
                                     <Badge colorPalette="blue" variant="subtle" px={2} py={1} fontSize="sm">
                                         {word.partOfSpeech}
@@ -147,51 +202,88 @@ const Flashcard = ({ word, onAnswer }) => {
                         )}
 
                         {word.synonyms?.length > 0 && (
-                            <Text fontSize="md" color="fg.muted" mt={2} textAlign="center">
+                            <Text fontSize="sm" color="fg.muted" mt={2} textAlign="center">
                                 ≈ {word.synonyms.slice(0, 3).join(" · ")}
                             </Text>
                         )}
+
                         <Text fontSize="xs" color="fg.subtle" mt={8} opacity={0.6}>
                             {flipped ? "👆 Click để lật lại" : "👆 Click để xem nghĩa"}
                         </Text>
                     </Box>
 
-                    {/* ── Mặt sau: Tiếng Việt ── */}
+                    {/* ── Back: Vietnamese ── */}
                     <Box
-                        position="absolute" inset={0}
+                        position="absolute"
+                        inset={0}
                         bg="brand.muted"
                         borderRadius="3xl"
                         borderWidth="1.5px"
                         borderColor="brand.solid"
                         shadow="xl"
-                        display="flex" flexDirection="column"
-                        alignItems="center" justifyContent="center" p={8}
+                        display="flex"
+                        flexDirection="column"
+                        alignItems="center"
+                        justifyContent="center"
+                        p={8}
                         style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}
                     >
                         <Box position="absolute" top={4} right={4}>
                             <SpeakButton text={word.vietnamese} lang="vi-VN" label="Nghe nghĩa tiếng Việt" />
                         </Box>
                         <Box position="absolute" top={4} left={4}>
-                            <Text fontSize="xs" color="brand.text" opacity={0.8}>↩ Click để lật lại</Text>
+                            <Text fontSize="xs" color="brand.text" opacity={0.8}>
+                                ↩ Click để lật lại
+                            </Text>
                         </Box>
 
-                        <Text color="brand.text" fontSize="sm" fontWeight="600"
-                            textTransform="uppercase" letterSpacing="wider" mb={5}>
+                        <Text
+                            color="brand.text"
+                            fontSize="sm"
+                            fontWeight="600"
+                            textTransform="uppercase"
+                            letterSpacing="wider"
+                            mb={5}
+                        >
                             🇻🇳 Nghĩa tiếng Việt
                         </Text>
-                        <Text fontSize={{ base: "4xl", md: "6xl" }}
-                            fontWeight="extrabold" color="fg" textAlign="center" mb={6}>
+                        <Text
+                            fontSize={{ base: "3xl", md: "5xl" }}
+                            fontWeight="extrabold"
+                            color="fg"
+                            textAlign="center"
+                            mb={6}
+                        >
                             {word.vietnamese}
                         </Text>
                         {word.example && (
-                            <Box bg="bg.panel" borderRadius="xl" borderWidth="1px" borderColor="border.subtle" p={4} w="full" mt={2} shadow="sm">
+                            <Box
+                                bg="bg.panel"
+                                borderRadius="xl"
+                                borderWidth="1px"
+                                borderColor="border.subtle"
+                                p={4}
+                                w="full"
+                                mt={2}
+                                shadow="sm"
+                            >
                                 <Flex align="flex-start" gap={3}>
                                     <Box flex={1} textAlign="center">
-                                        <Text fontSize="lg" color="fg" fontStyle="italic" lineHeight="tall">
+                                        <Text
+                                            fontSize="md"
+                                            color="fg"
+                                            fontStyle="italic"
+                                            lineHeight="tall"
+                                        >
                                             "{word.example}"
                                         </Text>
                                         {word.exampleTranslation && (
-                                            <Text fontSize="sm" color="fg.muted" mt={1.5} lineHeight="base">
+                                            <Text
+                                                fontSize="sm"
+                                                color="fg.muted"
+                                                mt={1.5}
+                                                lineHeight="base"
+                                            >
                                                 {word.exampleTranslation}
                                             </Text>
                                         )}
@@ -204,38 +296,68 @@ const Flashcard = ({ word, onAnswer }) => {
                 </Box>
             </Box>
 
-            {/* ── Answer Buttons ── */}
-            {flipped && !answered && (
-                <Box w="full" opacity={answered ? 0 : 1} transition="opacity 0.3s">
-                    <Text textAlign="center" fontSize="sm" color="fg.muted" mb={3} fontWeight="medium">
-                        Bạn nhớ từ này như thế nào?
+            {/* ── Quality Buttons (always shown, but highlighted after flip) ── */}
+            <Box w="full">
+                {existingAnswer && (
+                    <Flex justify="center" mb={3} align="center" gap={2}>
+                        <Text fontSize="sm" color="fg.muted">Đã chọn:</Text>
+                        <Badge
+                            colorPalette={
+                                QUALITY_BUTTONS.find((b) => b.quality === existingAnswer)?.color
+                            }
+                            variant="solid"
+                            px={3}
+                            py={1}
+                            borderRadius="lg"
+                            fontWeight="bold"
+                        >
+                            {existingAnswer}
+                        </Badge>
+                        <Text fontSize="xs" color="fg.subtle">(có thể thay đổi)</Text>
+                    </Flex>
+                )}
+
+                {!flipped && !existingAnswer && (
+                    <Text textAlign="center" fontSize="sm" color="fg.subtle" mb={3}>
+                        Lật thẻ trước khi đánh giá
                     </Text>
-                    <Flex gap={2} justify="center" flexWrap="wrap">
-                        {QUALITY_BUTTONS.map(({ quality, label, color, emoji, desc }) => (
+                )}
+
+                <Flex gap={2} justify="center" flexWrap="wrap">
+                    {QUALITY_BUTTONS.map(({ quality, label, emoji, desc, color, key }) => {
+                        const isSelected = existingAnswer === quality;
+                        return (
                             <Button
                                 key={quality}
                                 colorPalette={color}
-                                onClick={(e) => { e.stopPropagation(); handleAnswer(quality); }}
+                                variant={isSelected ? "solid" : flipped ? "outline" : "ghost"}
+                                onClick={() => onAnswer(word.cardId, quality)}
                                 size="sm"
-                                minW={{ base: "72px", md: "100px" }}
+                                minW={{ base: "70px", md: "100px" }}
                                 flexDirection="column"
-                                h="auto" py={3} gap={1}
+                                h="auto"
+                                py={3}
+                                gap={0.5}
                                 borderRadius="xl"
+                                opacity={!flipped && !existingAnswer ? 0.4 : 1}
                                 _hover={{ transform: "translateY(-2px)", shadow: "md" }}
                                 transition="all 0.15s ease"
+                                title={`Phím ${key}`}
                             >
                                 <Text fontSize="lg">{emoji}</Text>
                                 <Text fontWeight="bold" fontSize="sm">{label}</Text>
-                                <Text fontSize="xs" opacity={0.8} display={{ base: "none", md: "block" }}>{desc}</Text>
+                                <Text fontSize="xs" opacity={0.8} display={{ base: "none", md: "block" }}>
+                                    {desc}
+                                </Text>
                             </Button>
-                        ))}
-                    </Flex>
-                </Box>
-            )}
+                        );
+                    })}
+                </Flex>
+            </Box>
 
             {/* ── Hint ── */}
-            {!flipped && !answered && (
-                <Flex align="center" gap={2} color="fg.subtle">
+            {!flipped && (
+                <Flex align="center" gap={2} color="fg.subtle" mt={4}>
                     <Text fontSize="sm">Nghĩ xem, rồi click lật thẻ</Text>
                     <SpeakButton text={word.english} lang="en-US" label="Nghe lại" size="xs" />
                 </Flex>

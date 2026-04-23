@@ -1,10 +1,10 @@
 import axiosClient from "../config/axios.js";
 
-export const getStudySession = (setId, limit = 20) =>
-    axiosClient.get(`/study/${setId}/session`, { params: { limit } }).then((r) => r.data);
+export const getStudySession = (setId) =>
+    axiosClient.get(`/study/${setId}/session`).then((r) => r.data);
 
-export const submitReview = (wordId, quality) =>
-    axiosClient.post(`/study/${wordId}/review`, { quality }).then((r) => r.data);
+export const batchSubmit = (answers) =>
+    axiosClient.post("/study/batch-submit", { answers }).then((r) => r.data);
 
 export const getStudyStats = () =>
     axiosClient.get("/study/stats").then((r) => r.data.data);
@@ -14,3 +14,6 @@ export const getHeatmap = () =>
 
 export const getStreakInfo = () =>
     axiosClient.get("/study/streak").then((r) => r.data.data);
+
+export const getSchedule = () =>
+    axiosClient.get("/study/schedule").then((r) => r.data.data);

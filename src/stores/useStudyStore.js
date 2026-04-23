@@ -2,33 +2,55 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import * as studyApi from "../services/studyApi.js";
 
+/**
+ * useStudyStore — manages the session lifecycle with batch submission.
+ *
+ * Flow:
+ *  1. startSession(setId)  →  fetches cards from BE
+ *  2. User answers each card → recorded locally in `answers` map: { cardId → quality }
+ *  3. nextCard() / prevCard() to navigate (cards can be answered in any order)
+ *  4. submitSession() → POST /study/batch-submit with all answers
+ *  5. sessionComplete becomes true → StudyComplete popup
+ */
 export const useStudyStore = create(
     persist(
-        (set) => ({
+        (set, get) => ({
+            // ── Session state ─────────────────────────────────────────────────
             currentSetId: null,
-            queue: [],          // Danh sách thẻ cần học trong session này
-            currentIndex: 0,    // Thẻ hiện tại
-            mode: "flashcard",  // "flashcard" | "fill"
-            sessionMode: "srs_review",
-            stats: null,
+            queue: [],           // array of card objects (word + srs metadata)
+            currentIndex: 0,     // which card is shown
+            mode: "flashcard",   // "flashcard" | "fill"
             loading: false,
+            submitting: false,
             sessionComplete: false,
-            reviewedCount: 0,
+            submitResult: null,  // { reviewed, summary: { AGAIN, HARD, GOOD, EASY } }
+            nextReviewAt: null,  // earliest upcoming card's nextReview
 
-            // Heatmap & streak
-            heatmap: [],        // [{ date: "YYYY-MM-DD", wordsReviewed, minutesStudied }]
-            streakInfo: null,   // { currentStreak, longestStreak, totalStudyDays }
+            // ── Per-card answers buffer ───────────────────────────────────────
+            // Map of cardId → "AGAIN" | "HARD" | "GOOD" | "EASY"
+            answers: {},
 
-            // Khởi tạo session học cho 1 bộ từ
-            startSession: async (setId, mode = "flashcard") => {
-                set({ loading: true, sessionComplete: false, reviewedCount: 0, currentSetId: setId });
+            // ── Stats & streak (persisted) ────────────────────────────────────
+            streakInfo: null,
+            stats: null,
+
+            // ─── Actions ─────────────────────────────────────────────────────
+
+            startSession: async (setId) => {
+                set({
+                    loading: true,
+                    sessionComplete: false,
+                    submitResult: null,
+                    answers: {},
+                    currentIndex: 0,
+                    currentSetId: setId,
+                    nextReviewAt: null,
+                });
                 try {
                     const res = await studyApi.getStudySession(setId);
                     set({
-                        queue: res.data,
-                        currentIndex: 0,
-                        mode,
-                        sessionMode: res.mode,
+                        queue: res.data ?? [],
+                        nextReviewAt: res.nextReviewAt ?? null,
                         loading: false,
                     });
                 } catch (e) {
@@ -37,40 +59,62 @@ export const useStudyStore = create(
                 }
             },
 
-            // Submit kết quả đánh giá thẻ hiện tại (quality: 0-3)
-            submitCard: async (wordId, quality) => {
-                await studyApi.submitReview(wordId, quality);
-                set((s) => {
-                    const next = s.currentIndex + 1;
-                    const done = next >= s.queue.length;
-                    return {
-                        currentIndex: next,
-                        reviewedCount: s.reviewedCount + 1,
-                        sessionComplete: done,
-                    };
+            /** Record the user's answer for the current card and advance to next. */
+            answerCard: (cardId, quality) => {
+                const { answers, currentIndex, queue } = get();
+                set({
+                    answers: { ...answers, [cardId]: quality },
                 });
+                // Auto-advance if not on the last card
+                if (currentIndex < queue.length - 1) {
+                    set({ currentIndex: currentIndex + 1 });
+                }
             },
 
-            // Chuyển mode
+            goToCard: (index) => {
+                const { queue } = get();
+                if (index >= 0 && index < queue.length) {
+                    set({ currentIndex: index });
+                }
+            },
+
             setMode: (mode) => set({ mode }),
 
-            // Lấy thống kê tổng quan
-            fetchStats: async () => {
+            /** Submit all buffered answers to the backend in a single request. */
+            submitSession: async () => {
+                const { answers } = get();
+                const entries = Object.entries(answers).map(([cardId, quality]) => ({
+                    cardId,
+                    quality,
+                }));
+
+                if (entries.length === 0) return;
+
+                set({ submitting: true });
                 try {
-                    const data = await studyApi.getStudyStats();
-                    set({ stats: data });
-                } catch (_) {}
+                    const result = await studyApi.batchSubmit(entries);
+                    set({
+                        submitting: false,
+                        sessionComplete: true,
+                        submitResult: result,
+                    });
+                } catch (e) {
+                    set({ submitting: false });
+                    throw e;
+                }
             },
 
-            // Lấy dữ liệu heatmap 365 ngày
-            fetchHeatmap: async () => {
-                try {
-                    const data = await studyApi.getHeatmap();
-                    set({ heatmap: data });
-                } catch (_) {}
-            },
+            resetSession: () =>
+                set({
+                    queue: [],
+                    currentIndex: 0,
+                    sessionComplete: false,
+                    submitResult: null,
+                    answers: {},
+                    currentSetId: null,
+                }),
 
-            // Lấy thông tin streak
+            // ── Stats/streak fetchers ─────────────────────────────────────────
             fetchStreakInfo: async () => {
                 try {
                     const data = await studyApi.getStreakInfo();
@@ -78,19 +122,21 @@ export const useStudyStore = create(
                 } catch (_) {}
             },
 
-            resetSession: () =>
-                set({ queue: [], currentIndex: 0, sessionComplete: false, reviewedCount: 0, currentSetId: null }),
+            fetchStats: async () => {
+                try {
+                    const data = await studyApi.getStudyStats();
+                    set({ stats: data });
+                } catch (_) {}
+            },
         }),
         {
             name: "study-storage",
             partialize: (state) => ({
                 currentSetId: state.currentSetId,
-                queue: state.queue,
-                currentIndex: state.currentIndex,
                 mode: state.mode,
-                sessionComplete: state.sessionComplete,
-                reviewedCount: state.reviewedCount,
                 streakInfo: state.streakInfo,
+                stats: state.stats,
+                // Don't persist queue/answers — always fresh from API
             }),
         }
     )

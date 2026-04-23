@@ -11,7 +11,7 @@ const createBlankSentence = (example, english) => {
     return example.replace(regex, "______");
 };
 
-const FillInBlank = ({ word, onAnswer }) => {
+const FillInBlank = ({ word, onAnswer, existingAnswer }) => {
     const [input, setInput] = useState("");
     const [submitted, setSubmitted] = useState(false);
     const [correct, setCorrect] = useState(false);
@@ -26,6 +26,13 @@ const FillInBlank = ({ word, onAnswer }) => {
         return () => clearTimeout(timer);
     }, [word?._id]);
 
+    // Reset when card changes
+    React.useEffect(() => {
+        setInput("");
+        setSubmitted(false);
+        setCorrect(false);
+    }, [word?._id]);
+
     const blankSentence = createBlankSentence(word.example, word.english)
         || `What is the English word for "${word.vietnamese}"?`;
 
@@ -36,10 +43,9 @@ const FillInBlank = ({ word, onAnswer }) => {
     };
 
     const handleNext = () => {
-        onAnswer(word._id, correct ? 3 : 0);
-        setInput("");
-        setSubmitted(false);
-        setCorrect(false);
+        // Map fill-in result to quality string
+        const quality = correct ? "GOOD" : "AGAIN";
+        onAnswer(word.cardId, quality);
     };
 
     React.useEffect(() => {

@@ -1,58 +1,62 @@
 import React, { useEffect } from "react";
-import { Box, Flex, Text, SimpleGrid, Spinner, Button } from "@chakra-ui/react";
+import { Box, Flex, Text, SimpleGrid, Spinner, Button, Badge } from "@chakra-ui/react";
 import { useNavigate } from "react-router-dom";
-import { FiBook, FiClock, FiAward, FiLayers } from "react-icons/fi";
+import { FiBook, FiClock, FiAward, FiLayers, FiPlay, FiZap } from "react-icons/fi";
 import BaseLayout from "../../../layouts/BaseLayout.jsx";
 import { useStudyStore } from "../../../stores/useStudyStore.js";
 import { useVocabularyStore } from "../../../stores/useVocabularyStore.js";
 import StudyStreakHeatmap from "../components/StudyStreakHeatmap.jsx";
+import SRSScheduleWidget from "../components/SRSScheduleWidget.jsx";
 
-const StatCard = ({ icon: Icon, label, value, color, bg }) => (
+const StatCard = ({ icon: Icon, label, value, color, highlight }) => (
     <Box
-        bg={bg || "bg.panel"}
+        bg={highlight ? `linear-gradient(135deg, var(--chakra-colors-${color}-500) 0%, var(--chakra-colors-${color}-600) 100%)` : "bg.panel"}
         borderRadius="2xl"
-        p={6}
-        borderWidth="1px"
+        p={5}
+        borderWidth={highlight ? "0" : "1px"}
         borderColor="border.muted"
         position="relative"
         overflow="hidden"
         _hover={{ transform: "translateY(-2px)", shadow: "lg" }}
         transition="all 0.2s ease"
+        shadow={highlight ? "lg" : "none"}
     >
         <Box
             position="absolute" top={-4} right={-4}
             w="80px" h="80px" borderRadius="full"
-            bg={`${color}.100`}
-            opacity={0.3}
-            _dark={{ bg: `${color}.900`, opacity: 0.2 }}
+            bg={highlight ? "white/10" : `${color}.100`}
+            opacity={highlight ? 1 : 0.3}
+            _dark={{ bg: highlight ? "white/10" : `${color}.900`, opacity: 0.2 }}
         />
-        <Flex align="center" gap={4}>
+        <Flex align="center" gap={3}>
             <Flex
-                w="48px" h="48px" borderRadius="xl"
-                bg={`${color}.100`} _dark={{ bg: `${color}.900/30` }}
-                color={`${color}.500`}
+                w="44px" h="44px" borderRadius="xl"
+                bg={highlight ? "white/20" : `${color}.100`}
+                _dark={{ bg: highlight ? "white/20" : `${color}.900/30` }}
+                color={highlight ? "white" : `${color}.500`}
                 align="center" justify="center"
                 fontSize="xl" flexShrink={0}
             >
-                <Icon size={22} />
+                <Icon size={20} />
             </Flex>
             <Box>
-                <Text fontSize="sm" color="fg.muted" mb={1}>{label}</Text>
-                <Text fontSize="3xl" fontWeight="bold" lineHeight="1">{value ?? "—"}</Text>
+                <Text fontSize="xs" color={highlight ? "white/70" : "fg.muted"} mb={0.5}>{label}</Text>
+                <Text fontSize="2xl" fontWeight="900" lineHeight="1" color={highlight ? "white" : "fg"}>
+                    {value ?? "—"}
+                </Text>
             </Box>
         </Flex>
     </Box>
 );
 
 const HomePage = () => {
-    const { stats, fetchStats, fetchHeatmap, fetchStreakInfo } = useStudyStore();
+    const { stats, fetchStats, fetchStreakInfo } = useStudyStore();
     const { wordSets, fetchWordSets, loading } = useVocabularyStore();
     const navigate = useNavigate();
 
     useEffect(() => {
         fetchStats();
         fetchWordSets();
-        fetchHeatmap();
         fetchStreakInfo();
     }, []);
 
@@ -60,20 +64,29 @@ const HomePage = () => {
         <BaseLayout>
             <Box maxW="1200px" mx="auto">
                 {/* Welcome */}
-                <Box mb={8}>
-                    <Text fontSize="3xl" fontWeight="extrabold" mb={1}>
+                <Box mb={6}>
+                    <Text fontSize={{ base: "2xl", md: "3xl" }} fontWeight="extrabold" mb={1}>
                         Chào mừng trở lại! 👋
                     </Text>
                     <Text color="fg.muted">Tiếp tục hành trình học từ vựng của bạn hôm nay.</Text>
                 </Box>
 
                 {/* Stats Grid */}
-                <SimpleGrid columns={{ base: 2, md: 4 }} gap={4} mb={10}>
-                    <StatCard icon={FiLayers} label="Tổng từ vựng" value={stats?.totalWords} color="blue" />
-                    <StatCard icon={FiClock} label="Cần ôn hôm nay" value={stats?.dueToday} color="orange" />
+                <SimpleGrid columns={{ base: 2, md: 4 }} gap={4} mb={6}>
+                    <StatCard
+                        icon={FiZap}
+                        label="Có thể học ngay"
+                        value={stats?.dueCards ?? "—"}
+                        color="blue"
+                        highlight={stats?.dueCards > 0}
+                    />
+                    <StatCard icon={FiLayers} label="Tổng từ vựng" value={stats?.totalWords} color="purple" />
                     <StatCard icon={FiBook} label="Đã học hôm nay" value={stats?.reviewedToday} color="green" />
-                    <StatCard icon={FiAward} label="Từ đã thuộc" value={stats?.masteredWords} color="purple" />
+                    <StatCard icon={FiAward} label="Từ đã thuộc (Lv5)" value={stats?.masteredCards} color="orange" />
                 </SimpleGrid>
+
+                {/* SRS Schedule Widget */}
+                <SRSScheduleWidget />
 
                 {/* Study Streak Heatmap */}
                 <StudyStreakHeatmap />
@@ -128,18 +141,27 @@ const HomePage = () => {
                                         >
                                             📖
                                         </Box>
-                                        <Text fontWeight="bold" isTruncated>{ws.title}</Text>
+                                        <Text fontWeight="bold" isTruncated flex={1}>{ws.title}</Text>
                                     </Flex>
-                                    <Text color="fg.muted" fontSize="sm" mb={3} noOfLines={2}>
+                                    <Text color="fg.muted" fontSize="sm" mb={4} noOfLines={2}>
                                         {ws.description || "Không có mô tả"}
                                     </Text>
                                     <Flex justify="space-between" align="center">
                                         <Text fontSize="xs" color="fg.subtle">{ws.wordCount} từ</Text>
                                         <Button
-                                            size="xs" colorPalette="blue" variant="ghost"
-                                            onClick={(e) => { e.stopPropagation(); navigate(`/study/${ws._id}`); }}
+                                            size="xs"
+                                            bg="linear-gradient(135deg, #3b82f6, #6366f1)"
+                                            color="white"
+                                            borderRadius="lg"
+                                            gap={1}
+                                            fontWeight="bold"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                navigate(`/study/${ws._id}`);
+                                            }}
+                                            _hover={{ opacity: 0.9 }}
                                         >
-                                            Học ngay →
+                                            <FiPlay size={10} /> Học ngay
                                         </Button>
                                     </Flex>
                                 </Box>

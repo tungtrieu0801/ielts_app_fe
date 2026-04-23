@@ -118,12 +118,16 @@ const Tooltip = ({ tooltip }) => {
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 const StudyStreakHeatmap = () => {
-    const { heatmap, streakInfo, fetchHeatmap, fetchStreakInfo } = useStudyStore();
+    const { streakInfo, fetchStreakInfo } = useStudyStore();
+    const [heatmapData, setHeatmapData] = useState([]);
     const [tooltip, setTooltip] = useState(null);
     const [isDark, setIsDark] = useState(false);
 
     useEffect(() => {
-        fetchHeatmap();
+        // Fetch heatmap directly (no longer in store)
+        import("../../../services/studyApi.js").then(({ getHeatmap }) => {
+            getHeatmap().then((data) => setHeatmapData(Array.isArray(data) ? data : [])).catch(() => {});
+        });
         fetchStreakInfo();
 
         // Detect dark mode
@@ -137,9 +141,9 @@ const StudyStreakHeatmap = () => {
     // Map date -> wordsReviewed
     const dataMap = useMemo(() => {
         const m = {};
-        heatmap.forEach((log) => { m[log.date] = log.wordsReviewed; });
+        (heatmapData ?? []).forEach((log) => { m[log.date] = log.wordsReviewed; });
         return m;
-    }, [heatmap]);
+    }, [heatmapData]);
 
     const { grid } = useMemo(() => buildGrid(), []);
     const monthLabels = useMemo(() => buildMonthLabels(grid), [grid]);
