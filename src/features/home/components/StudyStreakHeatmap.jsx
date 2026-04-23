@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Box, Flex, Text, Grid } from "@chakra-ui/react";
+import { Box, Flex, Text, useBreakpointValue } from "@chakra-ui/react";
 import { useStudyStore } from "../../../stores/useStudyStore.js";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -119,9 +119,10 @@ const Tooltip = ({ tooltip }) => {
 // ─── Main Component ───────────────────────────────────────────────────────────
 const StudyStreakHeatmap = () => {
     const { streakInfo, fetchStreakInfo } = useStudyStore();
-    const [heatmapData, setHeatmapData] = useState([]);
+    const [heatmapData, setHeatmapData] = useState(null);
     const [tooltip, setTooltip] = useState(null);
     const [isDark, setIsDark] = useState(false);
+    const scrollContainerRef = useRef(null);
 
     useEffect(() => {
         // Fetch heatmap directly (no longer in store)
@@ -168,70 +169,142 @@ const StudyStreakHeatmap = () => {
 
     const handleMouseLeave = () => setTooltip(null);
 
-    const CELL_SIZE = 13;
-    const CELL_GAP = 3;
+    const CELL_SIZE = useBreakpointValue({ base: 9, md: 10, lg: 12 }) || 12;
+    const CELL_GAP = useBreakpointValue({ base: 2, md: 3 }) || 3;
+
+    // Scroll to the far right so today is visible
+    useEffect(() => {
+        if (scrollContainerRef.current) {
+            scrollContainerRef.current.scrollLeft = scrollContainerRef.current.scrollWidth;
+        }
+    }, [grid, CELL_SIZE]); // re-run if grid or cell size changes
 
     return (
         <Box
             bg="bg.panel"
             borderRadius="2xl"
-            p={6}
             borderWidth="1px"
             borderColor="border.muted"
             mb={8}
             overflow="hidden"
         >
-            {/* Header */}
-            <Flex justify="space-between" align="center" mb={5} flexWrap="wrap" gap={3}>
-                <Box>
-                    <Text fontSize="lg" fontWeight="bold" mb={0.5}>
-                        Lịch sử học tập
-                    </Text>
-                    <Text fontSize="sm" color="fg.muted">
-                        {streakInfo
-                            ? `${streakInfo.totalStudyDays} ngày đã học trong năm qua`
-                            : "Đang tải..."}
-                    </Text>
-                </Box>
+            {/* ── Header ─────────────────────────────────────────────────────── */}
+            <Box px={6} pt={5} pb={4}>
+                {/* Title row */}
+                <Flex justify="space-between" align="flex-start" mb={3}>
+                    <Box>
+                        <Text fontSize="md" fontWeight="bold" mb={0.5}>
+                            📅 Lịch sử học tập
+                        </Text>
+                        <Text fontSize="xs" color="fg.muted">
+                            {streakInfo
+                                ? `${streakInfo.totalStudyDays} ngày đã học trong năm qua`
+                                : "Đang tải..."}
+                        </Text>
+                    </Box>
 
-                {/* Streak badges */}
-                <Flex gap={4} flexWrap="wrap">
-                    <Flex align="center" gap={2}
-                        bg={isDark ? "orange.900/30" : "orange.50"}
-                        px={4} py={2} borderRadius="xl"
-                        borderWidth="1px"
-                        borderColor={isDark ? "orange.800" : "orange.200"}
-                    >
-                        <Text fontSize="xl">🔥</Text>
-                        <Box>
-                            <Text fontSize="xs" color="fg.muted" lineHeight="1">Chuỗi hiện tại</Text>
-                            <Text fontSize="xl" fontWeight="extrabold" color="orange.500" lineHeight="1.2">
-                                {streakInfo?.currentStreak ?? "–"}
-                                <Text as="span" fontSize="sm" fontWeight="normal" color="fg.muted" ml={1}>ngày</Text>
-                            </Text>
-                        </Box>
-                    </Flex>
-                    <Flex align="center" gap={2}
-                        bg={isDark ? "purple.900/30" : "purple.50"}
-                        px={4} py={2} borderRadius="xl"
-                        borderWidth="1px"
-                        borderColor={isDark ? "purple.800" : "purple.200"}
-                    >
-                        <Text fontSize="xl">🏆</Text>
-                        <Box>
-                            <Text fontSize="xs" color="fg.muted" lineHeight="1">Kỷ lục</Text>
-                            <Text fontSize="xl" fontWeight="extrabold" color="purple.500" lineHeight="1.2">
-                                {streakInfo?.longestStreak ?? "–"}
-                                <Text as="span" fontSize="sm" fontWeight="normal" color="fg.muted" ml={1}>ngày</Text>
-                            </Text>
-                        </Box>
+                    {/* Legend — top right corner */}
+                    <Flex align="center" gap={1.5} mt={0.5}>
+                        <Text fontSize="10px" color="fg.subtle">Ít</Text>
+                        {[0, 1, 2, 3, 4].map((level) => (
+                            <Box
+                                key={level}
+                                w="11px" h="11px"
+                                borderRadius="2px"
+                                style={{ backgroundColor: colors[level] }}
+                            />
+                        ))}
+                        <Text fontSize="10px" color="fg.subtle">Nhiều</Text>
                     </Flex>
                 </Flex>
-            </Flex>
+
+                {/* Streak chips row */}
+                <Flex gap={2} flexWrap="wrap">
+                    {/* Current streak */}
+                    <Flex
+                        align="center" gap={1.5}
+                        px={3} py={1.5}
+                        borderRadius="full"
+                        bg={isDark ? "orange.900/40" : "orange.50"}
+                        borderWidth="1px"
+                        borderColor={isDark ? "orange.700" : "orange.200"}
+                    >
+                        <Text fontSize="sm">🔥</Text>
+                        <Text fontSize="sm" fontWeight="700" color="orange.500">
+                            {streakInfo?.currentStreak ?? "–"}
+                        </Text>
+                        <Text fontSize="xs" color="fg.muted">ngày liên tiếp</Text>
+                    </Flex>
+
+                    {/* Longest streak */}
+                    <Flex
+                        align="center" gap={1.5}
+                        px={3} py={1.5}
+                        borderRadius="full"
+                        bg={isDark ? "purple.900/40" : "purple.50"}
+                        borderWidth="1px"
+                        borderColor={isDark ? "purple.700" : "purple.200"}
+                    >
+                        <Text fontSize="sm">🏆</Text>
+                        <Text fontSize="sm" fontWeight="700" color="purple.500">
+                            {streakInfo?.longestStreak ?? "–"}
+                        </Text>
+                        <Text fontSize="xs" color="fg.muted">kỷ lục</Text>
+                    </Flex>
+
+                    {/* Total days */}
+                    {streakInfo?.totalStudyDays > 0 && (
+                        <Flex
+                            align="center" gap={1.5}
+                            px={3} py={1.5}
+                            borderRadius="full"
+                            bg={isDark ? "green.900/40" : "green.50"}
+                            borderWidth="1px"
+                            borderColor={isDark ? "green.700" : "green.200"}
+                        >
+                            <Text fontSize="sm">📚</Text>
+                            <Text fontSize="sm" fontWeight="700" color="green.500">
+                                {streakInfo.totalStudyDays}
+                            </Text>
+                            <Text fontSize="xs" color="fg.muted">ngày đã học</Text>
+                        </Flex>
+                    )}
+                </Flex>
+            </Box>
+
+            {/* Divider */}
+            <Box h="1px" bg="border.muted" mx={0} />
 
             {/* Heatmap grid */}
-            <Box overflowX="auto" pb={2}>
-                <Box display="inline-flex" gap={0} flexDirection="column" minW="max-content">
+            <Box
+                ref={scrollContainerRef}
+                overflowX="auto"
+                pb={4}
+                sx={{
+                    "&::-webkit-scrollbar": {
+                        height: "6px",
+                    },
+                    "&::-webkit-scrollbar-track": {
+                        background: "transparent",
+                    },
+                    "&::-webkit-scrollbar-thumb": {
+                        background: isDark ? "whiteAlpha.200" : "blackAlpha.200",
+                        borderRadius: "full",
+                    },
+                    "&::-webkit-scrollbar-thumb:hover": {
+                        background: isDark ? "whiteAlpha.300" : "blackAlpha.300",
+                    },
+                }}
+            >
+                <Box
+                    display="inline-flex"
+                    gap={0}
+                    flexDirection="column"
+                    minW="max-content"
+                    mx="auto"
+                    px={{ base: 4, md: 6 }}
+                    pt={4}
+                >
                     {/* Month labels */}
                     <Box
                         display="flex"
@@ -314,22 +387,9 @@ const StudyStreakHeatmap = () => {
                         ))}
                     </Box>
 
-                    {/* Legend */}
-                    <Flex align="center" gap={2} mt={3} justify="flex-end">
-                        <Text fontSize="11px" color="fg.muted">Ít hơn</Text>
-                        {[0, 1, 2, 3, 4].map((level) => (
-                            <Box
-                                key={level}
-                                w="13px"
-                                h="13px"
-                                borderRadius="2px"
-                                style={{ backgroundColor: colors[level] }}
-                            />
-                        ))}
-                        <Text fontSize="11px" color="fg.muted">Nhiều hơn</Text>
-                    </Flex>
                 </Box>
             </Box>
+
 
             {/* Tooltip */}
             <Tooltip tooltip={tooltip} />

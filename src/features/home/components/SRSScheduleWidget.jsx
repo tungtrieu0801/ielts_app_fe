@@ -181,26 +181,27 @@ const SRSScheduleWidget = () => {
                                     <Flex
                                         key={i}
                                         align="center"
-                                        justify="space-between"
-                                        p={3}
+                                        justify="flex-start"
+                                        gap={6}
+                                        px={4} py={2.5}
                                         borderRadius="lg"
                                         bg="bg.subtle"
                                         borderWidth="1px"
                                         borderColor="border.muted"
                                     >
-                                        <Flex align="center" gap={2}>
+                                        <Flex align="center" gap={2} w="90px">
                                             <Box
                                                 w="6px" h="6px" borderRadius="full"
                                                 bg={i === 0 ? "blue.400" : "fg.subtle"}
                                                 flexShrink={0}
                                             />
-                                            <Text fontSize="sm" color="fg.muted">{bucket.label}</Text>
+                                            <Text fontSize="sm" color="fg.muted" fontWeight="500">{bucket.label}</Text>
                                         </Flex>
                                         <Flex align="center" gap={1.5}>
-                                            <Text fontSize="sm" fontWeight="700" color="fg">
+                                            <Text fontSize="sm" fontWeight="800" color="fg">
                                                 {bucket.count}
                                             </Text>
-                                            <Text fontSize="xs" color="fg.muted">từ</Text>
+                                            <Text fontSize="xs" color="fg.muted" fontWeight="500">từ</Text>
                                         </Flex>
                                     </Flex>
                                 ))}

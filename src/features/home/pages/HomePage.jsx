@@ -49,6 +49,39 @@ const StatCard = ({ icon: Icon, label, value, color, highlight }) => (
     </Box>
 );
 
+const TipsWidget = () => (
+    <Box
+        bg="bg.panel"
+        borderRadius="2xl"
+        borderWidth="1px"
+        borderColor="border.muted"
+        overflow="hidden"
+        mb={6}
+    >
+        <Box bg="blue.50" _dark={{ bg: "blue.900/30" }} p={4}>
+            <Text fontSize="md" fontWeight="bold" color="blue.600" _dark={{ color: "blue.300" }}>
+                💡 Mẹo học tập
+            </Text>
+        </Box>
+        <Flex direction="column" gap={0}>
+            <Box p={4} _hover={{ bg: "bg.subtle" }} transition="background 0.2s">
+                <Text fontSize="sm" fontWeight="bold" mb={1}>Ôn tập đều đặn</Text>
+                <Text fontSize="xs" color="fg.muted">Học một chút mỗi ngày tốt hơn là nhồi nhét nhiều vào một ngày.</Text>
+            </Box>
+            <Box h="1px" bg="border.subtle" mx={4} />
+            <Box p={4} _hover={{ bg: "bg.subtle" }} transition="background 0.2s">
+                <Text fontSize="sm" fontWeight="bold" mb={1}>Phát âm chuẩn</Text>
+                <Text fontSize="xs" color="fg.muted">Nghe cách đọc chuẩn trước khi tự phát âm để tạo thói quen tốt.</Text>
+            </Box>
+            <Box h="1px" bg="border.subtle" mx={4} />
+            <Box p={4} _hover={{ bg: "bg.subtle" }} transition="background 0.2s">
+                <Text fontSize="sm" fontWeight="bold" mb={1}>Spaced Repetition</Text>
+                <Text fontSize="xs" color="fg.muted">Hệ thống tự động tính thời điểm tốt nhất để ôn lại từ, bạn chỉ việc học theo lịch.</Text>
+            </Box>
+        </Flex>
+    </Box>
+);
+
 const HomePage = () => {
     const { stats, fetchStats, fetchStreakInfo } = useStudyStore();
     const { wordSets, fetchWordSets, loading } = useVocabularyStore();
@@ -85,90 +118,123 @@ const HomePage = () => {
                     <StatCard icon={FiAward} label="Từ đã thuộc (Lv5)" value={stats?.masteredCards} color="orange" />
                 </SimpleGrid>
 
-                {/* SRS Schedule Widget */}
-                <SRSScheduleWidget />
+                {/* Main 2-column layout */}
+                <Flex direction={{ base: "column", lg: "row" }} gap={6} alignItems="flex-start">
+                    {/* Left Column (Main Content) */}
+                    <Box flex="1" minW="0">
+                        {/* SRS Schedule Widget */}
+                        <SRSScheduleWidget />
 
-                {/* Study Streak Heatmap */}
-                <StudyStreakHeatmap />
+                        {/* Study Streak Heatmap */}
+                        <StudyStreakHeatmap />
 
-                {/* Recent Sets */}
-                <Box>
-                    <Flex justify="space-between" align="center" mb={4}>
-                        <Text fontSize="xl" fontWeight="bold">Bộ từ gần đây</Text>
-                        <Button variant="ghost" size="sm" colorPalette="blue" onClick={() => navigate("/sets")}>
-                            Xem tất cả →
-                        </Button>
-                    </Flex>
+                        {/* Recent Sets */}
+                        <Box>
+                            <Flex justify="space-between" align="center" mb={4}>
+                                <Text fontSize="xl" fontWeight="bold">Bộ từ gần đây</Text>
+                                <Button variant="ghost" size="sm" colorPalette="blue" onClick={() => navigate("/sets")}>
+                                    Xem tất cả →
+                                </Button>
+                            </Flex>
 
-                    {loading ? (
-                        <Flex justify="center" py={10}><Spinner /></Flex>
-                    ) : wordSets.length === 0 ? (
-                        <Flex
-                            direction="column" align="center" justify="center"
-                            py={12} borderRadius="2xl" borderWidth="2px"
-                            borderStyle="dashed" borderColor="border.muted"
-                            gap={3}
-                        >
-                            <Text fontSize="4xl">📚</Text>
-                            <Text fontWeight="semibold" fontSize="lg">Bạn chưa có bộ từ nào</Text>
-                            <Text color="fg.muted" fontSize="sm">Tạo bộ từ đầu tiên để bắt đầu học!</Text>
-                            <Button colorPalette="blue" mt={2} onClick={() => navigate("/sets")}>
-                                Tạo bộ từ
-                            </Button>
-                        </Flex>
-                    ) : (
-                        <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} gap={4}>
-                            {wordSets.slice(0, 6).map((ws) => (
-                                <Box
-                                    key={ws._id}
-                                    bg="bg.panel"
-                                    borderRadius="xl"
-                                    p={5}
-                                    borderWidth="1px"
-                                    borderColor="border.muted"
-                                    cursor="pointer"
-                                    onClick={() => navigate(`/sets/${ws._id}`)}
-                                    _hover={{ transform: "translateY(-2px)", shadow: "md", borderColor: "blue.300" }}
-                                    transition="all 0.2s ease"
+                            {loading ? (
+                                <Flex justify="center" py={10}><Spinner /></Flex>
+                            ) : wordSets.length === 0 ? (
+                                <Flex
+                                    direction="column" align="center" justify="center"
+                                    py={12} borderRadius="2xl" borderWidth="2px"
+                                    borderStyle="dashed" borderColor="border.muted"
+                                    gap={3}
                                 >
-                                    <Flex align="center" gap={3} mb={3}>
+                                    <Text fontSize="4xl">📚</Text>
+                                    <Text fontWeight="semibold" fontSize="lg">Bạn chưa có bộ từ nào</Text>
+                                    <Text color="fg.muted" fontSize="sm">Tạo bộ từ đầu tiên để bắt đầu học!</Text>
+                                    <Button colorPalette="blue" mt={2} onClick={() => navigate("/sets")}>
+                                        Tạo bộ từ
+                                    </Button>
+                                </Flex>
+                            ) : (
+                                <SimpleGrid columns={{ base: 1, md: 2 }} gap={4}>
+                                    {wordSets.slice(0, 4).map((ws) => (
                                         <Box
-                                            w="36px" h="36px" borderRadius="lg"
-                                            bg={`${ws.color || "blue"}.100`}
-                                            _dark={{ bg: `${ws.color || "blue"}.900/30` }}
-                                            display="flex" alignItems="center" justifyContent="center"
-                                            fontSize="lg"
+                                            key={ws._id}
+                                            bg="bg.panel"
+                                            borderRadius="xl"
+                                            p={5}
+                                            borderWidth="1px"
+                                            borderColor="border.muted"
+                                            cursor="pointer"
+                                            onClick={() => navigate(`/sets/${ws._id}`)}
+                                            _hover={{ transform: "translateY(-2px)", shadow: "md", borderColor: "blue.300" }}
+                                            transition="all 0.2s ease"
                                         >
-                                            📖
+                                            <Flex align="center" gap={3} mb={3}>
+                                                <Box
+                                                    w="36px" h="36px" borderRadius="lg"
+                                                    bg={`${ws.color || "blue"}.100`}
+                                                    _dark={{ bg: `${ws.color || "blue"}.900/30` }}
+                                                    display="flex" alignItems="center" justifyContent="center"
+                                                    fontSize="lg"
+                                                >
+                                                    📖
+                                                </Box>
+                                                <Text fontWeight="bold" isTruncated flex={1}>{ws.title}</Text>
+                                            </Flex>
+                                            <Text color="fg.muted" fontSize="sm" mb={4} noOfLines={2}>
+                                                {ws.description || "Không có mô tả"}
+                                            </Text>
+                                            <Flex justify="space-between" align="center">
+                                                <Text fontSize="xs" color="fg.subtle">{ws.wordCount} từ</Text>
+                                                <Button
+                                                    size="xs"
+                                                    bg="linear-gradient(135deg, #3b82f6, #6366f1)"
+                                                    color="white"
+                                                    borderRadius="lg"
+                                                    gap={1}
+                                                    fontWeight="bold"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        navigate(`/study/${ws._id}`);
+                                                    }}
+                                                    _hover={{ opacity: 0.9 }}
+                                                >
+                                                    <FiPlay size={10} /> Học ngay
+                                                </Button>
+                                            </Flex>
                                         </Box>
-                                        <Text fontWeight="bold" isTruncated flex={1}>{ws.title}</Text>
-                                    </Flex>
-                                    <Text color="fg.muted" fontSize="sm" mb={4} noOfLines={2}>
-                                        {ws.description || "Không có mô tả"}
-                                    </Text>
-                                    <Flex justify="space-between" align="center">
-                                        <Text fontSize="xs" color="fg.subtle">{ws.wordCount} từ</Text>
-                                        <Button
-                                            size="xs"
-                                            bg="linear-gradient(135deg, #3b82f6, #6366f1)"
-                                            color="white"
-                                            borderRadius="lg"
-                                            gap={1}
-                                            fontWeight="bold"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                navigate(`/study/${ws._id}`);
-                                            }}
-                                            _hover={{ opacity: 0.9 }}
-                                        >
-                                            <FiPlay size={10} /> Học ngay
-                                        </Button>
-                                    </Flex>
-                                </Box>
-                            ))}
-                        </SimpleGrid>
-                    )}
-                </Box>
+                                    ))}
+                                </SimpleGrid>
+                            )}
+                        </Box>
+                    </Box>
+
+                    {/* Right Column (Side Widgets) */}
+                    <Box w={{ base: "full", lg: "320px" }} flexShrink={0}>
+                        <TipsWidget />
+
+                        <Box
+                            bg="linear-gradient(135deg, var(--chakra-colors-purple-500) 0%, var(--chakra-colors-blue-600) 100%)"
+                            borderRadius="2xl"
+                            p={5}
+                            color="white"
+                            position="relative"
+                            overflow="hidden"
+                        >
+                            <Box
+                                position="absolute" top="-20px" right="-20px"
+                                w="100px" h="100px" bg="white/10" borderRadius="full" blur="md"
+                            />
+                            <Text fontSize="2xl" mb={2}>🚀</Text>
+                            <Text fontWeight="900" fontSize="lg" mb={1}>IELTS Vocab Pro</Text>
+                            <Text fontSize="sm" color="white/80" mb={4}>
+                                Mở khóa phát âm AI, học không giới hạn và xoá quảng cáo.
+                            </Text>
+                            <Button size="sm" bg="white" color="purple.600" w="full" fontWeight="bold" _hover={{ bg: "gray.50" }}>
+                                Nâng cấp ngay
+                            </Button>
+                        </Box>
+                    </Box>
+                </Flex>
             </Box>
         </BaseLayout>
     );
