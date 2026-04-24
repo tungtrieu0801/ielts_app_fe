@@ -20,6 +20,33 @@ const InputStep = ({ onReady }) => {
     const [youtubeUrl, setYoutubeUrl] = useState("");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
+    const tabs = [
+        { key: "text", label: "📄 Đoạn văn" },
+        { key: "youtube", label: "▶️ YouTube" },
+    ];
+
+    // Whitelist email youtube function
+    const canShowYoutubeTab = () => {
+        try {
+            const raw = localStorage.getItem("auth-storage");
+            console.log(raw);
+
+            if (!raw) return false;
+
+            const data = JSON.parse(raw);
+            // log(data)
+
+            return data?.state?.user?.email === "trieutungvp@gmail.com";
+        } catch (err) {
+            return false;
+        }
+    };
+
+    // filer email
+    const filteredTabs = tabs.filter(tab => {
+        if (tab.key === "youtube") return canShowYoutubeTab();
+        return true;
+    })
 
     const handleSubmit = async () => {
         if (loading) return;
@@ -77,24 +104,32 @@ const InputStep = ({ onReady }) => {
             >
                 {/* Tab bar */}
                 <Flex
-                    gap={1.5} mb={6}
-                    bg="bg.subtle" p={1} borderRadius="xl"
+                    gap={1.5}
+                    mb={6}
+                    bg="bg.subtle"
+                    p={1}
+                    borderRadius="xl"
                 >
-                    {[
-                        { key: "text", label: "📄 Đoạn văn", Icon: FiFileText },
-                        // { key: "youtube", label: "▶️ YouTube", Icon: FiYoutube },
-                    ].map(({ key, label }) => (
+                    {filteredTabs.map(({ key, label }) => (
                         <Flex
-                            key={key} flex={1}
-                            align="center" justify="center" gap={2}
-                            py={2.5} borderRadius="lg" cursor="pointer"
+                            key={key}
+                            flex={1}
+                            align="center"
+                            justify="center"
+                            gap={2}
+                            py={2.5}
+                            borderRadius="lg"
+                            cursor="pointer"
                             bg={tab === key ? "bg.panel" : "transparent"}
                             color={tab === key ? "brand.text" : "fg.muted"}
                             fontWeight={tab === key ? "700" : "500"}
                             fontSize="sm"
                             boxShadow={tab === key ? "sm" : "none"}
                             transition="all 0.2s ease"
-                            onClick={() => { setTab(key); setError(""); }}
+                            onClick={() => {
+                                setTab(key);
+                                setError("");
+                            }}
                         >
                             <Text>{label}</Text>
                         </Flex>
