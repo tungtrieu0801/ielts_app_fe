@@ -36,7 +36,7 @@ const InputStep = ({ onReady }) => {
             const data = JSON.parse(raw);
             // log(data)
 
-            return data?.state?.user?.email === "trieutungvp@gmail.com";
+            return data?.state?.user?.email === "trieuha1112020@gmail.com";
         } catch (err) {
             return false;
         }
