@@ -1,8 +1,8 @@
 import axiosClient from "../config/axios.js";
 
 // Word Sets CRUD
-export const getWordSets = () =>
-    axiosClient.get("/wordsets").then((r) => r.data.data);
+export const getWordSets = (folderId = null) =>
+    axiosClient.get("/wordsets", { params: { folderId } }).then((r) => r.data.data);
 
 export const getPublicSets = () =>
     axiosClient.get("/wordsets/public").then((r) => r.data.data);

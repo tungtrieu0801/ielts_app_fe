@@ -3,6 +3,7 @@ import * as vocab from "../services/vocabularyApi.js";
 
 export const useVocabularyStore = create((set, get) => ({
     wordSets: [],
+    folders: [],
     publicSets: [],
     currentSet: null,
     words: [],
@@ -11,11 +12,44 @@ export const useVocabularyStore = create((set, get) => ({
     publicLoading: false,
     error: null,
 
-    // --- My WordSets ---
-    fetchWordSets: async () => {
+    // --- Folders ---
+    fetchFolders: async () => {
         set({ loading: true, error: null });
         try {
-            const data = await vocab.getWordSets();
+            const data = await import("../services/folderApi.js").then(m => m.getFolders());
+            set({ folders: data, loading: false });
+        } catch (e) {
+            set({ error: e.message, loading: false });
+        }
+    },
+
+    createFolder: async (payload) => {
+        const newFolder = await import("../services/folderApi.js").then(m => m.createFolder(payload));
+        set((s) => ({ folders: [newFolder, ...s.folders] }));
+        return newFolder;
+    },
+
+    updateFolder: async (id, payload) => {
+        const updated = await import("../services/folderApi.js").then(m => m.updateFolder(id, payload));
+        set((s) => ({
+            folders: s.folders.map(f => f._id === id ? updated : f)
+        }));
+    },
+
+    deleteFolder: async (id) => {
+        await import("../services/folderApi.js").then(m => m.deleteFolder(id));
+        set((s) => ({ folders: s.folders.filter(f => f._id !== id) }));
+        // After deleting folder, associated sets are moved to root in backend. 
+        // We should refresh both sets and folders.
+        await get().fetchFolders();
+        await get().fetchWordSets();
+    },
+
+    // --- My WordSets ---
+    fetchWordSets: async (folderId = null) => {
+        set({ loading: true, error: null });
+        try {
+            const data = await vocab.getWordSets(folderId);
             set({ wordSets: data, loading: false });
         } catch (e) {
             set({ error: e.message, loading: false });

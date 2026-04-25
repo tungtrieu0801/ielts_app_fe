@@ -31,7 +31,7 @@ const SRSScheduleWidget = () => {
     useEffect(() => {
         fetchSchedule();
         // Auto-refresh every 60 seconds so the countdown stays live
-        const timer = setInterval(fetchSchedule, 60_000);
+        const timer = setInterval(fetchSchedule, 300_000);
         return () => clearInterval(timer);
     }, [fetchSchedule]);
 

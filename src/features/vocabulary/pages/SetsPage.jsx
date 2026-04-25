@@ -3,12 +3,95 @@ import {
     Box, Flex, Text, SimpleGrid, Button, Input, Textarea, Spinner,
     IconButton, Badge,
 } from "@chakra-ui/react";
-import { FiPlus, FiTrash2, FiBook, FiPlay, FiGlobe, FiLock, FiGitBranch } from "react-icons/fi";
+import { FiPlus, FiTrash2, FiBook, FiPlay, FiGlobe, FiLock, FiGitBranch, FiFolder, FiChevronLeft, FiEdit2 } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import BaseLayout from "../../../layouts/BaseLayout.jsx";
 import { useVocabularyStore } from "../../../stores/useVocabularyStore.js";
 
 const COLORS = ["blue", "purple", "green", "orange", "red", "teal", "pink"];
+
+// ── Create/Edit Folder Modal ──────────────────────────────────────────────────
+const FolderModal = ({ onClose, onSave, initialData = null }) => {
+    const [name, setName] = useState(initialData?.name || "");
+    const [desc, setDesc] = useState(initialData?.description || "");
+    const [color, setColor] = useState(initialData?.color || "purple");
+    const [saving, setSaving] = useState(false);
+
+    const handleSave = async () => {
+        if (!name.trim()) return;
+        setSaving(true);
+        try {
+            await onSave({ name, description: desc, color });
+            onClose();
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    return (
+        <Box
+            position="fixed" inset={0} zIndex={50}
+            bg="blackAlpha.600" display="flex" alignItems="center" justifyContent="center"
+            onClick={onClose}
+        >
+            <Box
+                bg="bg.panel" borderRadius="2xl" p={8} w="full" maxW="480px"
+                mx={4} shadow="2xl"
+                onClick={(e) => e.stopPropagation()}
+            >
+                <Text fontSize="xl" fontWeight="bold" mb={6}>
+                    {initialData ? "Chỉnh sửa thư mục" : "Tạo thư mục mới"}
+                </Text>
+
+                <Box mb={4}>
+                    <Text fontSize="sm" fontWeight="medium" mb={2}>Tên thư mục *</Text>
+                    <Input
+                        placeholder="VD: IELTS Preparation"
+                        value={name} onChange={(e) => setName(e.target.value)}
+                        borderRadius="lg"
+                        autoFocus
+                    />
+                </Box>
+
+                <Box mb={4}>
+                    <Text fontSize="sm" fontWeight="medium" mb={2}>Mô tả</Text>
+                    <Textarea
+                        placeholder="Mô tả ngắn..."
+                        value={desc} onChange={(e) => setDesc(e.target.value)}
+                        rows={2} borderRadius="lg" resize="none"
+                    />
+                </Box>
+
+                <Box mb={6}>
+                    <Text fontSize="sm" fontWeight="medium" mb={2}>Màu sắc</Text>
+                    <Flex gap={2} flexWrap="wrap">
+                        {COLORS.map((c) => (
+                            <Box
+                                key={c} w="28px" h="28px" borderRadius="full"
+                                bg={`${c}.400`} cursor="pointer"
+                                borderWidth={color === c ? "3px" : "2px"}
+                                borderColor={color === c ? "white" : "transparent"}
+                                boxShadow={color === c ? `0 0 0 2px var(--chakra-colors-${c}-500)` : "none"}
+                                onClick={() => setColor(c)}
+                                transition="all 0.15s"
+                            />
+                        ))}
+                    </Flex>
+                </Box>
+
+                <Flex gap={3} justify="flex-end">
+                    <Button variant="ghost" onClick={onClose}>Hủy</Button>
+                    <Button
+                        colorPalette={color} onClick={handleSave}
+                        loading={saving} disabled={!name.trim()}
+                    >
+                        {initialData ? "Lưu thay đổi" : "Tạo thư mục"}
+                    </Button>
+                </Flex>
+            </Box>
+        </Box>
+    );
+};
 
 // ── Create Modal ─────────────────────────────────────────────────────────────
 const CreateSetModal = ({ onClose, onCreate }) => {
@@ -236,6 +319,81 @@ const SetCard = ({ set, onDelete, onTogglePublic }) => {
     );
 };
 
+// ── Folder Card (Compact Redesign) ───────────────────────────────────────────
+const FolderCard = ({ folder, onClick, onDelete, onEdit }) => {
+    const c = folder.color || "purple";
+    const hasDesc = !!folder.description?.trim();
+    return (
+        <Box
+            position="relative"
+            role="group"
+            onClick={() => onClick(folder._id, folder.name)}
+            bg="bg.panel"
+            _dark={{ bg: "gray.800" }}
+            borderRadius="xl"
+            p={5}
+            cursor="pointer"
+            borderWidth="1px"
+            borderColor="border.muted"
+            transition="all 0.2s"
+            _hover={{
+                transform: "translateY(-2px)",
+                shadow: "md",
+                borderColor: `${c}.400`,
+            }}
+            display="flex"
+            gap={4}
+            minH="100px"
+        >
+            <Flex
+                w="44px"
+                h="44px"
+                borderRadius="lg"
+                bg={`${c}.500`}
+                color="white"
+                align="center"
+                justify="center"
+                flexShrink={0}
+                mt={1}
+            >
+                <FiFolder size={20} />
+            </Flex>
+
+            <Box flex={1} minW={0}>
+                <Flex justify="space-between" align="flex-start" mb={1}>
+                    <Box minW={0}>
+                        <Text fontSize="md" fontWeight="bold" isTruncated>
+                            {folder.name}
+                        </Text>
+                        <Text fontSize="xs" fontWeight="bold" color={`${c}.500`}>
+                            {folder.setCount || 0} bộ từ
+                        </Text>
+                    </Box>
+                    
+                    <Flex gap={1} opacity={0} _groupHover={{ opacity: 1 }} transition="opacity 0.2s">
+                        <IconButton
+                            size="xs" variant="ghost" colorPalette="gray"
+                            onClick={(e) => { e.stopPropagation(); onEdit(folder); }}
+                        >
+                            <FiEdit2 size={12} />
+                        </IconButton>
+                        <IconButton
+                            size="xs" variant="ghost" colorPalette="red"
+                            onClick={(e) => { e.stopPropagation(); onDelete(folder._id); }}
+                        >
+                            <FiTrash2 size={12} />
+                        </IconButton>
+                    </Flex>
+                </Flex>
+                
+                <Text fontSize="xs" color={hasDesc ? "fg.muted" : "gray.400"} noOfLines={2} fontStyle={hasDesc ? "normal" : "italic"}>
+                    {hasDesc ? folder.description : "Chưa có mô tả cho thư mục này."}
+                </Text>
+            </Box>
+        </Box>
+    );
+};
+
 // ── Public Set Card ───────────────────────────────────────────────────────────
 const PublicSetCard = ({ set, onFork }) => {
     const [forking, setForking] = useState(false);
@@ -313,16 +471,32 @@ const PublicSetCard = ({ set, onFork }) => {
 // ── Main Page ─────────────────────────────────────────────────────────────────
 const SetsPage = () => {
     const {
-        wordSets, publicSets,
-        fetchWordSets, fetchPublicSets,
+        wordSets, folders, publicSets,
+        fetchWordSets, fetchFolders, fetchPublicSets,
         createWordSet, deleteWordSet, updateWordSet,
+        createFolder, updateFolder, deleteFolder,
         forkWordSet,
         loading, publicLoading,
     } = useVocabularyStore();
-    const [showCreate, setShowCreate] = useState(false);
-    const [tab, setTab] = useState("mine"); // "mine" | "community"
 
-    useEffect(() => { fetchWordSets(); }, []);
+    const [showCreate, setShowCreate] = useState(false);
+    const [showFolderModal, setShowFolderModal] = useState(false);
+    const [editingFolder, setEditingFolder] = useState(null);
+    const [tab, setTab] = useState("mine"); // "mine" | "community"
+    
+    // Navigation state
+    const [currentFolder, setCurrentFolder] = useState(null); // { id, name } | null
+
+    useEffect(() => {
+        if (tab === "mine") {
+            if (currentFolder) {
+                fetchWordSets(currentFolder.id);
+            } else {
+                fetchFolders();
+                fetchWordSets("root"); // Fetch orphaned sets
+            }
+        }
+    }, [tab, currentFolder]);
 
     useEffect(() => {
         if (tab === "community") fetchPublicSets();
@@ -344,8 +518,23 @@ const SetsPage = () => {
         } else {
             alert(res.message || "Fork thành công! Bộ từ đã được thêm vào danh sách của bạn.");
             setTab("mine");
+            setCurrentFolder(null); // Go to root to see the new set
         }
     };
+
+    const handleCreateSet = async (payload) => {
+        await createWordSet({
+            ...payload,
+            folderId: currentFolder?.id || null
+        });
+    };
+
+    const handleDeleteFolder = async (id) => {
+        if (!window.confirm("Xóa thư mục này? Các bộ từ bên trong sẽ được đưa ra ngoài màn hình chính.")) return;
+        await deleteFolder(id);
+    };
+
+    const isRoot = !currentFolder;
 
     return (
         <BaseLayout>
@@ -354,33 +543,79 @@ const SetsPage = () => {
                 <Flex
                     direction={{ base: "column", sm: "row" }}
                     justify="space-between" align={{ base: "flex-start", sm: "center" }}
-                    gap={4} mb={8} p={6} borderRadius="2xl"
+                    gap={4} mb={8} p={8} borderRadius="2xl"
                     bg="bg.panel" borderWidth="1px" borderColor="border.muted"
                     boxShadow="sm" position="relative" overflow="hidden"
                 >
-                    <Box position="absolute" top="-50%" left="-10%"
-                        w="200px" h="200px" bg="brand.400" opacity={0.1}
-                        filter="blur(50px)" borderRadius="full" pointerEvents="none"
+                    <Box position="absolute" top="-20%" left="-5%"
+                        w="250px" h="250px" bg="brand.400" opacity={0.05}
+                        filter="blur(60px)" borderRadius="full" pointerEvents="none"
                     />
+                    
                     <Box position="relative" zIndex={1} flex={1}>
-                        <Text fontSize={{ base: "2xl", sm: "3xl", md: "4xl" }}
-                            fontWeight="900" letterSpacing="tight" mb={1}>
-                            Bộ từ
-                        </Text>
-                        <Text color="fg.muted" fontSize={{ base: "sm", md: "md" }} fontWeight="500">
-                            Bạn đang quản lý {wordSets.length} bộ từ vựng
+                        <Flex align="center" gap={3} mb={1}>
+                            {currentFolder && (
+                                <IconButton
+                                    variant="subtle" size="sm" borderRadius="lg"
+                                    onClick={() => setCurrentFolder(null)}
+                                >
+                                    <FiChevronLeft size={18} />
+                                </IconButton>
+                            )}
+                            <Text fontSize={{ base: "xl", md: "2xl" }}
+                                fontWeight="900" letterSpacing="tight">
+                                {currentFolder ? currentFolder.name : "Thư viện bộ từ"}
+                            </Text>
+
+                            {currentFolder && (
+                                <IconButton
+                                    variant="ghost" size="xs" colorPalette="gray" borderRadius="full"
+                                    onClick={() => {
+                                        const folderToEdit = folders.find(f => f._id === currentFolder.id);
+                                        if (folderToEdit) {
+                                            setEditingFolder(folderToEdit);
+                                            setShowFolderModal(true);
+                                        }
+                                    }}
+                                >
+                                    <FiEdit2 size={14} />
+                                </IconButton>
+                            )}
+                        </Flex>
+                        <Text color="fg.muted" fontSize="sm" fontWeight="500">
+                            {currentFolder 
+                                ? `Khám phá ${wordSets.length} học liệu trong thư mục này`
+                                : `Hệ thống hóa ${folders.length} thư mục và ${wordSets.length} học liệu lẻ`
+                            }
                         </Text>
                     </Box>
-                    <Button
-                        size={{ base: "md", sm: "lg" }} borderRadius="xl"
-                        bg="linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)"
-                        color="white" fontWeight="700" flexShrink={0}
-                        _hover={{ transform: "translateY(-2px)", shadow: "lg" }}
-                        transition="all 0.2s"
-                        onClick={() => setShowCreate(true)} gap={2} zIndex={1}
-                    >
-                        <FiPlus size={20} /> Tạo bộ từ mới
-                    </Button>
+
+                    {isRoot ? (
+                        <Button
+                            size="md" borderRadius="xl"
+                            colorPalette="purple" variant="solid"
+                            fontWeight="700" flexShrink={0}
+                            _hover={{ transform: "translateY(-2px)", shadow: "lg" }}
+                            transition="all 0.2s"
+                            onClick={() => {
+                                setEditingFolder(null);
+                                setShowFolderModal(true);
+                            }} gap={2} zIndex={1}
+                        >
+                            <FiPlus size={18} /> Tạo thư mục
+                        </Button>
+                    ) : (
+                        <Button
+                            size="md" borderRadius="xl"
+                            bg="linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)"
+                            color="white" fontWeight="700" flexShrink={0}
+                            _hover={{ transform: "translateY(-2px)", shadow: "lg" }}
+                            transition="all 0.2s"
+                            onClick={() => setShowCreate(true)} gap={2} zIndex={1}
+                        >
+                            <FiPlus size={18} /> Tạo bộ từ mới
+                        </Button>
+                    )}
                 </Flex>
 
                 {/* Tabs */}
@@ -408,27 +643,84 @@ const SetsPage = () => {
                 {/* ── Tab: Của tôi ── */}
                 {tab === "mine" && (
                     loading ? (
-                        <Flex justify="center" py={20}><Spinner size="xl" /></Flex>
-                    ) : wordSets.length === 0 ? (
+                        <Flex justify="center" py={40}><Spinner size="xl" color="brand.500" thickness="4px" /></Flex>
+                    ) : (wordSets.length === 0 && folders.length === 0 && isRoot) ? (
                         <Flex direction="column" align="center" justify="center"
-                            py={20} borderRadius="3xl" borderWidth="2px"
-                            borderStyle="dashed" borderColor="border.muted" gap={4}
+                            py={32} borderRadius="3xl" borderWidth="2px"
+                            borderStyle="dashed" borderColor="border.muted" gap={6}
+                            bg="bg.panel"
                         >
-                            <Text fontSize="5xl">📚</Text>
-                            <Text fontWeight="bold" fontSize="xl">Chưa có bộ từ nào</Text>
-                            <Text color="fg.muted" textAlign="center" maxW="300px">
-                                Tạo bộ từ đầu tiên và bắt đầu import từ vựng từ file Excel!
-                            </Text>
-                            <Button colorPalette="blue" size="lg" mt={2} onClick={() => setShowCreate(true)}>
-                                <FiPlus /> Tạo bộ từ đầu tiên
+                            <Box fontSize="7xl" mb={2}>📁</Box>
+                            <Box textAlign="center">
+                                <Text fontWeight="900" fontSize="2xl" mb={2}>Thư viện trống</Text>
+                                <Text color="fg.muted" maxW="400px" fontSize="md">
+                                    Hãy bắt đầu bằng việc tạo một thư mục để lưu trữ các bộ từ vựng của bạn một cách khoa học.
+                                </Text>
+                            </Box>
+                            <Button colorPalette="purple" size="xl" h="60px" px={10} borderRadius="2xl" onClick={() => {
+                                setEditingFolder(null);
+                                setShowFolderModal(true);
+                            }}>
+                                <FiPlus size={24} /> Tạo thư mục đầu tiên
                             </Button>
                         </Flex>
                     ) : (
-                        <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} gap={5}>
-                            {wordSets.map((set) => (
-                                <SetCard key={set._id} set={set} onDelete={handleDelete} onTogglePublic={handleTogglePublic} />
-                            ))}
-                        </SimpleGrid>
+                        <Box>
+                            {/* Render Folders (only at root) */}
+                            {isRoot && folders.length > 0 && (
+                                <Box mb={12}>
+                                    <Text fontSize="xs" fontWeight="900" color="fg.muted" mb={5} textTransform="uppercase" letterSpacing="widest">
+                                        Thư mục của bạn
+                                    </Text>
+                                    <SimpleGrid columns={{ base: 1, sm: 2, md: 3 }} gap={5}>
+                                        {folders.map(f => (
+                                            <FolderCard 
+                                                key={f._id} folder={f} 
+                                                onClick={(id, name) => setCurrentFolder({ id, name })}
+                                                onDelete={handleDeleteFolder}
+                                                onEdit={(folder) => {
+                                                    setEditingFolder(folder);
+                                                    setShowFolderModal(true);
+                                                }}
+                                            />
+                                        ))}
+                                    </SimpleGrid>
+                                </Box>
+                            )}
+
+                            {/* Render Sets */}
+                            <Box>
+                                {!isRoot && wordSets.length > 0 && (
+                                    <Text fontSize="xs" fontWeight="900" color="fg.muted" mb={5} textTransform="uppercase" letterSpacing="widest">
+                                        Bộ từ trong "{currentFolder.name}"
+                                    </Text>
+                                )}
+                                {isRoot && wordSets.length > 0 && (
+                                    <Text fontSize="xs" fontWeight="900" color="fg.muted" mb={5} textTransform="uppercase" letterSpacing="widest">
+                                        Bộ từ lẻ
+                                    </Text>
+                                )}
+                                
+                                {wordSets.length > 0 ? (
+                                    <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} gap={6}>
+                                        {wordSets.map((set) => (
+                                            <SetCard key={set._id} set={set} onDelete={handleDelete} onTogglePublic={handleTogglePublic} />
+                                        ))}
+                                    </SimpleGrid>
+                                ) : !isRoot && (
+                                    <Flex direction="column" align="center" justify="center" py={32} bg="bg.panel" borderRadius="3xl" borderStyle="dashed" borderWidth="2px" borderColor="border.muted" gap={4}>
+                                        <Box fontSize="5xl">📖</Box>
+                                        <Box textAlign="center">
+                                            <Text fontWeight="bold" fontSize="lg">Thư mục này chưa có bộ từ</Text>
+                                            <Text fontSize="sm" color="fg.muted">Bắt đầu tạo học liệu đầu tiên cho thư mục này</Text>
+                                        </Box>
+                                        <Button size="lg" colorPalette="blue" borderRadius="xl" onClick={() => setShowCreate(true)}>
+                                            <FiPlus /> Tạo bộ từ mới
+                                        </Button>
+                                    </Flex>
+                                )}
+                            </Box>
+                        </Box>
                     )
                 )}
 
@@ -455,7 +747,28 @@ const SetsPage = () => {
             {showCreate && (
                 <CreateSetModal
                     onClose={() => setShowCreate(false)}
-                    onCreate={createWordSet}
+                    onCreate={handleCreateSet}
+                />
+            )}
+
+            {showFolderModal && (
+                <FolderModal
+                    onClose={() => {
+                        setShowFolderModal(false);
+                        setEditingFolder(null);
+                    }}
+                    onSave={async (data) => {
+                        if (editingFolder) {
+                            await updateFolder(editingFolder._id, data);
+                            // Cập nhật lại tên Header nếu đang ở trong folder này
+                            if (currentFolder && currentFolder.id === editingFolder._id) {
+                                setCurrentFolder(prev => ({ ...prev, name: data.name }));
+                            }
+                        } else {
+                            await createFolder(data);
+                        }
+                    }}
+                    initialData={editingFolder}
                 />
             )}
         </BaseLayout>
