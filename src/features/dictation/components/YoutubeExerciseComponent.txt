@@ -1,0 +1,375 @@
+// ── Main Component ────────────────────────────────────────────────────────
+const YoutubeExercise = ({ data, onReset }) => {
+    const { exercises, videoId, title } = data;
+    const [idx, setIdx] = useState(0);
+    const [answer, setAnswer] = useState("");
+    // attemptResult: null | { compared: [{word, status}], allCorrect: boolean }
+    const [attemptResult, setAttemptResult] = useState(null);
+    const [attempts, setAttempts] = useState(0); // số lần thử câu hiện tại
+    const [stats, setStats] = useState({ correct: 0, wrong: 0 });
+    const [finished, setFinished] = useState(false);
+    const [done, setDone] = useState([]);
+
+    const playerRef = useRef(null);
+    const taRef = useRef(null);
+    const transcriptRef = useRef(null);
+    
+    // Dùng ref để tránh stale closure trong keydown listener
+    const stateRef = useRef({});
+    stateRef.current = { answer, attemptResult, idx };
+
+    const { seekAndPlay, pauseVideo } = useYouTubePlayer(playerRef, videoId);
+    const seekRef = useRef(seekAndPlay); seekRef.current = seekAndPlay;
+
+    const cur = exercises[idx];
+    const curRef = useRef(cur); curRef.current = cur;
+
+    // Khi chuyển sang câu mới: reset tất cả
+    useEffect(() => {
+        if (!cur) return;
+        setAnswer(""); setAttemptResult(null); setAttempts(0);
+        const t = setTimeout(() => {
+            seekRef.current(cur.start ?? 0, cur.end);
+            setTimeout(() => taRef.current?.focus(), 350);
+        }, 350);
+        return () => clearTimeout(t);
+    }, [idx]); // eslint-disable-line
+
+    useEffect(() => {
+        if (transcriptRef.current) transcriptRef.current.scrollTop = 0;
+    }, [done.length]);
+
+    const goNext = useCallback((forceSkip = false) => {
+        if (idx >= exercises.length - 1) setFinished(true);
+        else setIdx(p => p + 1);
+        if (forceSkip) {
+            // Đánh dấu wrong nếu bỏ qua
+            setStats(p => ({ ...p, wrong: p.wrong + 1 }));
+            setDone(p => [{
+                idx,
+                original: curRef.current.original,
+                translated: curRef.current.translated,
+                start: curRef.current.start,
+                end: curRef.current.end,
+                ok: false,
+                skipped: true,
+            }, ...p]);
+        }
+    }, [idx, exercises.length]);
+    const goNextRef = useRef(goNext); goNextRef.current = goNext;
+
+    /** Kiểm tra câu trả lời hiện tại, cập nhật feedback, giữ phần đúng */
+    const submit = useCallback(() => {
+        const { answer: ans } = stateRef.current;
+        if (!ans.trim()) return;
+        pauseVideo();
+        const cur = curRef.current;
+        const allCorrect = norm(ans) === norm(cur.original);
+        const compared = compareWords(ans, cur.original);
+        setAttemptResult({ compared, allCorrect });
+        setAttempts(p => p + 1);
+
+        if (allCorrect) {
+            // Đúng hoàn toàn → ghi vào transcript, không tự chuyển
+            setStats(p => ({ ...p, correct: p.correct + 1 }));
+            setDone(p => [{
+                idx: stateRef.current.idx,
+                original: cur.original,
+                translated: cur.translated,
+                start: cur.start,
+                end: cur.end,
+                ok: true,
+            }, ...p]);
+        } else {
+            // Sai → giữ lại phần đầu đúng, xóa phần sai để user gõ tiếp
+            const retained = buildRetainedAnswer(ans, cur.original);
+            setAnswer(retained);
+            setTimeout(() => {
+                if (taRef.current) {
+                    taRef.current.focus();
+                    const len = taRef.current.value.length;
+                    taRef.current.setSelectionRange(len, len);
+                }
+            }, 30);
+        }
+    }, [pauseVideo]);
+    const submitRef = useRef(submit); submitRef.current = submit;
+
+    const handleGoNext = useCallback(() => {
+        if (stateRef.current.attemptResult?.allCorrect) goNextRef.current(false);
+    }, []);
+    const handleGoNextRef = useRef(handleGoNext); handleGoNextRef.current = handleGoNext;
+
+    useEffect(() => {
+        let ctrl = false, ctrlOther = false;
+        const kd = (e) => {
+            if (e.key === "Control") { ctrl = true; ctrlOther = false; return; }
+            if (ctrl) ctrlOther = true;
+            if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                if (stateRef.current.attemptResult?.allCorrect) handleGoNextRef.current();
+                else submitRef.current();
+            }
+        };
+        const ku = (e) => {
+            if (e.key === "Control") {
+                if (!ctrlOther && curRef.current) seekRef.current(curRef.current.start ?? 0, curRef.current.end);
+                ctrl = false; ctrlOther = false;
+            }
+        };
+        window.addEventListener("keydown", kd);
+        window.addEventListener("keyup", ku);
+        return () => { window.removeEventListener("keydown", kd); window.removeEventListener("keyup", ku); };
+    }, []);
+
+    if (finished) return <FinishedScreen total={exercises.length} correct={stats.correct} wrong={stats.wrong} onReset={onReset} />;
+    if (!cur) return null;
+
+    const pct = (idx / exercises.length) * 100;
+    const isCorrect = attemptResult?.allCorrect === true;
+    const hasAttempt = attemptResult !== null;
+
+    return (
+        <div style={{ display: "flex", height: "100%", overflow: "hidden", gap: 16, padding: 16, background: "#CBD5E0", boxSizing: "border-box" }}>
+
+            {/* ═══ LEFT COLUMN (55%) — Video + Input ═══ */}
+            <div style={{ flex: "0 0 55%", display: "flex", flexDirection: "column", gap: 16, overflow: "hidden" }}>
+
+                {/* 1. Video Panel */}
+                <div style={{ ...S.panel, flexShrink: 0, position: "relative" }}>
+                    <div style={{ width: "100%", aspectRatio: "16/9", background: "#000", maxHeight: "48vh", display: "flex", justifyContent: "center", alignItems: "center" }}>
+                        <div ref={playerRef} style={{ width: "100%", height: "100%", maxWidth: "calc(48vh * 16 / 9)" }} />
+                    </div>
+                    {/* Progress bar overlaying video bottom */}
+                    <div style={{ height: 4, background: "rgba(0,0,0,0.5)", width: "100%" }}>
+                        <div style={{ height: "100%", width: `${pct}%`, background: "#E53E3E", transition: "width 0.4s ease", boxShadow: "0 0 10px #E53E3E" }} />
+                    </div>
+                </div>
+
+                {/* 2. Input Area Panel */}
+                <div style={{ ...S.panel, flex: 1, minHeight: 0 }}>
+                    <div style={S.header}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <span style={{ fontSize: 16 }}>⌨️</span>
+                            <span style={S.title}>Khu vực viết</span>
+                        </div>
+                        <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+                            <div style={{ display: "flex", gap: 4, alignItems: "center", background: "rgba(56,161,105,0.1)", padding: "2px 8px", borderRadius: 12 }}>
+                                <span style={{ fontSize: 12, color: "#38A169", fontWeight: 800 }}>✓ {stats.correct}</span>
+                            </div>
+                            <div style={{ display: "flex", gap: 4, alignItems: "center", background: "rgba(229,62,62,0.1)", padding: "2px 8px", borderRadius: 12 }}>
+                                <span style={{ fontSize: 12, color: "#E53E3E", fontWeight: 800 }}>✗ {stats.wrong}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style={{ display: "flex", flexDirection: "column", padding: 16, flex: 1, gap: 10, overflowY: "auto", overflowX: "hidden" }}>
+                        {/* Status Label */}
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                <div style={{
+                                    width: 10, height: 10, borderRadius: "50%",
+                                    background: isCorrect ? "#38A169" : hasAttempt ? "#E53E3E" : "#3182CE",
+                                    transition: "background 0.3s",
+                                    animation: !hasAttempt ? "pulse 1.5s infinite" : "none",
+                                    boxShadow: !hasAttempt ? "0 0 10px #3182CE" : "none"
+                                }} />
+                                <span style={{ fontSize: 13, fontWeight: 800, color: "#2D3748", letterSpacing: "0.05em" }}>CÂU {idx + 1} / {exercises.length}</span>
+                                {attempts > 0 && !isCorrect && (
+                                    <span style={{ fontSize: 11, background: "rgba(229,62,62,0.1)", color: "#C53030", padding: "2px 8px", borderRadius: 10, fontWeight: 700 }}>Thử {attempts} lần</span>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Word feedback bar — hiển thị sau khi submit lần đầu */}
+                        {hasAttempt && !isCorrect && attemptResult.compared.length > 0 && (
+                            <div style={{
+                                padding: "10px 14px", borderRadius: 10, background: "#FFF5F5",
+                                border: "1px solid rgba(229,62,62,0.25)", flexShrink: 0,
+                                lineHeight: 1.7, animation: "fadeIn 0.2s ease"
+                            }}>
+                                <div style={{ fontSize: 11, fontWeight: 800, color: "#C53030", marginBottom: 4, textTransform: "uppercase" }}>Phân tích lỗi:</div>
+                                <div style={{ display: "flex", flexWrap: "wrap", gap: "2px 4px" }}>
+                                    {attemptResult.compared.map((w, i) => (
+                                        <span key={i} style={{
+                                            fontSize: 14,
+                                            fontWeight: w.status === 'correct' ? 700 : 600,
+                                            color: w.status === 'correct' ? "#276749" :
+                                                   w.status === 'wrong' ? "#C53030" :
+                                                   w.status === 'missing' ? "#975A16" : "#718096",
+                                            background: w.status === 'correct' ? "rgba(56,161,105,0.1)" :
+                                                        w.status === 'wrong' ? "rgba(229,62,62,0.1)" :
+                                                        w.status === 'missing' ? "rgba(236,201,75,0.15)" : "transparent",
+                                            borderRadius: 4,
+                                            padding: "0 3px",
+                                            textDecoration: w.status === 'wrong' ? "line-through" : "none",
+                                        }}>
+                                            {w.word}
+                                            {w.status === 'wrong' && (
+                                                <span style={{ textDecoration: "none", color: "#276749", fontSize: 12, marginLeft: 2 }}>→{w.expected}</span>
+                                            )}
+                                            {w.status === 'missing' && (
+                                                <span style={{ fontStyle: "italic", opacity: 0.7 }}> [{w.word}]</span>
+                                            )}
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* SUCCESS feedback */}
+                        {isCorrect && (
+                            <div style={{
+                                padding: "10px 16px", borderRadius: 10, flexShrink: 0,
+                                background: "rgba(56,161,105,0.1)",
+                                border: "1px solid rgba(56,161,105,0.3)",
+                                animation: "fadeIn 0.3s ease"
+                            }}>
+                                <span style={{ color: "#2F855A", fontWeight: 800, fontSize: 14 }}>✅ Chính xác! Nhấn Enter để qua câu tiếp theo.</span>
+                            </div>
+                        )}
+
+                        {/* Textarea */}
+                        <textarea
+                            ref={taRef}
+                            value={answer}
+                            onChange={e => !isCorrect && setAnswer(e.target.value)}
+                            placeholder="Gõ những gì bạn nghe được… (Enter để kiểm tra, Shift+Enter xuống dòng)"
+                            disabled={isCorrect}
+                            style={{
+                                flex: 1, minHeight: "80px", width: "100%", padding: 16,
+                                borderRadius: 12, resize: "none",
+                                border: `2px solid ${!hasAttempt ? "#CBD5E0" : isCorrect ? "#38A169" : "#E53E3E"}`,
+                                background: !hasAttempt ? "#fff" : isCorrect ? "rgba(56,161,105,0.04)" : "rgba(255,250,250,1)",
+                                fontSize: 15, fontFamily: "inherit", color: "#2D3748", outline: "none",
+                                transition: "all 0.25s", boxSizing: "border-box", lineHeight: 1.6,
+                                boxShadow: !hasAttempt ? "inset 0 2px 4px rgba(0,0,0,0.02)" :
+                                           isCorrect ? "0 0 0 3px rgba(56,161,105,0.2)" :
+                                           "0 0 0 3px rgba(229,62,62,0.15)"
+                            }}
+                        />
+
+                        {/* Controls */}
+                        <div style={{ display: "flex", gap: 10, flexShrink: 0 }}>
+                            <button
+                                onClick={() => cur && seekRef.current(cur.start ?? 0, cur.end)}
+                                style={{ flex: "0 0 auto", padding: "11px 16px", borderRadius: 10, border: "2px solid #CBD5E0", background: "#EDF2F7", fontSize: 13, cursor: "pointer", color: "#4A5568", fontWeight: 800, transition: "all 0.2s" }}
+                                onMouseEnter={e => { e.currentTarget.style.borderColor = "#A0AEC0"; e.currentTarget.style.background = "#E2E8F0"; }}
+                                onMouseLeave={e => { e.currentTarget.style.borderColor = "#CBD5E0"; e.currentTarget.style.background = "#EDF2F7"; }}
+                            >
+                                🎧 Nghe lại
+                            </button>
+                            {!isCorrect ? (
+                                <>
+                                    <button
+                                        onClick={submit} disabled={!answer.trim()}
+                                        style={{ ...S.buttonPrimary, flex: 1, padding: "11px 0", fontSize: 14, opacity: answer.trim() ? 1 : 0.6, cursor: answer.trim() ? "pointer" : "not-allowed" }}
+                                    >
+                                        ✨ Kiểm tra (Enter)
+                                    </button>
+                                    {attempts > 0 && (
+                                        <button
+                                            onClick={() => goNextRef.current(true)}
+                                            style={{ flex: "0 0 auto", padding: "11px 14px", borderRadius: 10, border: "2px solid #E2E8F0", background: "#F7FAFC", fontSize: 13, cursor: "pointer", color: "#718096", fontWeight: 700, transition: "all 0.2s" }}
+                                            title="Bỏ qua câu này (tính là sai)"
+                                            onMouseEnter={e => { e.currentTarget.style.borderColor = "#E53E3E"; e.currentTarget.style.color = "#C53030"; }}
+                                            onMouseLeave={e => { e.currentTarget.style.borderColor = "#E2E8F0"; e.currentTarget.style.color = "#718096"; }}
+                                        >
+                                            ⏭ Bỏ qua
+                                        </button>
+                                    )}
+                                </>
+                            ) : (
+                                <button
+                                    onClick={() => goNextRef.current(false)}
+                                    style={{ ...S.buttonSuccess, flex: 1, padding: "11px 0", fontSize: 14, boxShadow: "0 4px 12px rgba(56,161,105,0.3)" }}
+                                >
+                                    {idx >= exercises.length - 1 ? "🏁 Hoàn thành bài" : "Câu tiếp theo ➔"}
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* ═══ RIGHT COLUMN (45%) — Transcript + Note ═══ */}
+            <div style={{ flex: "0 0 45%", display: "flex", flexDirection: "column", gap: 16, overflow: "hidden" }}>
+
+                {/* 3. Transcript Panel */}
+                <div style={{ ...S.panel, flex: "0 0 52%" }}>
+                    <div style={S.header}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <span style={{ fontSize: 16 }}>📜</span>
+                            <span style={S.title}>Transcript</span>
+                        </div>
+                        <span style={{ fontSize: 11, color: "#4A5568", fontWeight: 700, background: "#CBD5E0", padding: "4px 10px", borderRadius: 12 }}>
+                            {title ? (title.length > 30 ? title.substring(0, 30) + '...' : title) : `${exercises.length} câu`}
+                        </span>
+                    </div>
+
+                    <div ref={transcriptRef} style={{ flex: 1, overflowY: "auto", padding: 12, background: "#F7FAFC", display: "flex", flexDirection: "column", gap: 8 }}>
+                        {done.length === 0 && (
+                            <div style={{ padding: "40px 20px", textAlign: "center", display: "flex", flexDirection: "column", gap: 8, opacity: 0.5 }}>
+                                <span style={{ fontSize: 32 }}>👀</span>
+                                <span style={{ fontSize: 13, fontWeight: 700, color: "#718096" }}>Các câu bạn đã hoàn thành sẽ xuất hiện ở đây</span>
+                            </div>
+                        )}
+                        {done.map((s) => (
+                            <div
+                                key={s.idx}
+                                onClick={() => seekRef.current(s.start, s.end)}
+                                style={{
+                                    padding: "12px 14px", borderRadius: 12, cursor: "pointer",
+                                    border: "1px solid #E2E8F0",
+                                    background: "#fff",
+                                    borderLeft: `4px solid ${s.ok ? "#38A169" : "#E53E3E"}`,
+                                    transition: "all 0.2s",
+                                    boxShadow: "0 2px 8px rgba(0,0,0,0.02)"
+                                }}
+                                onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-1px)"; e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.05)"; }}
+                                onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.02)"; }}
+                            >
+                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8, marginBottom: 4 }}>
+                                    <div style={{ fontSize: 15, fontWeight: 700, lineHeight: 1.5, color: "#2D3748" }}>
+                                        {s.original}
+                                    </div>
+                                    <div style={{ fontSize: 10, fontWeight: 800, color: s.ok ? "#2F855A" : "#C53030", background: s.ok ? "rgba(56,161,105,0.15)" : "rgba(229,62,62,0.15)", padding: "4px 8px", borderRadius: 8, flexShrink: 0 }}>
+                                        {s.skipped ? "⏭" : `#${s.idx + 1}`}
+                                    </div>
+                                </div>
+                                {/* Duo sub */}
+                                <div style={{ fontSize: 13, color: "#A0AEC0", fontWeight: 600, fontStyle: "italic", marginTop: 4 }}>
+                                    {s.translated || "(Bản dịch tiếng Việt đang cập nhật...)"}
+                                </div>
+                                <div style={{ fontSize: 10, color: "#718096", marginTop: 8, fontWeight: 700, display: "flex", alignItems: "center", gap: 4 }}>
+                                    <span style={{ color: "#3182CE" }}>▶</span> {s.start?.toFixed(1)}s
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                {/* 4. Note Table Panel */}
+                <NoteTable />
+            </div>
+
+            <style>{`
+                @keyframes pulse {
+                    0% { opacity: 1; transform: scale(1); }
+                    50% { opacity: 0.6; transform: scale(1.1); }
+                    100% { opacity: 1; transform: scale(1); }
+                }
+                @keyframes fadeIn {
+                    from { opacity: 0; transform: translateY(5px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
+                ::-webkit-scrollbar { width: 8px; height: 8px; }
+                ::-webkit-scrollbar-track { background: transparent; }
+                ::-webkit-scrollbar-thumb { background: #CBD5E0; border-radius: 10px; }
+                ::-webkit-scrollbar-thumb:hover { background: #A0AEC0; }
+            `}</style>
+        </div>
+    );
+};
+
+export default YoutubeExercise;

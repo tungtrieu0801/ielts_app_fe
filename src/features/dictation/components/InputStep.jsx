@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
     Box, Flex, Text, Button, Textarea, Input, Spinner,
 } from "@chakra-ui/react";
@@ -6,7 +6,7 @@ import {
     FiFileText, FiYoutube, FiArrowRight, FiAlertCircle,
     FiCommand, FiCornerDownLeft, FiDelete,
 } from "react-icons/fi";
-import { prepareText, prepareYoutube } from "../../../services/dictationApi.js";
+import { prepareText, prepareYoutube, getSharedLibrary } from "../../../services/dictationApi.js";
 
 const SHORTCUT_HINTS = [
     { key: "Ctrl", desc: "Nghe lại" },
@@ -20,6 +20,7 @@ const InputStep = ({ onReady }) => {
     const [youtubeUrl, setYoutubeUrl] = useState("");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
+    const [library, setLibrary] = useState([]);
     const tabs = [
         { key: "text", label: "📄 Đoạn văn" },
         { key: "youtube", label: "▶️ YouTube" },
@@ -29,26 +30,28 @@ const InputStep = ({ onReady }) => {
     const canShowYoutubeTab = () => {
         try {
             const raw = localStorage.getItem("auth-storage");
-            console.log(raw);
-
             if (!raw) return false;
-
             const data = JSON.parse(raw);
-            // log(data)
-
             return data?.state?.user?.email === "trieuha1112020@gmail.com";
         } catch (err) {
             return false;
         }
     };
 
-    // filer email
     const filteredTabs = tabs.filter(tab => {
         if (tab.key === "youtube") return canShowYoutubeTab();
         return true;
-    })
+    });
 
-    const handleSubmit = async () => {
+    // Fetch shared library when YouTube tab is active
+    useEffect(() => {
+        if (tab !== "youtube") return;
+        getSharedLibrary()
+            .then(res => setLibrary(res.data?.data || []))
+            .catch(() => setLibrary([]));
+    }, [tab]);
+
+    const handleSubmit = async (urlOverride) => {
         if (loading) return;
         setError("");
         setLoading(true);
@@ -57,7 +60,7 @@ const InputStep = ({ onReady }) => {
             if (tab === "text") {
                 res = await prepareText(textInput);
             } else {
-                res = await prepareYoutube(youtubeUrl);
+                res = await prepareYoutube(urlOverride || youtubeUrl);
             }
             onReady(res.data);
         } catch (err) {
@@ -176,8 +179,68 @@ const InputStep = ({ onReady }) => {
                                 Hệ thống sẽ tự động lấy phụ đề và tạo bài luyện nghe.
                             </Text>
                         </Flex>
+
+                        {/* Shared Library */}
+                        {library.length > 0 && (
+                            <Box mt={5}>
+                                <Text fontSize="xs" fontWeight="700" color="fg.muted" mb={3} textTransform="uppercase" letterSpacing="wider">
+                                    📚 Thư viện video đã sẵn sàng
+                                </Text>
+                                <Box
+                                    display="grid"
+                                    style={{ gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 10 }}
+                                >
+                                    {library.map((video) => (
+                                        <Box
+                                            key={video.videoId}
+                                            as="button"
+                                            onClick={() => {
+                                                setYoutubeUrl(video.url);
+                                                handleSubmit(video.url);
+                                            }}
+                                            p={3}
+                                            borderRadius="xl"
+                                            borderWidth="1px"
+                                            borderColor="border.muted"
+                                            bg="bg.subtle"
+                                            _hover={{ bg: "bg.panel", borderColor: "brand.text", shadow: "sm" }}
+                                            transition="all 0.18s ease"
+                                            textAlign="left"
+                                            cursor="pointer"
+                                            display="flex"
+                                            flexDirection="column"
+                                            gap={1.5}
+                                        >
+                                            {/* Thumbnail */}
+                                            <Box
+                                                borderRadius="lg"
+                                                overflow="hidden"
+                                                style={{ aspectRatio: "16/9" }}
+                                                bg="black"
+                                                mb={1}
+                                                flexShrink={0}
+                                            >
+                                                <img
+                                                    src={`https://img.youtube.com/vi/${video.videoId}/mqdefault.jpg`}
+                                                    alt={video.title}
+                                                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                                                    loading="lazy"
+                                                />
+                                            </Box>
+                                            <Text fontSize="12px" fontWeight="600" lineHeight="1.4" noOfLines={2} color="fg">
+                                                {video.title}
+                                            </Text>
+                                            <Text fontSize="11px" color="fg.muted">
+                                                {video.total} câu · ⚡ từ cache
+                                            </Text>
+                                        </Box>
+                                    ))}
+                                </Box>
+                            </Box>
+                        )}
                     </Box>
                 )}
+
 
                 {/* Error */}
                 {error && (

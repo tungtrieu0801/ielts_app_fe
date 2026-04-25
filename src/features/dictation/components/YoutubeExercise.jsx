@@ -1,12 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { Box, Flex, Text, Button, Textarea, Grid, GridItem } from "@chakra-ui/react";
-import {
-    FiVolume2, FiCheck, FiX, FiRefreshCw, FiChevronRight, FiPlay,
-} from "react-icons/fi";
 
-// ── YouTube IFrame API ─────────────────────────────────────────────────────
+// ── YouTube IFrame API ────────────────────────────────────────────────────
 let ytApiPromise = null;
-
 function loadYouTubeIframeAPI() {
     if (ytApiPromise) return ytApiPromise;
     ytApiPromise = new Promise((resolve) => {
@@ -15,470 +10,577 @@ function loadYouTubeIframeAPI() {
         window.onYouTubeIframeAPIReady = () => { prev?.(); resolve(window.YT); };
         if (!document.getElementById("yt-api-script")) {
             const s = document.createElement("script");
-            s.id = "yt-api-script";
-            s.src = "https://www.youtube.com/iframe_api";
+            s.id = "yt-api-script"; s.src = "https://www.youtube.com/iframe_api";
             document.head.appendChild(s);
         }
     });
     return ytApiPromise;
 }
 
-// ── useYouTubePlayer hook ─────────────────────────────────────────────────
 function useYouTubePlayer(divRef, videoId) {
     const playerRef = useRef(null);
-    const pauseTimerRef = useRef(null);  // setInterval id for polling
-    const readyRef = useRef(false);
+    const timerRef = useRef(null);
 
     useEffect(() => {
         if (!divRef.current || !videoId) return;
-        let destroyed = false;
-        readyRef.current = false;
-
+        let dead = false;
         loadYouTubeIframeAPI().then((YT) => {
-            if (destroyed) return;
+            if (dead) return;
             playerRef.current = new YT.Player(divRef.current, {
                 videoId,
                 playerVars: { rel: 0, modestbranding: 1, playsinline: 1 },
-                events: {
-                    onReady: () => { readyRef.current = true; },
-                },
             });
         });
-
         return () => {
-            destroyed = true;
-            clearInterval(pauseTimerRef.current);
-            try { playerRef.current?.destroy(); } catch (_) {}
+            dead = true; clearInterval(timerRef.current);
+            try { playerRef.current?.destroy(); } catch (_) { }
             playerRef.current = null;
-            readyRef.current = false;
         };
     }, [videoId]); // eslint-disable-line
 
-    /**
-     * Seek to `start` seconds and play.
-     * Polls getCurrentTime() every 150 ms and pauses exactly at `end` seconds.
-     * This avoids setTimeout drift caused by buffering.
-     */
     const seekAndPlay = useCallback((start, end) => {
         const p = playerRef.current;
         if (!p?.seekTo) return;
-
-        clearInterval(pauseTimerRef.current);
-        // Seek slightly before start to avoid clipping the first consonant
+        clearInterval(timerRef.current);
         p.seekTo(Math.max(0, start - 0.05), true);
         p.playVideo();
-
         if (end != null) {
-            // High-frequency polling (30ms) for frame-accurate pausing
-            pauseTimerRef.current = setInterval(() => {
+            timerRef.current = setInterval(() => {
                 try {
                     const t = p.getCurrentTime?.();
-                    // Pause slightly before the 'end' time to account for JS execution delay
                     if (typeof t === "number" && t >= end - 0.02) {
-                        p.pauseVideo?.();
-                        clearInterval(pauseTimerRef.current);
+                        p.pauseVideo?.(); clearInterval(timerRef.current);
                     }
-                } catch (_) {
-                    clearInterval(pauseTimerRef.current);
-                }
+                } catch (_) { clearInterval(timerRef.current); }
             }, 30);
         }
     }, []);
 
     const pauseVideo = useCallback(() => {
-        clearInterval(pauseTimerRef.current);
+        clearInterval(timerRef.current);
         playerRef.current?.pauseVideo?.();
     }, []);
 
     return { seekAndPlay, pauseVideo };
 }
 
-
 // ── Scoring ───────────────────────────────────────────────────────────────
-const normalize = (s) =>
-    s.toLowerCase().trim().replace(/[.,;:!?'"]/g, "").replace(/\s+/g, " ");
+const norm = (s) => s.toLowerCase().trim().replace(/[.,;:!?'"’\-]/g, "").replace(/\s+/g, " ");
 
-function scoreAnswer(userAnswer, correctSentence) {
-    const u = normalize(userAnswer).split(" ").filter(Boolean);
-    const c = normalize(correctSentence).split(" ").filter(Boolean);
-    if (!c.length) return 0;
-    return u.filter((w) => c.includes(w)).length / c.length;
+function getHintParts(answer, correct) {
+    const ansWords = answer.trim().split(/\s+/).filter(Boolean);
+    const corWords = norm(correct).split(" ").filter(Boolean);
+    let okCount = 0;
+    for (let i = 0; i < Math.min(ansWords.length, corWords.length); i++) {
+        if (norm(ansWords[i]) === corWords[i]) okCount = i + 1;
+        else break;
+    }
+    const origWords = correct.trim().split(/\s+/).filter(Boolean);
+    const correctPrefix = origWords.slice(0, okCount).join(" ");
+    
+    // Replace all alphanumeric characters in the remaining words with asterisks
+    const remainingWords = origWords.slice(okCount);
+    const maskedSuffix = remainingWords.map(w => w.replace(/[a-zA-Z0-9À-ỹ]/g, '*')).join(" ");
+    
+    return { okCount, correctPrefix, maskedSuffix };
 }
 
-// ── Finished screen ───────────────────────────────────────────────────────
-const FinishedScreen = ({ total, correct, wrong, onReset }) => {
-    const pct = total ? Math.round((correct / total) * 100) : 0;
+function buildRetainedAnswer(answer, correct) {
+    const { okCount } = getHintParts(answer, correct);
+    const origWords = correct.trim().split(/\s+/).filter(Boolean);
+    const kept = origWords.slice(0, okCount).join(" ");
+    return kept ? kept + " " : "";
+}
+
+// ── UI Styles ─────────────────────────────────────────────────────────────
+const S = {
+    panel: {
+        background: "#F2F6FA",
+        borderRadius: 20,
+        overflow: "hidden",
+        boxShadow: "0 8px 32px rgba(0,0,0,0.08)",
+        display: "flex",
+        flexDirection: "column",
+        border: "1px solid #E2E8F0"
+    },
+    header: {
+        padding: "12px 20px",
+        background: "#E2E8F0",
+        borderBottom: "1px solid #CBD5E0",
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        flexShrink: 0
+    },
+    title: {
+        fontSize: 14,
+        fontWeight: 800,
+        color: "#2D3748",
+        textTransform: "uppercase",
+        letterSpacing: "0.05em"
+    },
+    buttonPrimary: {
+        background: "linear-gradient(135deg, #3182CE 0%, #4299E1 100%)",
+        color: "#fff",
+        border: "none",
+        borderRadius: 12,
+        fontWeight: 700,
+        cursor: "pointer",
+        transition: "all 0.2s",
+        boxShadow: "0 4px 14px rgba(49,130,206,0.3)"
+    },
+    buttonSuccess: {
+        background: "linear-gradient(135deg, #38A169 0%, #48BB78 100%)",
+        color: "#fff",
+        border: "none",
+        borderRadius: 12,
+        fontWeight: 700,
+        cursor: "pointer",
+        transition: "all 0.2s",
+        boxShadow: "0 4px 14px rgba(56,161,105,0.3)"
+    }
+};
+
+// ── Note Table ────────────────────────────────────────────────────────────
+const NoteTable = () => {
+    const [en, setEn] = useState("");
+    const [vi, setVi] = useState("");
+    const [rows, setRows] = useState([]);
+    const enRef = useRef(null);
+    const viRef = useRef(null);
+
+    const commit = useCallback(() => {
+        if (!en.trim() && !vi.trim()) return;
+        setRows(p => [{ id: Date.now(), en, vi }, ...p]);
+        setEn(""); setVi("");
+        setTimeout(() => enRef.current?.focus(), 30);
+    }, [en, vi]);
+
+    const exportCSV = () => {
+        const csv = "English,Vietnamese\n" + rows.map(r =>
+            `"${r.en.replace(/"/g, '""')}","${r.vi.replace(/"/g, '""')}"`
+        ).join("\n");
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" }));
+        a.download = "notes.csv"; a.click();
+    };
+
+    const inp = {
+        flex: 1, border: "none", background: "transparent", outline: "none",
+        fontSize: 14, padding: "10px 12px", fontFamily: "inherit", color: "inherit",
+    };
+
     return (
-        <Box textAlign="center" py={{ base: 12, md: 20 }}>
-            <Box fontSize="6xl" mb={4}>
-                {pct >= 90 ? "🏆" : pct >= 70 ? "🎉" : pct >= 50 ? "👏" : "💪"}
-            </Box>
-            <Text fontSize={{ base: "2xl", md: "3xl" }} fontWeight="extrabold" mb={2}>
-                Hoàn thành!
-            </Text>
-            <Text color="fg.muted" mb={8} fontSize="sm">
-                Bạn đã nghe và chép {total} câu từ YouTube.
-            </Text>
-            <Flex justify="center" gap={4} mb={10} flexWrap="wrap">
-                {[
-                    { label: "Đúng (≥75%)", value: correct, color: "green.500" },
-                    { label: "Cần cải thiện", value: wrong, color: "red.500" },
-                    { label: "Điểm số", value: `${pct}%`, color: "blue.500" },
-                ].map(({ label, value, color }) => (
-                    <Box
-                        key={label} textAlign="center"
-                        p={5} bg="bg.panel" borderRadius="2xl"
-                        borderWidth="1px" borderColor="border.muted" minW="90px"
-                    >
-                        <Text fontSize="2xl" fontWeight="extrabold" color={color}>{value}</Text>
-                        <Text fontSize="xs" color="fg.muted" mt={1}>{label}</Text>
-                    </Box>
-                ))}
-            </Flex>
-            <Button colorPalette="blue" size="lg" onClick={onReset} gap={2}>
-                <FiRefreshCw /> Làm bài mới
-            </Button>
-        </Box>
+        <div style={{ ...S.panel, flex: 1, borderTop: "4px solid #ED8936" }}>
+            <div style={{ ...S.header, background: "#FEEBC8", borderBottom: "1px solid #FBD38D" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ fontSize: 18 }}>📝</span>
+                    <span style={{ ...S.title, color: "#C05621" }}>Ghi chú từ vựng</span>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <span style={{ fontSize: 11, color: "#C05621", fontWeight: 700, background: "rgba(221,107,32,0.1)", padding: "4px 10px", borderRadius: 12 }}>Tab = Chuyển cột · Enter = Thêm</span>
+                    <button onClick={exportCSV} style={{ ...S.buttonPrimary, background: "linear-gradient(135deg, #DD6B20 0%, #ED8936 100%)", boxShadow: "0 4px 10px rgba(221,107,32,0.3)", padding: "6px 14px", fontSize: 12 }}>↓ CSV</button>
+                </div>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", flex: 1, overflow: "hidden", padding: 12, background: "#F7FAFC", gap: 8 }}>
+                <div style={{ display: "flex", background: "#EDF2F7", borderRadius: "8px 8px 0 0", borderBottom: "1px solid #E2E8F0", flexShrink: 0 }}>
+                    <div style={{ flex: 1, padding: "8px 12px", fontSize: 12, fontWeight: 800, color: "#4A5568", textTransform: "uppercase" }}>Tiếng Anh</div>
+                    <div style={{ width: 1, background: "#E2E8F0" }} />
+                    <div style={{ flex: 1, padding: "8px 12px", fontSize: 12, fontWeight: 800, color: "#4A5568", textTransform: "uppercase" }}>Tiếng Việt</div>
+                </div>
+
+                <div style={{ display: "flex", borderBottom: `2px solid #ED8936`, background: "#FFF5F5", flexShrink: 0, boxShadow: "0 4px 12px rgba(237,137,54,0.05)", borderRadius: "0 0 8px 8px" }}>
+                    <input ref={enRef} value={en} onChange={e => setEn(e.target.value)}
+                        placeholder="Từ / cụm từ mới..."
+                        style={{ ...inp, fontWeight: 700, color: "#9B2C2C" }}
+                        onKeyDown={e => { if (e.key === "Tab") { e.preventDefault(); viRef.current?.focus(); } }}
+                    />
+                    <div style={{ width: 1, background: "rgba(237,137,54,0.1)" }} />
+                    <input ref={viRef} value={vi} onChange={e => setVi(e.target.value)}
+                        placeholder="Nghĩa tiếng Việt..."
+                        style={{ ...inp, fontWeight: 700, color: "#9B2C2C" }}
+                        onKeyDown={e => {
+                            if (e.key === "Enter") { e.preventDefault(); commit(); }
+                            if (e.key === "Tab" && e.shiftKey) { e.preventDefault(); enRef.current?.focus(); }
+                        }}
+                    />
+                </div>
+
+                <div style={{ flex: 1, overflowY: "auto", borderRadius: 8, background: "#fff", border: "1px solid #E2E8F0" }}>
+                    {rows.length === 0 && (
+                        <div style={{ padding: "30px 20px", textAlign: "center", display: "flex", flexDirection: "column", gap: 12, opacity: 0.6 }}>
+                            <span style={{ fontSize: 36 }}>💡</span>
+                            <span style={{ fontSize: 13, fontWeight: 700, color: "#718096" }}>Gõ từ mới và nhấn Enter để lưu lại</span>
+                        </div>
+                    )}
+                    {rows.map((r, i) => (
+                        <div key={r.id} style={{ display: "flex", borderBottom: "1px solid #E2E8F0", background: i % 2 === 0 ? "#FAFAFA" : "#fff", transition: "all 0.2s" }} onMouseEnter={e => e.currentTarget.style.background = "rgba(237,137,54,0.05)"} onMouseLeave={e => e.currentTarget.style.background = i % 2 === 0 ? "#FAFAFA" : "#fff"}>
+                            <div style={{ flex: 1, padding: "10px 12px", fontSize: 14, fontWeight: 600, color: "#2D3748" }}>{r.en}</div>
+                            <div style={{ width: 1, background: "#E2E8F0", flexShrink: 0 }} />
+                            <div style={{ flex: 1, padding: "10px 12px", fontSize: 14, color: "#4A5568" }}>{r.vi}</div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
     );
 };
 
-// ── Main component ────────────────────────────────────────────────────────
+// ── Finished Screen ───────────────────────────────────────────────────────
+const FinishedScreen = ({ total, correct, wrong, onReset }) => {
+    const pct = total ? Math.round((correct / total) * 100) : 0;
+    return (
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", gap: 24, background: "#EDF2F7", borderRadius: 24 }}>
+            <div style={{ fontSize: 80, textShadow: "0 10px 30px rgba(0,0,0,0.1)" }}>{pct >= 90 ? "🏆" : pct >= 70 ? "🎉" : pct >= 50 ? "👏" : "💪"}</div>
+            <div style={{ textAlign: "center" }}>
+                <h2 style={{ fontSize: 32, fontWeight: 900, margin: "0 0 8px", background: "linear-gradient(135deg, #3182CE, #805AD5)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Tuyệt vời!</h2>
+                <p style={{ color: "#718096", margin: 0, fontSize: 16 }}>Bạn đã hoàn thành {total} câu nghe chép chính tả.</p>
+            </div>
+
+            <div style={{ display: "flex", gap: 16, marginTop: 10 }}>
+                {[
+                    ["Chính xác", correct, "#38A169", "rgba(56,161,105,0.1)"],
+                    ["Sai sót", wrong, "#E53E3E", "rgba(229,62,62,0.1)"],
+                    ["Điểm số", `${pct}%`, "#3182CE", "rgba(49,130,206,0.1)"]
+                ].map(([l, v, c, bg]) => (
+                    <div key={l} style={{ padding: "20px 30px", background: "#F7FAFC", borderRadius: 20, boxShadow: "0 10px 30px rgba(0,0,0,0.05)", border: `2px solid ${bg}`, textAlign: "center", minWidth: 120 }}>
+                        <div style={{ fontSize: 36, fontWeight: 900, color: c }}>{v}</div>
+                        <div style={{ fontSize: 13, color: "#718096", marginTop: 4, fontWeight: 700, textTransform: "uppercase" }}>{l}</div>
+                    </div>
+                ))}
+            </div>
+            <button onClick={onReset} style={{ ...S.buttonPrimary, padding: "14px 40px", fontSize: 16, marginTop: 10, boxShadow: "0 10px 20px rgba(49,130,206,0.3)" }}>
+                🔄 Bắt đầu bài mới
+            </button>
+        </div>
+    );
+};
+
+// ── Main Component ────────────────────────────────────────────────────────
 const YoutubeExercise = ({ data, onReset }) => {
-    const { exercises, videoId } = data;
-    const [currentIdx, setCurrentIdx] = useState(0);
+    const { exercises, videoId, title } = data;
+    const [idx, setIdx] = useState(0);
     const [answer, setAnswer] = useState("");
-    const [submitted, setSubmitted] = useState(false);
-    const [isCorrect, setIsCorrect] = useState(false);
+    const [attemptResult, setAttemptResult] = useState(null);
+    const [attempts, setAttempts] = useState(0);
     const [stats, setStats] = useState({ correct: 0, wrong: 0 });
     const [finished, setFinished] = useState(false);
+    const [done, setDone] = useState([]);
 
-    const playerDivRef = useRef(null);
-    const textareaRef = useRef(null);
-    const submittedRef = useRef(false);
-    const { seekAndPlay, pauseVideo } = useYouTubePlayer(playerDivRef, videoId);
-    const seekRef = useRef(seekAndPlay);
-    seekRef.current = seekAndPlay;
+    const playerRef = useRef(null);
+    const taRef = useRef(null);
+    const transcriptRef = useRef(null);
+    
+    const stateRef = useRef({});
+    stateRef.current = { answer, attemptResult, idx };
 
-    const currentSentence = exercises[currentIdx];
-    const sentenceRef = useRef(currentSentence);
-    sentenceRef.current = currentSentence;
+    const { seekAndPlay, pauseVideo } = useYouTubePlayer(playerRef, videoId);
+    const seekRef = useRef(seekAndPlay); seekRef.current = seekAndPlay;
 
-    useEffect(() => { submittedRef.current = submitted; }, [submitted]);
+    const cur = exercises[idx];
+    const curRef = useRef(cur); curRef.current = cur;
 
-    // ── Auto-play when sentence changes ──────────────────────────────
     useEffect(() => {
-        if (!currentSentence) return;
-        setAnswer("");
-        setSubmitted(false);
-        submittedRef.current = false;
+        if (!cur) return;
+        setAnswer(""); setAttemptResult(null); setAttempts(0);
         const t = setTimeout(() => {
-            seekRef.current(currentSentence.start ?? 0, currentSentence.end);
-            setTimeout(() => textareaRef.current?.focus(), 400);
-        }, 400);
+            seekRef.current(cur.start ?? 0, cur.end);
+            setTimeout(() => taRef.current?.focus(), 350);
+        }, 350);
         return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [currentIdx]);
+    }, [idx]); // eslint-disable-line
 
-    // ── Handlers ─────────────────────────────────────────────────────
-    const handleNext = useCallback(() => {
-        if (currentIdx >= exercises.length - 1) setFinished(true);
-        else setCurrentIdx((p) => p + 1);
-    }, [currentIdx, exercises.length]);
-
-    const handleNextRef = useRef(handleNext);
-    handleNextRef.current = handleNext;
-
-    const handleSubmit = useCallback(() => {
-        if (submittedRef.current || !answer.trim()) return;
-        pauseVideo();
-        const ok = scoreAnswer(answer, currentSentence.original) >= 0.75;
-        setIsCorrect(ok);
-        setSubmitted(true);
-        submittedRef.current = true;
-        setStats((p) => ({
-            correct: p.correct + (ok ? 1 : 0),
-            wrong: p.wrong + (ok ? 0 : 1),
-        }));
-        if (ok) setTimeout(() => handleNextRef.current(), 1800);
-    }, [answer, currentSentence, pauseVideo]);
-
-    const handleSubmitRef = useRef(handleSubmit);
-    handleSubmitRef.current = handleSubmit;
-
-    const replayCurrentSentence = useCallback(() => {
-        const s = sentenceRef.current;
-        if (s) seekRef.current(s.start ?? 0, s.end);
-    }, []);
-    const replayRef = useRef(replayCurrentSentence);
-    replayRef.current = replayCurrentSentence;
-
-    // ── Keyboard shortcuts — registered once ─────────────────────────
     useEffect(() => {
-        let ctrlDown = false, otherDown = false;
-        const onKeyDown = (e) => {
-            if (e.key === "Control") { ctrlDown = true; otherDown = false; return; }
-            if (ctrlDown) otherDown = true;
+        if (transcriptRef.current) transcriptRef.current.scrollTop = 0;
+    }, [done.length]);
+
+    const goNext = useCallback((forceSkip = false) => {
+        if (idx >= exercises.length - 1) setFinished(true);
+        else setIdx(p => p + 1);
+        if (forceSkip) {
+            setStats(p => ({ ...p, wrong: p.wrong + 1 }));
+            setDone(p => [{
+                idx,
+                original: curRef.current.original,
+                translated: curRef.current.translated,
+                start: curRef.current.start,
+                end: curRef.current.end,
+                ok: false,
+                skipped: true,
+            }, ...p]);
+        }
+    }, [idx, exercises.length]);
+    const goNextRef = useRef(goNext); goNextRef.current = goNext;
+
+    const submit = useCallback(() => {
+        const { answer: ans } = stateRef.current;
+        if (!ans.trim()) return;
+        pauseVideo();
+        const cur = curRef.current;
+        const allCorrect = norm(ans) === norm(cur.original);
+        setAttempts(p => p + 1);
+
+        if (allCorrect) {
+            setAttemptResult({ allCorrect: true });
+            setStats(p => ({ ...p, correct: p.correct + 1 }));
+            setDone(p => [{
+                idx: stateRef.current.idx,
+                original: cur.original,
+                translated: cur.translated,
+                start: cur.start,
+                end: cur.end,
+                ok: true,
+            }, ...p]);
+        } else {
+            const hintParts = getHintParts(ans, cur.original);
+            setAttemptResult({ allCorrect: false, hintParts });
+            const retained = buildRetainedAnswer(ans, cur.original);
+            setAnswer(retained);
+            setTimeout(() => {
+                if (taRef.current) {
+                    taRef.current.focus();
+                    const len = taRef.current.value.length;
+                    taRef.current.setSelectionRange(len, len);
+                }
+            }, 30);
+        }
+    }, [pauseVideo]);
+    const submitRef = useRef(submit); submitRef.current = submit;
+
+    const handleGoNext = useCallback(() => {
+        if (stateRef.current.attemptResult?.allCorrect) goNextRef.current(false);
+    }, []);
+    const handleGoNextRef = useRef(handleGoNext); handleGoNextRef.current = handleGoNext;
+
+    useEffect(() => {
+        let ctrl = false, ctrlOther = false;
+        const kd = (e) => {
+            if (e.key === "Control") { ctrl = true; ctrlOther = false; return; }
+            if (ctrl) ctrlOther = true;
             if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
-                if (!submittedRef.current) handleSubmitRef.current();
-                else handleNextRef.current();
+                if (stateRef.current.attemptResult?.allCorrect) handleGoNextRef.current();
+                else submitRef.current();
             }
         };
-        const onKeyUp = (e) => {
+        const ku = (e) => {
             if (e.key === "Control") {
-                if (!otherDown) replayRef.current();
-                ctrlDown = false; otherDown = false;
+                if (!ctrlOther && curRef.current) seekRef.current(curRef.current.start ?? 0, curRef.current.end);
+                ctrl = false; ctrlOther = false;
             }
         };
-        window.addEventListener("keydown", onKeyDown);
-        window.addEventListener("keyup", onKeyUp);
-        return () => {
-            window.removeEventListener("keydown", onKeyDown);
-            window.removeEventListener("keyup", onKeyUp);
-        };
+        window.addEventListener("keydown", kd);
+        window.addEventListener("keyup", ku);
+        return () => { window.removeEventListener("keydown", kd); window.removeEventListener("keyup", ku); };
     }, []);
 
-    // ── Render ────────────────────────────────────────────────────────
-    if (finished) {
-        return (
-            <FinishedScreen
-                total={exercises.length}
-                correct={stats.correct}
-                wrong={stats.wrong}
-                onReset={onReset}
-            />
-        );
-    }
-    if (!currentSentence) return null;
+    if (finished) return <FinishedScreen total={exercises.length} correct={stats.correct} wrong={stats.wrong} onReset={onReset} />;
+    if (!cur) return null;
 
-    const progress = (currentIdx / exercises.length) * 100;
-    const hasTimestamps = currentSentence.start != null;
+    const pct = (idx / exercises.length) * 100;
+    const isCorrect = attemptResult?.allCorrect === true;
+    const hasAttempt = attemptResult !== null;
 
     return (
-        <Grid
-            templateColumns={{ base: "1fr", lg: "5fr 6fr" }}
-            gap={{ base: 5, lg: 8 }}
-            alignItems="start"
-        >
-            {/* ── LEFT: YouTube player (sticky) ── */}
-            <GridItem position={{ lg: "sticky" }} top={{ lg: "88px" }}>
-                <Box
-                    borderRadius="2xl"
-                    overflow="hidden"
-                    bg="black"
-                    boxShadow="0 20px 60px rgba(0,0,0,0.4)"
-                    borderWidth="1px"
-                    borderColor="border.muted"
-                    style={{ aspectRatio: "16/9" }}
-                >
-                    <Box ref={playerDivRef} w="full" h="full" />
-                </Box>
+        <div style={{ display: "flex", height: "100%", overflow: "hidden", gap: 16, padding: 16, background: "#CBD5E0", boxSizing: "border-box" }}>
 
-                {/* Current sentence preview */}
-                <Box
-                    mt={3} p={4}
-                    bg="bg.panel" borderRadius="xl"
-                    borderWidth="1px" borderColor="border.muted"
-                >
-                    <Flex align="center" gap={2} mb={2}>
-                        <Box
-                            w="6px" h="6px" borderRadius="full"
-                            bg={submitted ? (isCorrect ? "green.400" : "orange.400") : "red.400"}
-                        />
-                        <Text fontSize="10px" fontWeight="700" color="fg.muted" letterSpacing="wider">
-                            CÂU {currentIdx + 1} / {exercises.length}
-                        </Text>
-                    </Flex>
-                    <Text
-                        fontSize="sm" fontStyle="italic" lineHeight="1.7" color="fg.muted"
-                        fontFamily="Georgia, serif"
-                    >
-                        {submitted
-                            ? `"${currentSentence.original}"`
-                            : "Nghe và gõ lại những gì bạn nghe được…"}
-                    </Text>
-                    {hasTimestamps && (
-                        <Text fontSize="10px" color="fg.subtle" mt={2}>
-                            ⏱ {currentSentence.start?.toFixed(1)}s – {currentSentence.end?.toFixed(1)}s
-                        </Text>
-                    )}
-                </Box>
+            {/* ═══ LEFT COLUMN (55%) — Video + Input ═══ */}
+            <div style={{ flex: "0 0 55%", display: "flex", flexDirection: "column", gap: 16, overflow: "hidden" }}>
 
-                {/* Replay button */}
-                <Button
-                    mt={3} w="full" variant="outline" gap={2}
-                    onClick={replayCurrentSentence}
-                >
-                    <FiPlay size={14} />
-                    Nghe lại từ đầu câu (Ctrl)
-                </Button>
-            </GridItem>
+                <div style={{ ...S.panel, flexShrink: 0, position: "relative" }}>
+                    <div style={{ width: "100%", aspectRatio: "16/9", background: "#000", maxHeight: "48vh", display: "flex", justifyContent: "center", alignItems: "center" }}>
+                        <div ref={playerRef} style={{ width: "100%", height: "100%", maxWidth: "calc(48vh * 16 / 9)" }} />
+                    </div>
+                    <div style={{ height: 4, background: "rgba(0,0,0,0.5)", width: "100%" }}>
+                        <div style={{ height: "100%", width: `${pct}%`, background: "#E53E3E", transition: "width 0.4s ease", boxShadow: "0 0 10px #E53E3E" }} />
+                    </div>
+                </div>
 
-            {/* ── RIGHT: Exercise area ── */}
-            <GridItem>
-                {/* Progress */}
-                <Box mb={5}>
-                    <Flex justify="space-between" align="center" mb={2}>
-                        <Text fontSize="sm" color="fg.muted" fontWeight="600">
-                            Câu {currentIdx + 1}
-                            <Text as="span" color="fg.subtle"> / {exercises.length}</Text>
-                        </Text>
-                        <Button
-                            size="xs" variant="ghost" gap={1.5} color="red.400"
-                            onClick={replayCurrentSentence}
-                        >
-                            <FiVolume2 size={13} />
-                            <Text fontSize="xs" fontWeight="600">Ctrl</Text>
-                        </Button>
-                    </Flex>
-                    <Box h="6px" bg="bg.subtle" borderRadius="full" overflow="hidden">
-                        <Box
-                            h="full" bg="red.400" borderRadius="full"
-                            transition="width 0.4s ease"
-                            style={{ width: `${progress}%` }}
-                        />
-                    </Box>
-                </Box>
+                <div style={{ ...S.panel, flex: 1, minHeight: 0 }}>
+                    <div style={S.header}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <span style={{ fontSize: 16 }}>⌨️</span>
+                            <span style={S.title}>Khu vực viết</span>
+                        </div>
+                        <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+                            <div style={{ display: "flex", gap: 4, alignItems: "center", background: "rgba(56,161,105,0.1)", padding: "2px 8px", borderRadius: 12 }}>
+                                <span style={{ fontSize: 12, color: "#38A169", fontWeight: 800 }}>✓ {stats.correct}</span>
+                            </div>
+                            <div style={{ display: "flex", gap: 4, alignItems: "center", background: "rgba(229,62,62,0.1)", padding: "2px 8px", borderRadius: 12 }}>
+                                <span style={{ fontSize: 12, color: "#E53E3E", fontWeight: 800 }}>✗ {stats.wrong}</span>
+                            </div>
+                        </div>
+                    </div>
 
-                {/* Main card */}
-                <Box
-                    bg="bg.panel" borderRadius="2xl" p={{ base: 4, md: 6 }}
-                    borderWidth="1px"
-                    borderColor={
-                        !submitted ? "border.muted"
-                        : isCorrect ? "green.300" : "red.300"
-                    }
-                    transition="border-color 0.3s"
-                    mb={4}
-                >
-                    <Flex align="center" gap={2} mb={4}>
-                        <Box
-                            w="8px" h="8px" borderRadius="full"
-                            bg={!submitted ? "red.400" : isCorrect ? "green.400" : "red.400"}
-                            transition="background 0.3s"
-                        />
-                        <Text fontSize="xs" fontWeight="700" color="fg.muted" letterSpacing="wider">
-                            🎧 NGHE VÀ GÕ LẠI TOÀN BỘ CÂU
-                        </Text>
-                    </Flex>
-
-                    <Textarea
-                        ref={textareaRef}
-                        value={answer}
-                        onChange={(e) => !submitted && setAnswer(e.target.value)}
-                        placeholder="Gõ những gì bạn nghe được… (Shift+Enter = xuống dòng)"
-                        rows={4}
-                        fontSize="md"
-                        borderRadius="xl"
-                        resize="none"
-                        disabled={submitted}
-                        borderColor={
-                            !submitted ? undefined
-                            : isCorrect ? "green.400" : "red.400"
-                        }
-                        bg={
-                            !submitted ? undefined
-                            : isCorrect ? "green.50" : "red.50"
-                        }
-                        _dark={{
-                            bg: !submitted ? undefined
-                                : isCorrect ? "green.900/20" : "red.900/20",
-                        }}
-                        transition="all 0.3s"
-                    />
-
-                    {submitted && (
-                        <Box mt={4}>
-                            <Flex
-                                align="center" gap={2} p={3} borderRadius="xl"
-                                bg={isCorrect ? "green.50" : "orange.50"}
-                                _dark={{ bg: isCorrect ? "green.900/20" : "orange.900/20" }}
-                                borderWidth="1px"
-                                borderColor={isCorrect ? "green.300" : "orange.300"}
-                            >
-                                {isCorrect ? (
-                                    <>
-                                        <FiCheck color="#48BB78" size={16} />
-                                        <Text fontSize="sm" fontWeight="600" color="green.500">
-                                            Xuất sắc! Chuyển câu tiếp…
-                                        </Text>
-                                    </>
-                                ) : (
-                                    <>
-                                        <FiX color="#FC8181" size={16} />
-                                        <Text fontSize="sm" fontWeight="600" color="orange.500">
-                                            Cần luyện thêm — đáp án bên dưới
-                                        </Text>
-                                    </>
+                    <div style={{ display: "flex", flexDirection: "column", padding: 16, flex: 1, gap: 12, overflowY: "auto", overflowX: "hidden" }}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                <div style={{
+                                    width: 10, height: 10, borderRadius: "50%",
+                                    background: isCorrect ? "#38A169" : hasAttempt ? "#E53E3E" : "#3182CE",
+                                    transition: "background 0.3s",
+                                    animation: !hasAttempt ? "pulse 1.5s infinite" : "none",
+                                    boxShadow: !hasAttempt ? "0 0 10px #3182CE" : "none"
+                                }} />
+                                <span style={{ fontSize: 13, fontWeight: 800, color: "#2D3748", letterSpacing: "0.05em" }}>CÂU {idx + 1} / {exercises.length}</span>
+                                {attempts > 0 && !isCorrect && (
+                                    <span style={{ fontSize: 11, background: "rgba(229,62,62,0.1)", color: "#C53030", padding: "2px 8px", borderRadius: 10, fontWeight: 700 }}>Thử {attempts} lần</span>
                                 )}
-                            </Flex>
+                            </div>
+                        </div>
 
-                            {!isCorrect && (
-                                <Box
-                                    mt={3} p={4} bg="bg.subtle" borderRadius="xl"
-                                    borderWidth="1px" borderColor="border.muted"
-                                >
-                                    <Text fontSize="xs" color="fg.muted" fontWeight="600" mb={1.5}>
-                                        ĐÁP ÁN ĐÚNG:
-                                    </Text>
-                                    <Text fontSize="md" fontWeight="600" fontStyle="italic" lineHeight="1.7">
-                                        "{currentSentence.original}"
-                                    </Text>
-                                </Box>
-                            )}
-                        </Box>
-                    )}
-                </Box>
+                        <textarea
+                            ref={taRef}
+                            value={answer}
+                            onChange={e => !isCorrect && setAnswer(e.target.value)}
+                            placeholder="Gõ những gì bạn nghe được… (Enter để kiểm tra, Shift+Enter xuống dòng)"
+                            disabled={isCorrect}
+                            style={{
+                                flex: 1, minHeight: "80px", width: "100%", padding: 16,
+                                borderRadius: 12, resize: "none",
+                                border: `2px solid ${!hasAttempt ? "#CBD5E0" : isCorrect ? "#38A169" : "#E53E3E"}`,
+                                background: !hasAttempt ? "#fff" : isCorrect ? "rgba(56,161,105,0.04)" : "rgba(255,250,250,1)",
+                                fontSize: 15, fontFamily: "inherit", color: "#2D3748", outline: "none",
+                                transition: "all 0.25s", boxSizing: "border-box", lineHeight: 1.6,
+                                boxShadow: !hasAttempt ? "inset 0 2px 4px rgba(0,0,0,0.02)" :
+                                           isCorrect ? "0 0 0 3px rgba(56,161,105,0.2)" :
+                                           "0 0 0 3px rgba(229,62,62,0.15)"
+                            }}
+                        />
 
-                {/* Action buttons */}
-                <Flex gap={3} justify="flex-end" mb={5}>
-                    <Button
-                        variant="outline" size="sm" gap={2}
-                        onClick={replayCurrentSentence}
-                    >
-                        <FiPlay size={14} />
-                        Nghe lại (Ctrl)
-                    </Button>
-                    {!submitted ? (
-                        <Button
-                            colorPalette="blue" size="sm" gap={2}
-                            onClick={handleSubmit}
-                            disabled={!answer.trim()}
-                        >
-                            <FiCheck size={14} />
-                            Nộp (Enter)
-                        </Button>
-                    ) : (
-                        <Button colorPalette="green" size="sm" gap={2} onClick={handleNext}>
-                            {currentIdx >= exercises.length - 1 ? "Hoàn thành" : "Câu tiếp"}
-                            (Enter)
-                            <FiChevronRight size={14} />
-                        </Button>
-                    )}
-                </Flex>
+                        {/* Clean Hint UI (Mô phỏng Image 2) */}
+                        {hasAttempt && (
+                            <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: "4px 8px", animation: "fadeIn 0.2s ease" }}>
+                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                    <div style={{ 
+                                        color: isCorrect ? "#2F855A" : "#D69E2E", 
+                                        fontWeight: 700, fontSize: 15, display: "flex", alignItems: "center", gap: 6 
+                                    }}>
+                                        {isCorrect ? "✅ Chính xác!" : "⚠️ Sai rồi"}
+                                    </div>
+                                    {!isCorrect && attempts > 0 && (
+                                        <button
+                                            onClick={() => goNextRef.current(true)}
+                                            style={{ padding: "6px 12px", borderRadius: 6, border: "1px solid #E2E8F0", background: "#fff", fontSize: 13, cursor: "pointer", color: "#4A5568", fontWeight: 600, transition: "all 0.2s" }}
+                                            onMouseEnter={e => { e.currentTarget.style.borderColor = "#E53E3E"; e.currentTarget.style.color = "#C53030"; e.currentTarget.style.background = "rgba(229,62,62,0.05)" }}
+                                            onMouseLeave={e => { e.currentTarget.style.borderColor = "#E2E8F0"; e.currentTarget.style.color = "#4A5568"; e.currentTarget.style.background = "#fff" }}
+                                        >
+                                            Bỏ qua
+                                        </button>
+                                    )}
+                                </div>
+                                {!isCorrect && attemptResult.hintParts && (
+                                    <div style={{ fontSize: 16, fontFamily: "inherit", lineHeight: 1.5 }}>
+                                        <span style={{ color: "#276749", fontWeight: 700 }}>{attemptResult.hintParts.correctPrefix}</span>
+                                        <span style={{ color: "#A0AEC0", letterSpacing: "1px" }}> {attemptResult.hintParts.maskedSuffix}</span>
+                                    </div>
+                                )}
+                            </div>
+                        )}
 
-                {/* Keyboard hints */}
-                <Flex justify="center" gap={5} flexWrap="wrap">
-                    {[
-                        { key: "Ctrl", desc: "Nghe lại" },
-                        { key: "Enter", desc: submitted ? "Tiếp theo" : "Nộp đáp án" },
-                        { key: "Shift+Enter", desc: "Xuống dòng" },
-                    ].map(({ key, desc }) => (
-                        <Flex key={key} align="center" gap={1.5}>
-                            <Box
-                                px={1.5} py={0.5} bg="bg.subtle" borderRadius="sm"
-                                borderWidth="1px" borderColor="border.muted"
-                                fontFamily="monospace" fontWeight="bold"
-                                fontSize="11px" color="fg.muted"
+                        <div style={{ display: "flex", gap: 10, flexShrink: 0 }}>
+                            <button
+                                onClick={() => cur && seekRef.current(cur.start ?? 0, cur.end)}
+                                style={{ flex: "0 0 auto", padding: "11px 16px", borderRadius: 10, border: "2px solid #CBD5E0", background: "#EDF2F7", fontSize: 13, cursor: "pointer", color: "#4A5568", fontWeight: 800, transition: "all 0.2s" }}
+                                onMouseEnter={e => { e.currentTarget.style.borderColor = "#A0AEC0"; e.currentTarget.style.background = "#E2E8F0"; }}
+                                onMouseLeave={e => { e.currentTarget.style.borderColor = "#CBD5E0"; e.currentTarget.style.background = "#EDF2F7"; }}
                             >
-                                {key}
-                            </Box>
-                            <Text fontSize="11px" color="fg.muted">{desc}</Text>
-                        </Flex>
-                    ))}
-                </Flex>
-            </GridItem>
-        </Grid>
+                                🎧 Nghe lại
+                            </button>
+                            {!isCorrect ? (
+                                <button
+                                    onClick={submit} disabled={!answer.trim()}
+                                    style={{ ...S.buttonPrimary, flex: 1, padding: "11px 0", fontSize: 14, opacity: answer.trim() ? 1 : 0.6, cursor: answer.trim() ? "pointer" : "not-allowed" }}
+                                >
+                                    ✨ Kiểm tra (Enter)
+                                </button>
+                            ) : (
+                                <button
+                                    onClick={() => goNextRef.current(false)}
+                                    style={{ ...S.buttonSuccess, flex: 1, padding: "11px 0", fontSize: 14, boxShadow: "0 4px 12px rgba(56,161,105,0.3)" }}
+                                >
+                                    {idx >= exercises.length - 1 ? "🏁 Hoàn thành bài" : "Câu tiếp theo (Enter) ➔"}
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* ═══ RIGHT COLUMN (45%) — Transcript + Note ═══ */}
+            <div style={{ flex: "0 0 45%", display: "flex", flexDirection: "column", gap: 16, overflow: "hidden" }}>
+                <div style={{ ...S.panel, flex: "0 0 52%" }}>
+                    <div style={S.header}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <span style={{ fontSize: 16 }}>📜</span>
+                            <span style={S.title}>Transcript</span>
+                        </div>
+                        <span style={{ fontSize: 11, color: "#4A5568", fontWeight: 700, background: "#CBD5E0", padding: "4px 10px", borderRadius: 12 }}>
+                            {title ? (title.length > 30 ? title.substring(0, 30) + '...' : title) : `${exercises.length} câu`}
+                        </span>
+                    </div>
+
+                    <div ref={transcriptRef} style={{ flex: 1, overflowY: "auto", padding: 12, background: "#F7FAFC", display: "flex", flexDirection: "column", gap: 8 }}>
+                        {done.length === 0 && (
+                            <div style={{ padding: "40px 20px", textAlign: "center", display: "flex", flexDirection: "column", gap: 8, opacity: 0.5 }}>
+                                <span style={{ fontSize: 32 }}>👀</span>
+                                <span style={{ fontSize: 13, fontWeight: 700, color: "#718096" }}>Các câu bạn đã hoàn thành sẽ xuất hiện ở đây</span>
+                            </div>
+                        )}
+                        {done.map((s) => (
+                            <div
+                                key={s.idx}
+                                onClick={() => seekRef.current(s.start, s.end)}
+                                style={{
+                                    padding: "12px 14px", borderRadius: 12, cursor: "pointer",
+                                    border: "1px solid #E2E8F0",
+                                    background: "#fff",
+                                    borderLeft: `4px solid ${s.ok ? "#38A169" : "#E53E3E"}`,
+                                    transition: "all 0.2s",
+                                    boxShadow: "0 2px 8px rgba(0,0,0,0.02)"
+                                }}
+                                onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-1px)"; e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.05)"; }}
+                                onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.02)"; }}
+                            >
+                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8, marginBottom: 4 }}>
+                                    <div style={{ fontSize: 15, fontWeight: 700, lineHeight: 1.5, color: "#2D3748" }}>
+                                        {s.original}
+                                    </div>
+                                    <div style={{ fontSize: 10, fontWeight: 800, color: s.ok ? "#2F855A" : "#C53030", background: s.ok ? "rgba(56,161,105,0.15)" : "rgba(229,62,62,0.15)", padding: "4px 8px", borderRadius: 8, flexShrink: 0 }}>
+                                        {s.skipped ? "⏭" : `#${s.idx + 1}`}
+                                    </div>
+                                </div>
+                                {/* Duo sub */}
+                                <div style={{ fontSize: 13, color: "#A0AEC0", fontWeight: 600, fontStyle: "italic", marginTop: 4 }}>
+                                    {s.translated || "(Bản dịch tiếng Việt đang cập nhật...)"}
+                                </div>
+                                <div style={{ fontSize: 10, color: "#718096", marginTop: 8, fontWeight: 700, display: "flex", alignItems: "center", gap: 4 }}>
+                                    <span style={{ color: "#3182CE" }}>▶</span> {s.start?.toFixed(1)}s
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+                <NoteTable />
+            </div>
+
+            <style>{`
+                @keyframes pulse {
+                    0% { opacity: 1; transform: scale(1); }
+                    50% { opacity: 0.6; transform: scale(1.1); }
+                    100% { opacity: 1; transform: scale(1); }
+                }
+                @keyframes fadeIn {
+                    from { opacity: 0; transform: translateY(5px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
+                ::-webkit-scrollbar { width: 8px; height: 8px; }
+                ::-webkit-scrollbar-track { background: transparent; }
+                ::-webkit-scrollbar-thumb { background: #CBD5E0; border-radius: 10px; }
+                ::-webkit-scrollbar-thumb:hover { background: #A0AEC0; }
+            `}</style>
+        </div>
     );
 };
 
