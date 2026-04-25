@@ -93,19 +93,19 @@ const FolderModal = ({ onClose, onSave, initialData = null }) => {
     );
 };
 
-// ── Create Modal ─────────────────────────────────────────────────────────────
-const CreateSetModal = ({ onClose, onCreate }) => {
-    const [title, setTitle] = useState("");
-    const [desc, setDesc] = useState("");
-    const [color, setColor] = useState("blue");
-    const [isPublic, setIsPublic] = useState(false);
+// ── Create/Edit WordSet Modal ────────────────────────────────────────────────
+const WordSetModal = ({ onClose, onSave, initialData = null }) => {
+    const [title, setTitle] = useState(initialData?.title || "");
+    const [desc, setDesc] = useState(initialData?.description || "");
+    const [color, setColor] = useState(initialData?.color || "blue");
+    const [isPublic, setIsPublic] = useState(initialData?.isPublic || false);
     const [saving, setSaving] = useState(false);
 
-    const handleCreate = async () => {
+    const handleSave = async () => {
         if (!title.trim()) return;
         setSaving(true);
         try {
-            await onCreate({ title, description: desc, color, isPublic });
+            await onSave({ title, description: desc, color, isPublic });
             onClose();
         } finally {
             setSaving(false);
@@ -123,7 +123,9 @@ const CreateSetModal = ({ onClose, onCreate }) => {
                 mx={4} shadow="2xl"
                 onClick={(e) => e.stopPropagation()}
             >
-                <Text fontSize="xl" fontWeight="bold" mb={6}>Tạo bộ từ mới</Text>
+                <Text fontSize="xl" fontWeight="bold" mb={6}>
+                    {initialData ? "Chỉnh sửa bộ từ" : "Tạo bộ từ mới"}
+                </Text>
 
                 <Box mb={4}>
                     <Text fontSize="sm" fontWeight="medium" mb={2}>Tên bộ từ *</Text>
@@ -202,10 +204,10 @@ const CreateSetModal = ({ onClose, onCreate }) => {
                 <Flex gap={3} justify="flex-end">
                     <Button variant="ghost" onClick={onClose}>Hủy</Button>
                     <Button
-                        colorPalette="blue" onClick={handleCreate}
+                        colorPalette={color} onClick={handleSave}
                         loading={saving} disabled={!title.trim()}
                     >
-                        Tạo bộ từ
+                        {initialData ? "Lưu thay đổi" : "Tạo bộ từ"}
                     </Button>
                 </Flex>
             </Box>
@@ -266,14 +268,24 @@ const SetCard = ({ set, onDelete, onTogglePublic }) => {
                     </Box>
                 </Flex>
 
-                <IconButton size="sm" variant="ghost" colorPalette="red" borderRadius="full"
-                    _hover={{ bg: "red.100", color: "red.600", transform: "rotate(10deg)" }}
-                    _dark={{ _hover: { bg: "red.900/40" } }}
-                    transition="all 0.2s"
-                    onClick={(e) => { e.stopPropagation(); onDelete(set._id); }}
-                >
-                    <FiTrash2 />
-                </IconButton>
+                <Flex gap={1}>
+                    <IconButton size="sm" variant="ghost" colorPalette="gray" borderRadius="full"
+                        _hover={{ bg: "gray.100", transform: "scale(1.1)" }}
+                        _dark={{ _hover: { bg: "whiteAlpha.100" } }}
+                        transition="all 0.2s"
+                        onClick={(e) => { e.stopPropagation(); onEdit(set); }}
+                    >
+                        <FiEdit2 size={14} />
+                    </IconButton>
+                    <IconButton size="sm" variant="ghost" colorPalette="red" borderRadius="full"
+                        _hover={{ bg: "red.100", color: "red.600", transform: "rotate(10deg)" }}
+                        _dark={{ _hover: { bg: "red.900/40" } }}
+                        transition="all 0.2s"
+                        onClick={(e) => { e.stopPropagation(); onDelete(set._id); }}
+                    >
+                        <FiTrash2 size={14} />
+                    </IconButton>
+                </Flex>
             </Flex>
 
             <Text color="fg.muted" fontSize="sm" mb={6} lineHeight="1.6" noOfLines={2} minH="45px">
@@ -369,7 +381,7 @@ const FolderCard = ({ folder, onClick, onDelete, onEdit }) => {
                             {folder.setCount || 0} bộ từ
                         </Text>
                     </Box>
-                    
+
                     <Flex gap={1} opacity={0} _groupHover={{ opacity: 1 }} transition="opacity 0.2s">
                         <IconButton
                             size="xs" variant="ghost" colorPalette="gray"
@@ -385,7 +397,7 @@ const FolderCard = ({ folder, onClick, onDelete, onEdit }) => {
                         </IconButton>
                     </Flex>
                 </Flex>
-                
+
                 <Text fontSize="xs" color={hasDesc ? "fg.muted" : "gray.400"} noOfLines={2} fontStyle={hasDesc ? "normal" : "italic"}>
                     {hasDesc ? folder.description : "Chưa có mô tả cho thư mục này."}
                 </Text>
@@ -480,10 +492,11 @@ const SetsPage = () => {
     } = useVocabularyStore();
 
     const [showCreate, setShowCreate] = useState(false);
+    const [editingSet, setEditingSet] = useState(null);
     const [showFolderModal, setShowFolderModal] = useState(false);
     const [editingFolder, setEditingFolder] = useState(null);
     const [tab, setTab] = useState("mine"); // "mine" | "community"
-    
+
     // Navigation state
     const [currentFolder, setCurrentFolder] = useState(null); // { id, name } | null
 
@@ -522,11 +535,17 @@ const SetsPage = () => {
         }
     };
 
-    const handleCreateSet = async (payload) => {
-        await createWordSet({
-            ...payload,
-            folderId: currentFolder?.id || null
-        });
+    const handleCreateOrUpdateSet = async (payload) => {
+        if (editingSet) {
+            await updateWordSet(editingSet._id, payload);
+        } else {
+            await createWordSet({
+                ...payload,
+                folderId: currentFolder?.id || null
+            });
+        }
+        setEditingSet(null);
+        setShowCreate(false);
     };
 
     const handleDeleteFolder = async (id) => {
@@ -551,7 +570,7 @@ const SetsPage = () => {
                         w="250px" h="250px" bg="brand.400" opacity={0.05}
                         filter="blur(60px)" borderRadius="full" pointerEvents="none"
                     />
-                    
+
                     <Box position="relative" zIndex={1} flex={1}>
                         <Flex align="center" gap={3} mb={1}>
                             {currentFolder && (
@@ -583,7 +602,7 @@ const SetsPage = () => {
                             )}
                         </Flex>
                         <Text color="fg.muted" fontSize="sm" fontWeight="500">
-                            {currentFolder 
+                            {currentFolder
                                 ? `Khám phá ${wordSets.length} học liệu trong thư mục này`
                                 : `Hệ thống hóa ${folders.length} thư mục và ${wordSets.length} học liệu lẻ`
                             }
@@ -674,8 +693,8 @@ const SetsPage = () => {
                                     </Text>
                                     <SimpleGrid columns={{ base: 1, sm: 2, md: 3 }} gap={5}>
                                         {folders.map(f => (
-                                            <FolderCard 
-                                                key={f._id} folder={f} 
+                                            <FolderCard
+                                                key={f._id} folder={f}
                                                 onClick={(id, name) => setCurrentFolder({ id, name })}
                                                 onDelete={handleDeleteFolder}
                                                 onEdit={(folder) => {
@@ -700,11 +719,20 @@ const SetsPage = () => {
                                         Bộ từ lẻ
                                     </Text>
                                 )}
-                                
+
                                 {wordSets.length > 0 ? (
                                     <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} gap={6}>
                                         {wordSets.map((set) => (
-                                            <SetCard key={set._id} set={set} onDelete={handleDelete} onTogglePublic={handleTogglePublic} />
+                                            <SetCard 
+                                                key={set._id} 
+                                                set={set} 
+                                                onDelete={handleDelete} 
+                                                onTogglePublic={handleTogglePublic}
+                                                onEdit={(s) => {
+                                                    setEditingSet(s);
+                                                    setShowCreate(true);
+                                                }}
+                                            />
                                         ))}
                                     </SimpleGrid>
                                 ) : !isRoot && (
@@ -745,9 +773,13 @@ const SetsPage = () => {
             </Box>
 
             {showCreate && (
-                <CreateSetModal
-                    onClose={() => setShowCreate(false)}
-                    onCreate={handleCreateSet}
+                <WordSetModal
+                    onClose={() => {
+                        setShowCreate(false);
+                        setEditingSet(null);
+                    }}
+                    onSave={handleCreateOrUpdateSet}
+                    initialData={editingSet}
                 />
             )}
 

@@ -1,21 +1,160 @@
 import React, { useEffect, useState, useMemo } from "react";
-import { Box, Flex, Text, Button, Badge, Spinner, Input, Select } from "@chakra-ui/react";
+import { Box, Flex, Text, Button, Badge, Spinner, Input, Select, SimpleGrid, Textarea } from "@chakra-ui/react";
 import { useParams, useNavigate } from "react-router-dom";
-import { FiDownload, FiArrowLeft, FiPlay, FiUpload, FiSearch } from "react-icons/fi";
+import { FiDownload, FiArrowLeft, FiPlay, FiUpload, FiSearch, FiPlus } from "react-icons/fi";
 import BaseLayout from "../../../layouts/BaseLayout.jsx";
 import { useVocabularyStore } from "../../../stores/useVocabularyStore.js";
 import FileUpload from "../components/FileUpload.jsx";
 import ImportPreviewTable from "../components/ImportPreviewTable.jsx";
 import WordTable from "../components/WordTable.jsx";
 
+// ── Modal thêm từ thủ công ────────────────────────────────────────────────────
+const AddWordModal = ({ onClose, onAdd }) => {
+    const [word, setWord] = useState({
+        english: "",
+        vietnamese: "",
+        pronunciation: "",
+        partOfSpeech: "",
+        example: "",
+        exampleTranslation: "",
+        synonyms: "", // Nhập cách nhau bằng dấu phẩy
+        antonyms: "",  // Nhập cách nhau bằng dấu phẩy
+        note: ""
+    });
+    const [saving, setSaving] = useState(false);
+
+    const handleSave = async () => {
+        if (!word.english.trim() || !word.vietnamese.trim()) return;
+        setSaving(true);
+        try {
+            // Chuyển synonyms/antonyms từ chuỗi thành mảng
+            const payload = {
+                ...word,
+                synonyms: word.synonyms ? word.synonyms.split(",").map(s => s.trim()) : [],
+                antonyms: word.antonyms ? word.antonyms.split(",").map(a => a.trim()) : []
+            };
+            await onAdd(payload);
+            onClose();
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    return (
+        <Box
+            position="fixed" inset={0} zIndex={50}
+            bg="blackAlpha.600" display="flex" alignItems="center" justifyContent="center"
+            onClick={onClose}
+        >
+            <Box
+                bg="bg.panel" borderRadius="2xl" p={8} w="full" maxW="650px"
+                mx={4} shadow="2xl" onClick={(e) => e.stopPropagation()}
+                maxH="90vh" overflowY="auto"
+            >
+                <Text fontSize="xl" fontWeight="bold" mb={6}>Thêm từ vựng mới</Text>
+
+                <SimpleGrid columns={{ base: 1, md: 2 }} gap={4} mb={4}>
+                    <Box>
+                        <Text fontSize="xs" fontWeight="bold" mb={1}>Tiếng Anh *</Text>
+                        <Input
+                            placeholder="VD: Magnificent"
+                            value={word.english}
+                            onChange={(e) => setWord({ ...word, english: e.target.value })}
+                            autoFocus
+                        />
+                    </Box>
+                    <Box>
+                        <Text fontSize="xs" fontWeight="bold" mb={1}>Phiên âm</Text>
+                        <Input
+                            placeholder="/mæɡˈnɪf.ɪ.sənt/"
+                            value={word.pronunciation}
+                            onChange={(e) => setWord({ ...word, pronunciation: e.target.value })}
+                        />
+                    </Box>
+                    <Box>
+                        <Text fontSize="xs" fontWeight="bold" mb={1}>Nghĩa tiếng Việt *</Text>
+                        <Input
+                            placeholder="VD: Tráng lệ, lộng lẫy"
+                            value={word.vietnamese}
+                            onChange={(e) => setWord({ ...word, vietnamese: e.target.value })}
+                        />
+                    </Box>
+                    <Box>
+                        <Text fontSize="xs" fontWeight="bold" mb={1}>Loại từ (Part of Speech)</Text>
+                        <Input
+                            placeholder="VD: adjective, verb, noun..."
+                            value={word.partOfSpeech}
+                            onChange={(e) => setWord({ ...word, partOfSpeech: e.target.value })}
+                        />
+                    </Box>
+                </SimpleGrid>
+
+                <Box mb={4}>
+                    <Text fontSize="xs" fontWeight="bold" mb={1}>Ví dụ (English)</Text>
+                    <Textarea
+                        placeholder="The palace is truly magnificent."
+                        value={word.example}
+                        onChange={(e) => setWord({ ...word, example: e.target.value })}
+                        rows={2} resize="none"
+                    />
+                </Box>
+
+                <Box mb={4}>
+                    <Text fontSize="xs" fontWeight="bold" mb={1}>Dịch ví dụ (Vietnamese)</Text>
+                    <Textarea
+                        placeholder="Cung điện thật sự tráng lệ."
+                        value={word.exampleTranslation}
+                        onChange={(e) => setWord({ ...word, exampleTranslation: e.target.value })}
+                        rows={2} resize="none"
+                    />
+                </Box>
+
+                <SimpleGrid columns={{ base: 1, md: 2 }} gap={4} mb={6}>
+                    <Box>
+                        <Text fontSize="xs" fontWeight="bold" mb={1}>Từ đồng nghĩa (Cách nhau bằng dấu phẩy)</Text>
+                        <Input
+                            placeholder="splendid, glorious..."
+                            value={word.synonyms}
+                            onChange={(e) => setWord({ ...word, synonyms: e.target.value })}
+                        />
+                    </Box>
+                    <Box>
+                        <Text fontSize="xs" fontWeight="bold" mb={1}>Từ trái nghĩa (Cách nhau bằng dấu phẩy)</Text>
+                        <Input
+                            placeholder="modest, simple..."
+                            value={word.antonyms}
+                            onChange={(e) => setWord({ ...word, antonyms: e.target.value })}
+                        />
+                    </Box>
+                </SimpleGrid>
+
+                <Flex gap={3} justify="flex-end">
+                    <Button variant="ghost" onClick={onClose}>Hủy</Button>
+                    <Button
+                        colorPalette="green" onClick={handleSave}
+                        loading={saving} disabled={!word.english.trim() || !word.vietnamese.trim()}
+                    >
+                        Thêm vào bộ từ
+                    </Button>
+                </Flex>
+            </Box>
+        </Box>
+    );
+};
+
 const VocabularyPage = () => {
     const { setId } = useParams();
     const navigate = useNavigate();
 
-    const { wordSets, words, loading, fetchWordSets, fetchWords, bulkSaveWords } = useVocabularyStore();
+    const {
+        wordSets, words, loading,
+        fetchWordSets, fetchWords, bulkSaveWords, addWord
+    } = useVocabularyStore();
+
     const [previewHeaders, setPreviewHeaders] = useState([]);
     const [previewRows, setPreviewRows] = useState([]);
     const [showUpload, setShowUpload] = useState(false);
+    const [showAddManual, setShowAddManual] = useState(false);
     const [saveResult, setSaveResult] = useState(null);
     const [search, setSearch] = useState("");
     const [filterSet, setFilterSet] = useState(setId || "");
@@ -113,6 +252,12 @@ const VocabularyPage = () => {
                             onClick={() => setShowUpload((v) => !v)}
                         >
                             <FiUpload size={14} /> Import Excel
+                        </Button>
+                        <Button
+                            colorPalette="blue" size="sm" gap={2}
+                            onClick={() => setShowAddManual(true)}
+                        >
+                            <FiPlus size={14} /> Thêm từ thủ công
                         </Button>
                         <Button
                             colorPalette="green" size="sm" gap={2}
@@ -215,6 +360,13 @@ const VocabularyPage = () => {
                     <WordTable words={filteredWords} setId={filterSet || setId} loading={loading} />
                 </Box>
             </Box>
+
+            {showAddManual && (
+                <AddWordModal
+                    onClose={() => setShowAddManual(false)}
+                    onAdd={(wordData) => addWord(filterSet || setId, wordData)}
+                />
+            )}
         </BaseLayout>
     );
 };

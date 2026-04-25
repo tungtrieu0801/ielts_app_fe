@@ -107,6 +107,13 @@ export const useVocabularyStore = create((set, get) => ({
         }
     },
 
+    addWord: async (setId, wordData) => {
+        const newWord = await vocab.createWord(setId, wordData);
+        set((s) => ({ words: [newWord, ...s.words] }));
+        await get().fetchWordSets(); // Update set word count
+        return newWord;
+    },
+
     bulkSaveWords: async (setId, words) => {
         const res = await vocab.bulkCreateWords(setId, words);
         // Refresh word list & wordCount
