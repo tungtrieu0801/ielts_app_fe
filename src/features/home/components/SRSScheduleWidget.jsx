@@ -39,8 +39,13 @@ const SRSScheduleWidget = () => {
     const firstSet = wordSets[0];
 
     const handleStudyNow = () => {
-        if (firstSet) navigate(`/study/${firstSet._id}`);
-        else navigate("/sets");
+        if (schedule?.suggestedSetId) {
+            navigate(`/study/${schedule.suggestedSetId}`);
+        } else if (firstSet) {
+            navigate(`/study/${firstSet._id}`);
+        } else {
+            navigate("/sets");
+        }
     };
 
     const available = schedule?.availableNow ?? 0;
