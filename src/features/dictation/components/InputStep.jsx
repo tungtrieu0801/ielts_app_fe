@@ -32,7 +32,14 @@ const InputStep = ({ onReady }) => {
             const raw = localStorage.getItem("auth-storage");
             if (!raw) return false;
             const data = JSON.parse(raw);
-            return data?.state?.user?.email === "trieutungvp@gmail.com";
+            const userEmail = data?.state?.user?.email;
+
+            const whitelist = [
+                "trieutungvp@gmail.com",
+                "trieuha1112020@gmail.com" // Thay email thứ hai của bạn vào đây
+            ];
+
+            return whitelist.includes(userEmail);
         } catch (err) {
             return false;
         }
