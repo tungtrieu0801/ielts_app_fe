@@ -8,7 +8,7 @@ import { useVocabularyStore } from "../../../stores/useVocabularyStore.js";
 import StudyStreakHeatmap from "../components/StudyStreakHeatmap.jsx";
 import SRSScheduleWidget from "../components/SRSScheduleWidget.jsx";
 
-const StatCard = ({ icon: Icon, label, value, color, highlight }) => (
+const StatCard = ({ icon: Icon, label, value, color, highlight, onClick }) => (
     <Box
         bg={highlight ? `linear-gradient(135deg, var(--chakra-colors-${color}-500) 0%, var(--chakra-colors-${color}-600) 100%)` : "bg.panel"}
         borderRadius="2xl"
@@ -17,7 +17,9 @@ const StatCard = ({ icon: Icon, label, value, color, highlight }) => (
         borderColor="border.muted"
         position="relative"
         overflow="hidden"
-        _hover={{ transform: "translateY(-2px)", shadow: "lg" }}
+        cursor={onClick ? "pointer" : "default"}
+        onClick={onClick}
+        _hover={onClick ? { transform: "translateY(-2px)", shadow: "lg", filter: "brightness(1.05)" } : { transform: "translateY(-2px)", shadow: "lg" }}
         transition="all 0.2s ease"
         shadow={highlight ? "lg" : "none"}
     >
@@ -112,6 +114,7 @@ const HomePage = () => {
                         value={stats?.dueCards ?? "—"}
                         color="blue"
                         highlight={stats?.dueCards > 0}
+                        onClick={() => navigate("/study/global")}
                     />
                     <StatCard icon={FiLayers} label="Tổng từ vựng" value={stats?.totalWords} color="purple" />
                     <StatCard icon={FiBook} label="Đã học hôm nay" value={stats?.reviewedToday} color="green" />

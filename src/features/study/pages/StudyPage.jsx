@@ -43,6 +43,7 @@ const StudyPage = () => {
         answers,
         nextReviewAt,
         startSession,
+        startGlobalSession,
         answerCard,
         goToCard,
         setMode,
@@ -52,17 +53,21 @@ const StudyPage = () => {
     } = useStudyStore();
 
     const { wordSets, fetchWordSets } = useVocabularyStore();
-    const currentSet = wordSets.find((s) => s._id === setId);
+    const currentSet = setId === "global" ? { title: "Học Tổng Hợp" } : wordSets.find((s) => s._id === setId);
 
     // Boot session
     useEffect(() => {
-        if (!wordSets.length) fetchWordSets();
+        if (!wordSets.length && setId !== "global") fetchWordSets();
 
         // Only (re)start if switching to a different set, or no active session
         if (currentSetId === setId && queue.length > 0 && !sessionComplete) return;
         if (currentSetId === setId && sessionComplete) return;
 
-        startSession(setId);
+        if (setId === "global") {
+            startGlobalSession();
+        } else {
+            startSession(setId);
+        }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [setId]);
 

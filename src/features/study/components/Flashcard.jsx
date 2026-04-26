@@ -143,20 +143,26 @@ const Flashcard = ({ word, onAnswer, existingAnswer }) => {
                     >
                         {/* SRS level badge */}
                         <Flex position="absolute" top={4} left={4} gap={2}>
-                            <Badge
-                                colorPalette={LEVEL_COLORS[srsLevel]}
-                                variant="subtle"
-                                fontSize="xs"
-                                px={2}
-                                borderRadius="md"
-                                fontWeight="bold"
-                            >
-                                Level {srsLevel}
-                            </Badge>
-                            {srsStatus === "NEW" && (
-                                <Badge colorPalette="cyan" variant="subtle" fontSize="xs" px={2} borderRadius="md">
-                                    NEW
+                            {srsStatus === "NEW" ? (
+                                <Badge colorPalette="cyan" variant="solid" fontSize="xs" px={2} borderRadius="md">
+                                    ✨ TỪ MỚI
                                 </Badge>
+                            ) : (
+                                <Flex gap={2}>
+                                    <Badge colorPalette="orange" variant="solid" fontSize="xs" px={2} borderRadius="md">
+                                        🔥 CẦN ÔN TẬP
+                                    </Badge>
+                                    <Badge
+                                        colorPalette={LEVEL_COLORS[srsLevel]}
+                                        variant="subtle"
+                                        fontSize="xs"
+                                        px={2}
+                                        borderRadius="md"
+                                        fontWeight="bold"
+                                    >
+                                        Level {srsLevel}
+                                    </Badge>
+                                </Flex>
                             )}
                         </Flex>
 

@@ -59,6 +59,29 @@ export const useStudyStore = create(
                 }
             },
 
+            startGlobalSession: async () => {
+                set({
+                    loading: true,
+                    sessionComplete: false,
+                    submitResult: null,
+                    answers: {},
+                    currentIndex: 0,
+                    currentSetId: "global",
+                    nextReviewAt: null,
+                });
+                try {
+                    const res = await studyApi.getGlobalStudySession();
+                    set({
+                        queue: res.data ?? [],
+                        nextReviewAt: res.nextReviewAt ?? null,
+                        loading: false,
+                    });
+                } catch (e) {
+                    set({ loading: false });
+                    throw e;
+                }
+            },
+
             /** Record the user's answer for the current card and advance to next. */
             answerCard: (cardId, quality) => {
                 const { answers, currentIndex, queue } = get();

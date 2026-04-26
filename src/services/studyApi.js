@@ -3,6 +3,9 @@ import axiosClient from "../config/axios.js";
 export const getStudySession = (setId) =>
     axiosClient.get(`/study/${setId}/session`).then((r) => r.data);
 
+export const getGlobalStudySession = () =>
+    axiosClient.get("/study/global-session").then((r) => r.data);
+
 export const batchSubmit = (answers) =>
     axiosClient.post("/study/batch-submit", { answers }).then((r) => r.data);
 

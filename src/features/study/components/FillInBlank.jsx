@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Box, Flex, Text, Input, Button } from "@chakra-ui/react";
+import { Box, Flex, Text, Input, Button, Badge } from "@chakra-ui/react";
 import { FiCheck, FiX } from "react-icons/fi";
 import { speak } from "../../../shared/utils/speech.js";
 import SpeakButton from "../../../shared/components/SpeakButton.jsx";
@@ -11,11 +11,16 @@ const createBlankSentence = (example, english) => {
     return example.replace(regex, "______");
 };
 
+const LEVEL_COLORS = ["gray", "orange", "yellow", "blue", "purple", "green"];
+
 const FillInBlank = ({ word, onAnswer, existingAnswer }) => {
     const [input, setInput] = useState("");
     const [submitted, setSubmitted] = useState(false);
     const [correct, setCorrect] = useState(false);
     const isFirstRender = React.useRef(true);
+
+    const srsLevel = word?.srs?.level ?? 0;
+    const srsStatus = word?.srs?.status ?? "NEW";
 
     React.useEffect(() => {
         if (!word?.example) return;
@@ -76,7 +81,32 @@ const FillInBlank = ({ word, onAnswer, existingAnswer }) => {
                 p={10}
                 w="full"
                 textAlign="center"
+                position="relative"
             >
+                <Flex position="absolute" top={4} left={4} gap={2}>
+                    {srsStatus === "NEW" ? (
+                        <Badge colorPalette="cyan" variant="solid" fontSize="xs" px={2} borderRadius="md">
+                            ✨ TỪ MỚI
+                        </Badge>
+                    ) : (
+                        <Flex gap={2}>
+                            <Badge colorPalette="orange" variant="solid" fontSize="xs" px={2} borderRadius="md">
+                                🔥 CẦN ÔN TẬP
+                            </Badge>
+                            <Badge
+                                colorPalette={LEVEL_COLORS[srsLevel]}
+                                variant="subtle"
+                                fontSize="xs"
+                                px={2}
+                                borderRadius="md"
+                                fontWeight="bold"
+                            >
+                                Level {srsLevel}
+                            </Badge>
+                        </Flex>
+                    )}
+                </Flex>
+
                 <Flex align="center" justify="center" gap={3} mb={6}>
                     <Text color="fg.muted" fontSize="xs" textTransform="uppercase" letterSpacing="wider">
                         Điền từ còn thiếu
