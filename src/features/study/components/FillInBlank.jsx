@@ -30,7 +30,7 @@ const FillInBlank = ({ word, onAnswer, existingAnswer }) => {
         if (!autoPlay) return;
 
         const timer = setTimeout(() => {
-            speak(word.example, "en-US", 0.9);
+            speak(word.example);
         }, isFirstRender.current ? 500 : 300);
         isFirstRender.current = false;
         return () => clearTimeout(timer);
@@ -60,6 +60,13 @@ const FillInBlank = ({ word, onAnswer, existingAnswer }) => {
 
     React.useEffect(() => {
         const handleKeyDown = (e) => {
+            if (["INPUT", "TEXTAREA"].includes(e.target.tagName) && e.key !== "Control") return;
+
+            if (e.key === "Control") {
+                e.preventDefault();
+                if (word.example) speak(word.example);
+            }
+
             if (submitted) {
                 if (e.key === "Enter" || e.code === "Space") {
                     e.preventDefault();
@@ -68,9 +75,7 @@ const FillInBlank = ({ word, onAnswer, existingAnswer }) => {
             }
         };
 
-        if (submitted) {
-            window.addEventListener("keydown", handleKeyDown);
-        }
+        window.addEventListener("keydown", handleKeyDown);
         return () => window.removeEventListener("keydown", handleKeyDown);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [submitted, correct, word?._id, input]);

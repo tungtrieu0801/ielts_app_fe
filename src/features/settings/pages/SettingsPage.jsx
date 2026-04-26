@@ -117,13 +117,16 @@ const VoiceSettingsSection = () => {
 
     const loadVoices = React.useCallback(() => {
         const v = window.speechSynthesis.getVoices().filter(v => v.lang.startsWith('en'));
-        setVoices(v);
-
-        const savedVoice = localStorage.getItem('pref-voice-en-US');
-        if (savedVoice) setSelectedVoice(savedVoice);
-        else {
-            const def = v.find(v => v.name.includes("Google")) || v[0];
-            if (def) setSelectedVoice(def.name);
+        if (v.length > 0) {
+            setVoices(v);
+            const savedVoice = localStorage.getItem('pref-voice-en-US');
+            if (savedVoice) {
+                const found = v.find(v => v.name === savedVoice);
+                if (found) setSelectedVoice(found.name);
+            } else {
+                const def = v.find(v => v.name.includes("Google")) || v[0];
+                if (def) setSelectedVoice(def.name);
+            }
         }
 
         const savedAuto = localStorage.getItem('pref-autoplay-voice');
@@ -131,10 +134,24 @@ const VoiceSettingsSection = () => {
     }, []);
 
     React.useEffect(() => {
+        // Initial attempt
         loadVoices();
-        if (window.speechSynthesis.onvoiceschanged !== undefined) {
-            window.speechSynthesis.onvoiceschanged = loadVoices;
-        }
+
+        // Standard event for voices loading
+        window.speechSynthesis.addEventListener('voiceschanged', loadVoices);
+        
+        // Fallback for some browsers that don't trigger voiceschanged reliably
+        const timer = setInterval(() => {
+            if (window.speechSynthesis.getVoices().length > 0) {
+                loadVoices();
+                clearInterval(timer);
+            }
+        }, 300);
+
+        return () => {
+            window.speechSynthesis.removeEventListener('voiceschanged', loadVoices);
+            clearInterval(timer);
+        };
     }, [loadVoices]);
 
     const handleVoiceChange = (name) => {

@@ -55,7 +55,7 @@ const Flashcard = ({ word, onAnswer, existingAnswer }) => {
         if (!autoPlay) return;
 
         const timer = setTimeout(
-            () => speak(word.english, "en-US", 0.9),
+            () => speak(word.english),
             isFirstRender.current ? 500 : 300
         );
         isFirstRender.current = false;
@@ -85,6 +85,15 @@ const Flashcard = ({ word, onAnswer, existingAnswer }) => {
             if (e.code === "Space") {
                 e.preventDefault();
                 setFlipped((v) => !v);
+            }
+
+            if (e.key === "Control") {
+                e.preventDefault();
+                if (!flipped) {
+                    speak(word.english);
+                } else {
+                    if (word.example) speak(word.example);
+                }
             }
 
             if (flipped) {
