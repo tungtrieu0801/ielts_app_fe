@@ -143,7 +143,7 @@ const StudyComplete = ({ submitResult, setId, setTitle, onRestart }) => {
                             onClick={onRestart}
                             gap={1}
                         >
-                            <FiRepeat size={15} /> Học lại
+                            <FiRepeat size={15} /> Tiếp tục luyện tập
                         </Button>
                         <Button
                             flex={1}

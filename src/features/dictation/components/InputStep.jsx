@@ -32,7 +32,7 @@ const InputStep = ({ onReady }) => {
             const raw = localStorage.getItem("auth-storage");
             if (!raw) return false;
             const data = JSON.parse(raw);
-            return data?.state?.user?.email === "trieuha1112020@gmail.com";
+            return data?.state?.user?.email === "trieutungvp@gmail.com";
         } catch (err) {
             return false;
         }
