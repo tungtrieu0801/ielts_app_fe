@@ -24,6 +24,11 @@ const FillInBlank = ({ word, onAnswer, existingAnswer }) => {
 
     React.useEffect(() => {
         if (!word?.example) return;
+
+        // Check user preference
+        const autoPlay = localStorage.getItem('pref-autoplay-voice') !== 'false';
+        if (!autoPlay) return;
+
         const timer = setTimeout(() => {
             speak(word.example, "en-US", 0.9);
         }, isFirstRender.current ? 500 : 300);

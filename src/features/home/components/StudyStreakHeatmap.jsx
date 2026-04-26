@@ -141,7 +141,7 @@ const StudyStreakHeatmap = () => {
             y: rect.top - 8,
             content: words === 0
                 ? `${formatDate(dateStr)} • Chưa học`
-                : `${formatDate(dateStr)} • ${words} từ đã ôn`,
+                : `${formatDate(dateStr)} • ${words} lượt ôn tập`,
         });
     };
 

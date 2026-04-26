@@ -49,6 +49,11 @@ const Flashcard = ({ word, onAnswer, existingAnswer }) => {
     // Auto-read when new word appears
     useEffect(() => {
         if (!word?.english) return;
+
+        // Check user preference
+        const autoPlay = localStorage.getItem('pref-autoplay-voice') !== 'false';
+        if (!autoPlay) return;
+
         const timer = setTimeout(
             () => speak(word.english, "en-US", 0.9),
             isFirstRender.current ? 500 : 300
@@ -256,7 +261,7 @@ const Flashcard = ({ word, onAnswer, existingAnswer }) => {
                         </Box>
 
                         <Text
-                            color="brand.text"
+                            color="fg.subtle"
                             fontSize="sm"
                             fontWeight="600"
                             textTransform="uppercase"
