@@ -17,6 +17,8 @@ import { useVocabularyStore } from "../../../stores/useVocabularyStore.js";
 import { useAuthStore } from "../../../stores/useAuthStore.js";
 import Flashcard from "../components/Flashcard.jsx";
 import FillInBlank from "../components/FillInBlank.jsx";
+import ListenType from "../components/ListenType.jsx";
+import ReadType from "../components/ReadType.jsx";
 import StudyComplete from "../components/StudyComplete.jsx";
 
 const StudyPage = () => {
@@ -264,6 +266,8 @@ const StudyPage = () => {
                         {[
                             { key: "flashcard", label: "🃏 Flashcard" },
                             { key: "fill", label: "✏️ Fill-in" },
+                            { key: "listen", label: "🎧 Nghe gõ" },
+                            { key: "read", label: "⌨️ Đọc gõ" },
                         ].map(({ key, label }) => (
                             <Button
                                 key={key}
@@ -449,8 +453,20 @@ const StudyPage = () => {
                             onAnswer={handleAnswer}
                             existingAnswer={answers[currentWord.cardId]}
                         />
-                    ) : (
+                    ) : mode === "fill" ? (
                         <FillInBlank
+                            word={currentWord}
+                            onAnswer={handleAnswer}
+                            existingAnswer={answers[currentWord.cardId]}
+                        />
+                    ) : mode === "listen" ? (
+                        <ListenType
+                            word={currentWord}
+                            onAnswer={handleAnswer}
+                            existingAnswer={answers[currentWord.cardId]}
+                        />
+                    ) : (
+                        <ReadType
                             word={currentWord}
                             onAnswer={handleAnswer}
                             existingAnswer={answers[currentWord.cardId]}
