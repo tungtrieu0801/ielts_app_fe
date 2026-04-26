@@ -5,6 +5,7 @@ import {
 import {
     FiFileText, FiYoutube, FiArrowRight, FiAlertCircle,
     FiCommand, FiCornerDownLeft, FiDelete,
+    FiInfo,
 } from "react-icons/fi";
 import { prepareText, prepareYoutube, getSharedLibrary } from "../../../services/dictationApi.js";
 
@@ -26,8 +27,8 @@ const InputStep = ({ onReady }) => {
         { key: "youtube", label: "▶️ YouTube" },
     ];
 
-    // Whitelist email youtube function
-    const canShowYoutubeTab = () => {
+    // Admin check for YouTube link input
+    const isAdmin = () => {
         try {
             const raw = localStorage.getItem("auth-storage");
             if (!raw) return false;
@@ -36,7 +37,7 @@ const InputStep = ({ onReady }) => {
 
             const whitelist = [
                 "trieutungvp@gmail.com",
-                "trieuha1112020@gmail.com" // Thay email thứ hai của bạn vào đây
+                "trieuha1112020@gmail.com"
             ];
 
             return whitelist.includes(userEmail);
@@ -45,10 +46,7 @@ const InputStep = ({ onReady }) => {
         }
     };
 
-    const filteredTabs = tabs.filter(tab => {
-        if (tab.key === "youtube") return canShowYoutubeTab();
-        return true;
-    });
+
 
     // Fetch shared library when YouTube tab is active
     useEffect(() => {
@@ -120,7 +118,7 @@ const InputStep = ({ onReady }) => {
                     p={1}
                     borderRadius="xl"
                 >
-                    {filteredTabs.map(({ key, label }) => (
+                    {tabs.map(({ key, label }) => (
                         <Flex
                             key={key}
                             flex={1}
@@ -166,32 +164,43 @@ const InputStep = ({ onReady }) => {
                     />
                 ) : (
                     <Box>
-                        <Input
-                            value={youtubeUrl}
-                            onChange={(e) => setYoutubeUrl(e.target.value)}
-                            onKeyDown={(e) => e.key === "Enter" && !isDisabled && handleSubmit()}
-                            placeholder="https://www.youtube.com/watch?v=..."
-                            borderRadius="xl"
-                            size="lg"
-                            fontSize="sm"
-                        />
-                        <Flex
-                            align="flex-start" gap={2} mt={3} p={3}
-                            bg="blue.50" _dark={{ bg: "blue.900/20" }}
-                            borderRadius="lg" borderWidth="1px"
-                            borderColor="blue.200" _dark={{ borderColor: "blue.800" }}
-                        >
-                            <Text fontSize="xs" color="blue.600" _dark={{ color: "blue.300" }}>
-                                💡 Video cần có phụ đề tiếng Anh (auto-generated hoặc manual).
-                                Hệ thống sẽ tự động lấy phụ đề và tạo bài luyện nghe.
-                            </Text>
-                        </Flex>
+                        {isAdmin() && (
+                            <>
+                                <Input
+                                    value={youtubeUrl}
+                                    onChange={(e) => setYoutubeUrl(e.target.value)}
+                                    onKeyDown={(e) => e.key === "Enter" && !isDisabled && handleSubmit()}
+                                    placeholder="https://www.youtube.com/watch?v=..."
+                                    borderRadius="xl"
+                                    size="lg"
+                                    fontSize="sm"
+                                />
+                                <Flex
+                                    align="flex-start" gap={2} mt={3} p={3}
+                                    bg="blue.50" _dark={{ bg: "blue.900/20" }}
+                                    borderRadius="lg" borderWidth="1px"
+                                    borderColor="blue.200" _dark={{ borderColor: "blue.800" }}
+                                >
+                                    <Box color="blue.500" mt={0.5}><FiInfo size={14} /></Box>
+                                    <Text fontSize="xs" color="blue.700" _dark={{ color: "blue.200" }} lineHeight="tall">
+                                        Video cần có phụ đề tiếng Anh (auto-generated hoặc manual). Hệ thống sẽ tự động lấy phụ đề và tạo bài luyện nghe.
+                                    </Text>
+                                </Flex>
+                            </>
+                        )}
+                        {!isAdmin() && library.length === 0 && (
+                            <Box py={10} textAlign="center">
+                                <Text color="fg.muted" fontSize="sm">
+                                    Thư viện video đang được cập nhật...
+                                </Text>
+                            </Box>
+                        )}
 
                         {/* Shared Library */}
                         {library.length > 0 && (
-                            <Box mt={5}>
+                            <Box mt={2}>
                                 <Text fontSize="xs" fontWeight="700" color="fg.muted" mb={3} textTransform="uppercase" letterSpacing="wider">
-                                    📚 Thư viện video đã sẵn sàng
+                                    📚 THƯ VIỆN VIDEO ĐÃ SẴN SÀNG
                                 </Text>
                                 <Box
                                     display="grid"
@@ -265,24 +274,26 @@ const InputStep = ({ onReady }) => {
                 )}
 
                 {/* Submit button */}
-                <Button
-                    mt={6} w="full" size="lg"
-                    colorPalette="blue"
-                    onClick={handleSubmit}
-                    disabled={isDisabled}
-                >
-                    {loading ? (
-                        <Flex align="center" gap={2}>
-                            <Spinner size="sm" />
-                            <Text>Đang xử lý…</Text>
-                        </Flex>
-                    ) : (
-                        <Flex align="center" gap={2}>
-                            <Text>Tạo bài tập Dictation</Text>
-                            <FiArrowRight />
-                        </Flex>
-                    )}
-                </Button>
+                {(tab === "text" || isAdmin()) && (
+                    <Button
+                        mt={6} w="full" size="lg"
+                        colorPalette="blue"
+                        onClick={handleSubmit}
+                        disabled={isDisabled}
+                    >
+                        {loading ? (
+                            <Flex align="center" gap={2}>
+                                <Spinner size="sm" />
+                                <Text>Đang xử lý…</Text>
+                            </Flex>
+                        ) : (
+                            <Flex align="center" gap={2}>
+                                <Text>Tạo bài tập Dictation</Text>
+                                <FiArrowRight />
+                            </Flex>
+                        )}
+                    </Button>
+                )}
             </Box>
 
             {/* Keyboard shortcut guide */}
