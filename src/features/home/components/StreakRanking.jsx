@@ -71,7 +71,7 @@ const StreakRanking = () => {
         </Flex>
     );
 
-    const isCurrentUserInTop10 = rankingData.topUsers.some(u => authUser && u._id === authUser.id);
+    const isCurrentUserInTop10 = rankingData.currentUser && rankingData.topUsers.some(u => u._id === rankingData.currentUser._id);
 
     return (
         <Box
@@ -100,7 +100,7 @@ const StreakRanking = () => {
                     </Text>
                 ) : (
                     <>
-                        {rankingData.topUsers.map((user, index) => renderUser(user, index + 1, authUser && user._id === authUser.id))}
+                        {rankingData.topUsers.map((user, index) => renderUser(user, index + 1, rankingData.currentUser && user._id === rankingData.currentUser._id))}
                         
                         {!isCurrentUserInTop10 && rankingData.currentUser && rankingData.currentUser.currentStreak > 0 && (
                             <>
