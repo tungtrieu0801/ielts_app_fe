@@ -3,7 +3,7 @@ import {
     Box, Flex, Text, SimpleGrid, Button, Input, Textarea, Spinner,
     IconButton, Badge,
 } from "@chakra-ui/react";
-import { FiPlus, FiTrash2, FiBook, FiPlay, FiGlobe, FiLock, FiGitBranch, FiFolder, FiChevronLeft, FiEdit2 } from "react-icons/fi";
+import { FiPlus, FiTrash2, FiBook, FiPlay, FiGlobe, FiLock, FiGitBranch, FiFolder, FiChevronLeft, FiEdit2, FiChevronRight } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import BaseLayout from "../../../layouts/BaseLayout.jsx";
 import { useVocabularyStore } from "../../../stores/useVocabularyStore.js";
@@ -488,7 +488,7 @@ const SetsPage = () => {
         createWordSet, deleteWordSet, updateWordSet,
         createFolder, updateFolder, deleteFolder,
         forkWordSet,
-        loading, publicLoading,
+        loading, publicLoading, totalPublicSets
     } = useVocabularyStore();
 
     const [showCreate, setShowCreate] = useState(false);
@@ -496,6 +496,7 @@ const SetsPage = () => {
     const [showFolderModal, setShowFolderModal] = useState(false);
     const [editingFolder, setEditingFolder] = useState(null);
     const [tab, setTab] = useState("mine"); // "mine" | "community"
+    const [publicPage, setPublicPage] = useState(1);
 
     // Navigation state
     const [currentFolder, setCurrentFolder] = useState(null); // { id, name } | null
@@ -512,8 +513,13 @@ const SetsPage = () => {
     }, [tab, currentFolder]);
 
     useEffect(() => {
-        if (tab === "community") fetchPublicSets();
-    }, [tab]);
+        if (tab === "community") {
+            fetchPublicSets({ page: publicPage, limit: 10 });
+        } else {
+            // Fetch public sets once at start just to get the count
+            if (totalPublicSets === 0) fetchPublicSets({ page: 1, limit: 10 });
+        }
+    }, [tab, publicPage]);
 
     const handleDelete = async (id) => {
         if (!window.confirm("Bạn có chắc muốn xóa bộ từ này? Tất cả từ vựng trong bộ sẽ bị xóa.")) return;
@@ -641,7 +647,7 @@ const SetsPage = () => {
                 <Flex gap={1} mb={6} bg="bg.subtle" p={1} borderRadius="xl" w="fit-content">
                     {[
                         { key: "mine", label: "📚 Của tôi", count: wordSets.length },
-                        { key: "community", label: "🌐 Cộng đồng", count: publicSets.length || null },
+                        { key: "community", label: "🌐 Cộng đồng", count: totalPublicSets || null },
                     ].map(({ key, label, count }) => (
                         <Button
                             key={key} size="sm" borderRadius="lg"
@@ -723,10 +729,10 @@ const SetsPage = () => {
                                 {wordSets.length > 0 ? (
                                     <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} gap={6}>
                                         {wordSets.map((set) => (
-                                            <SetCard 
-                                                key={set._id} 
-                                                set={set} 
-                                                onDelete={handleDelete} 
+                                            <SetCard
+                                                key={set._id}
+                                                set={set}
+                                                onDelete={handleDelete}
                                                 onTogglePublic={handleTogglePublic}
                                                 onEdit={(s) => {
                                                     setEditingSet(s);
@@ -763,11 +769,74 @@ const SetsPage = () => {
                             <Text fontSize="sm">Hãy chia sẻ bộ từ của bạn để cộng đồng cùng học!</Text>
                         </Flex>
                     ) : (
-                        <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} gap={5}>
-                            {publicSets.map((set) => (
-                                <PublicSetCard key={set._id} set={set} onFork={handleFork} />
-                            ))}
-                        </SimpleGrid>
+                        <Box>
+                            <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} gap={5} mb={8}>
+                                {publicSets.map((set) => (
+                                    <PublicSetCard key={set._id} set={set} onFork={handleFork} />
+                                ))}
+                            </SimpleGrid>
+
+                            {/* Pagination - WordTable Style */}
+                            <Flex
+                                align="center" justify="space-between"
+                                px={5} py={4}
+                                borderTop="1px solid"
+                                borderColor="border.muted"
+                                bg="bg.subtle"
+                                borderRadius="xl"
+                                mt={8}
+                            >
+                                <Text fontSize="sm" color="fg.muted">
+                                    Hiển thị <strong>{(publicPage - 1) * 10 + 1}–{Math.min(publicPage * 10, totalPublicSets)}</strong> / {totalPublicSets} bộ từ
+                                </Text>
+
+                                <Flex align="center" gap={2}>
+                                    <IconButton
+                                        size="sm" variant="ghost"
+                                        disabled={publicPage === 1 || publicLoading}
+                                        onClick={() => setPublicPage((p) => p - 1)}
+                                        aria-label="Trang trước"
+                                    >
+                                        <FiChevronLeft />
+                                    </IconButton>
+
+                                    {/* Page numbers logic from WordTable */}
+                                    {Array.from({ length: Math.ceil(totalPublicSets / 10) }, (_, i) => i + 1)
+                                        .filter((p) => p === 1 || p === Math.ceil(totalPublicSets / 10) || Math.abs(p - publicPage) <= 1)
+                                        .reduce((acc, p, i, arr) => {
+                                            if (i > 0 && p - arr[i - 1] > 1) acc.push("...");
+                                            acc.push(p);
+                                            return acc;
+                                        }, [])
+                                        .map((p, i) =>
+                                            p === "..." ? (
+                                                <Text key={`dot-${i}`} fontSize="sm" color="fg.muted" px={1}>…</Text>
+                                            ) : (
+                                                <Button
+                                                    key={p}
+                                                    size="sm"
+                                                    variant={p === publicPage ? "solid" : "ghost"}
+                                                    colorPalette={p === publicPage ? "blue" : "gray"}
+                                                    onClick={() => setPublicPage(p)}
+                                                    minW="32px"
+                                                    borderRadius="lg"
+                                                >
+                                                    {p}
+                                                </Button>
+                                            )
+                                        )}
+
+                                    <IconButton
+                                        size="sm" variant="ghost"
+                                        disabled={publicPage >= Math.ceil(totalPublicSets / 10) || publicLoading}
+                                        onClick={() => setPublicPage((p) => p + 1)}
+                                        aria-label="Trang sau"
+                                    >
+                                        <FiChevronRight />
+                                    </IconButton>
+                                </Flex>
+                            </Flex>
+                        </Box>
                     )
                 )}
             </Box>

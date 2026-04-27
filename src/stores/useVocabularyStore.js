@@ -5,6 +5,7 @@ export const useVocabularyStore = create((set, get) => ({
     wordSets: [],
     folders: [],
     publicSets: [],
+    totalPublicSets: 0,
     currentSet: null,
     words: [],
     totalWords: 0,
@@ -77,11 +78,15 @@ export const useVocabularyStore = create((set, get) => ({
     setCurrentSet: (set_) => set({ currentSet: set_ }),
 
     // --- Public WordSets ---
-    fetchPublicSets: async () => {
+    fetchPublicSets: async (params = {}) => {
         set({ publicLoading: true });
         try {
-            const data = await vocab.getPublicSets();
-            set({ publicSets: data, publicLoading: false });
+            const res = await vocab.getPublicSets(params);
+            set({ 
+                publicSets: res.data, 
+                totalPublicSets: res.total,
+                publicLoading: false 
+            });
         } catch (e) {
             set({ publicLoading: false });
         }
