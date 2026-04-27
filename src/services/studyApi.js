@@ -20,3 +20,6 @@ export const getStreakInfo = () =>
 
 export const getSchedule = () =>
     axiosClient.get("/study/schedule").then((r) => r.data.data);
+
+export const getRanking = () =>
+    axiosClient.get("/study/ranking").then((r) => r.data.data);

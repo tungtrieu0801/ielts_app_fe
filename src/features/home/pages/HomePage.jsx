@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { Box, Flex, Text, SimpleGrid, Spinner, Button, Badge } from "@chakra-ui/react";
+import { Box, Flex, Text, SimpleGrid, Spinner, Button, Badge, VStack } from "@chakra-ui/react";
 import { useNavigate } from "react-router-dom";
 import { FiBook, FiClock, FiAward, FiLayers, FiPlay, FiZap } from "react-icons/fi";
 import BaseLayout from "../../../layouts/BaseLayout.jsx";
@@ -7,6 +7,8 @@ import { useStudyStore } from "../../../stores/useStudyStore.js";
 import { useVocabularyStore } from "../../../stores/useVocabularyStore.js";
 import StudyStreakHeatmap from "../components/StudyStreakHeatmap.jsx";
 import SRSScheduleWidget from "../components/SRSScheduleWidget.jsx";
+import StreakRanking from "../components/StreakRanking.jsx";
+import CommunityChat from "../components/CommunityChat.jsx";
 
 const StatCard = ({ icon: Icon, label, value, color, highlight, onClick }) => (
     <Box
@@ -106,8 +108,13 @@ const HomePage = () => {
                     <Text color="fg.muted">Tiếp tục hành trình học từ vựng của bạn hôm nay.</Text>
                 </Box>
 
+                <Flex direction={{ base: "column", lg: "row" }} gap={6} alignItems="flex-start">
+                    {/* Left Column (Main Content) */}
+                    <Box flex="1" w="full" minW="0" display="flex" flexDirection="column" gap={6}>
+
+
                 {/* Stats Grid */}
-                <SimpleGrid columns={{ base: 2, md: 4 }} gap={4} mb={6}>
+                <SimpleGrid columns={{ base: 2, md: 4 }} gap={4}>
                     <StatCard
                         icon={FiZap}
                         label="Có thể học ngay"
@@ -124,12 +131,8 @@ const HomePage = () => {
                 {/* Study Streak Heatmap — full width */}
                 <StudyStreakHeatmap />
 
-                {/* Main 2-column layout */}
-                <Flex direction={{ base: "column", lg: "row" }} gap={6} alignItems="flex-start">
-                    {/* Left Column (Main Content) */}
-                    <Box flex="1" minW="0">
-                        {/* SRS Schedule Widget */}
-                        <SRSScheduleWidget />
+                {/* SRS Schedule Widget */}
+                <SRSScheduleWidget />
 
                         {/* Recent Sets */}
                         <Box>
@@ -212,30 +215,34 @@ const HomePage = () => {
                     </Box>
 
                     {/* Right Column (Side Widgets) */}
-                    <Box w={{ base: "full", lg: "320px" }} flexShrink={0}>
-                        <TipsWidget />
+                    <Box w={{ base: "full", lg: "320px", xl: "360px" }} flexShrink={0}>
+                        <VStack gap={6} align="stretch" position={{ lg: "sticky" }} top="20px">
+                            <StreakRanking />
+                            <CommunityChat />
+                            <TipsWidget />
 
-                        <Box
-                            bg="linear-gradient(135deg, var(--chakra-colors-purple-500) 0%, var(--chakra-colors-blue-600) 100%)"
-                            borderRadius="2xl"
-                            p={5}
-                            color="white"
-                            position="relative"
-                            overflow="hidden"
-                        >
                             <Box
-                                position="absolute" top="-20px" right="-20px"
-                                w="100px" h="100px" bg="white/10" borderRadius="full" blur="md"
-                            />
-                            <Text fontSize="2xl" mb={2}>🚀</Text>
-                            <Text fontWeight="900" fontSize="lg" mb={1}>IELTS Vocab Pro</Text>
-                            <Text fontSize="sm" color="white/80" mb={4}>
-                                Mở khóa phát âm AI, học không giới hạn và xoá quảng cáo.
-                            </Text>
-                            <Button size="sm" bg="white" color="purple.600" w="full" fontWeight="bold" _hover={{ bg: "gray.50" }}>
-                                Nâng cấp ngay
-                            </Button>
-                        </Box>
+                                bg="linear-gradient(135deg, var(--chakra-colors-purple-500) 0%, var(--chakra-colors-blue-600) 100%)"
+                                borderRadius="2xl"
+                                p={5}
+                                color="white"
+                                position="relative"
+                                overflow="hidden"
+                            >
+                                <Box
+                                    position="absolute" top="-20px" right="-20px"
+                                    w="100px" h="100px" bg="white/10" borderRadius="full" blur="md"
+                                />
+                                <Text fontSize="2xl" mb={2}>🚀</Text>
+                                <Text fontWeight="900" fontSize="lg" mb={1}>IELTS Vocab Pro</Text>
+                                <Text fontSize="sm" color="white/80" mb={4}>
+                                    Mở khóa phát âm AI, học không giới hạn và xoá quảng cáo.
+                                </Text>
+                                <Button size="sm" bg="white" color="purple.600" w="full" fontWeight="bold" _hover={{ bg: "gray.50" }}>
+                                    Nâng cấp ngay
+                                </Button>
+                            </Box>
+                        </VStack>
                     </Box>
                 </Flex>
             </Box>

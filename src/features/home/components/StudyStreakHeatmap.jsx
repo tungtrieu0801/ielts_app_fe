@@ -192,9 +192,13 @@ const StudyStreakHeatmap = () => {
             </Flex>
 
             {/* Grid */}
-            <Box px={6} pb={5}>
+            <Box px={6} pb={5} overflowX="auto" css={{
+                "&::-webkit-scrollbar": { height: "6px" },
+                "&::-webkit-scrollbar-track": { background: "transparent" },
+                "&::-webkit-scrollbar-thumb": { background: C.border, borderRadius: "10px" },
+            }}>
                 {/* Cells */}
-                <Box display="flex" gap={`${CELL_GAP}px`}>
+                <Box display="inline-flex" gap={`${CELL_GAP}px`} minW="max-content">
                     {grid.map((week, wi) => (
                         <Box key={wi} display="flex" flexDirection="column" gap={`${CELL_GAP}px`}>
                             {week.map((dateStr, di) => {
