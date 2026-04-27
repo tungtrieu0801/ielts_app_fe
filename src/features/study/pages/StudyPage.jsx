@@ -27,6 +27,8 @@ const StudyPage = () => {
 
     const { user, logout } = useAuthStore();
     const [showDropdown, setShowDropdown] = useState(false);
+    const [showExitConfirm, setShowExitConfirm] = useState(false);
+    const cancelRef = React.useRef();
 
     const handleLogout = () => {
         logout();
@@ -53,6 +55,31 @@ const StudyPage = () => {
         resetSession,
         streakInfo,
     } = useStudyStore();
+
+    // Prevent browser refresh/close
+    useEffect(() => {
+        const handleBeforeUnload = (e) => {
+            if (!sessionComplete && queue.length > 0) {
+                e.preventDefault();
+                e.returnValue = "";
+            }
+        };
+        window.addEventListener("beforeunload", handleBeforeUnload);
+        return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+    }, [sessionComplete, queue.length]);
+
+    const handleBackClick = () => {
+        if (!sessionComplete && queue.length > 0) {
+            setShowExitConfirm(true);
+        } else {
+            navigate("/home");
+        }
+    };
+
+    const confirmExit = () => {
+        setShowExitConfirm(false);
+        navigate("/home");
+    };
 
     const { wordSets, fetchWordSets } = useVocabularyStore();
     const currentSet = setId === "global" ? { title: "Học Tổng Hợp" } : wordSets.find((s) => s._id === setId);
@@ -174,6 +201,61 @@ const StudyPage = () => {
 
     return (
         <Box minH="100vh" bg="bg.main" p={{ base: 3, md: 6 }} position="relative">
+            {/* ── Navigation Blocker Modal (Custom) ─────────────────────────── */}
+            {showExitConfirm && (
+                <Flex
+                    position="fixed"
+                    inset={0}
+                    zIndex={200}
+                    align="center"
+                    justify="center"
+                    bg="blackAlpha.700"
+                    backdropFilter="blur(8px)"
+                    p={4}
+                >
+                    <Box
+                        bg="bg.panel"
+                        maxW="400px"
+                        w="full"
+                        p={6}
+                        borderRadius="2xl"
+                        shadow="2xl"
+                        borderWidth="1px"
+                        borderColor="border.subtle"
+                        textAlign="center"
+                    >
+                        <Text fontSize="5xl" mb={3}>⚠️</Text>
+                        <Text fontSize="xl" fontWeight="900" mb={2} color="fg">
+                            Chưa hoàn thành bài học!
+                        </Text>
+                        <Text color="fg.muted" mb={6} fontSize="sm">
+                            Bạn đang trong tiến trình học tập. Nếu rời đi bây giờ, các đánh giá chưa nộp sẽ bị mất. Bạn có chắc chắn muốn thoát không?
+                        </Text>
+
+                        <Flex direction="column" gap={3}>
+                            <Button 
+                                bg="linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)"
+                                color="white"
+                                onClick={() => setShowExitConfirm(false)} 
+                                borderRadius="xl"
+                                fontWeight="bold"
+                                size="lg"
+                            >
+                                Tiếp tục học
+                            </Button>
+                            <Button 
+                                variant="ghost" 
+                                color="red.500" 
+                                onClick={confirmExit} 
+                                borderRadius="xl"
+                                size="sm"
+                            >
+                                Đồng ý thoát
+                            </Button>
+                        </Flex>
+                    </Box>
+                </Flex>
+            )}
             {/* ── Completion Popup ─────────────────────────────────────────── */}
             {sessionComplete && (
                 <Flex
@@ -220,7 +302,7 @@ const StudyPage = () => {
                         <IconButton
                             variant="ghost"
                             size="sm"
-                            onClick={() => navigate(`/sets/${setId}`)}
+                            onClick={handleBackClick}
                             _hover={{ bg: "bg.subtle" }}
                         >
                             <FiArrowLeft size={18} />
