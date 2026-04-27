@@ -28,10 +28,12 @@ const CommunityChat = () => {
     useEffect(() => {
         const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
         const token = localStorage.getItem("token");
-        
-        socketRef.current = io(API_URL, { 
+
+        socketRef.current = io(API_URL, {
+            path: "/socket.io",
             auth: { token },
-            withCredentials: true 
+            withCredentials: true,
+            transports: ["websocket"]
         });
 
         socketRef.current.on("chat_history", (history) => {
@@ -139,84 +141,84 @@ const CommunityChat = () => {
                             </Flex>
                         )}
                         {messages.map((msg, idx) => {
-                        const isMe = user && msg.userId && (
-                            (user._id && msg.userId === user._id) || 
-                            (user.id && msg.userId === user.id)
-                        );
-                        return (
-                            <HStack key={idx} align="flex-start" gap={2} flexDirection={isMe ? "row-reverse" : "row"} role="group">
-                                <Box 
-                                    w="28px" h="28px" borderRadius="full" overflow="hidden" flexShrink={0}
-                                    bg="gray.100" _dark={{ bg: "gray.800" }}
-                                    borderWidth={msg.isAdmin ? "2px" : "1px"} borderColor={msg.isAdmin ? "red.400" : "border.subtle"}
-                                >
-                                    <img src={msg.picture} alt={msg.sender} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                                </Box>
-                                <Box maxW="80%">
-                                    {!isMe && (
-                                        <HStack mb={0.5} ml={1} gap={1} align="center">
-                                            <Text fontSize="10px" fontWeight="bold" color={msg.isAdmin ? "red.500" : "blue.500"}>
-                                                {msg.sender}
-                                            </Text>
-                                            {msg.isAdmin && (
-                                                <Box bg="red.500" color="white" fontSize="8px" px={1} py={0.5} borderRadius="sm" fontWeight="bold">
-                                                    ADMIN
-                                                </Box>
-                                            )}
-                                        </HStack>
-                                    )}
-                                    {isMe && (
-                                        <HStack mb={0.5} mr={1} justify="flex-end" gap={1} align="center">
-                                            {msg.isAdmin && (
-                                                <Box bg="red.500" color="white" fontSize="8px" px={1} py={0.5} borderRadius="sm" fontWeight="bold">
-                                                    ADMIN
-                                                </Box>
-                                            )}
-                                            <Text fontSize="10px" fontWeight="bold" color="fg.muted">
-                                                Bạn
-                                            </Text>
-                                        </HStack>
-                                    )}
-                                    <Box 
-                                        bg={isMe ? "blue.500" : "bg.subtle"} 
-                                        color={isMe ? "white" : "fg"}
-                                        p={2} px={3} 
-                                        borderRadius="xl" 
-                                        borderTopLeftRadius={!isMe ? "0" : "xl"}
-                                        borderTopRightRadius={isMe ? "0" : "xl"}
+                            const isMe = user && msg.userId && (
+                                (user._id && msg.userId === user._id) ||
+                                (user.id && msg.userId === user.id)
+                            );
+                            return (
+                                <HStack key={idx} align="flex-start" gap={2} flexDirection={isMe ? "row-reverse" : "row"} role="group">
+                                    <Box
+                                        w="28px" h="28px" borderRadius="full" overflow="hidden" flexShrink={0}
+                                        bg="gray.100" _dark={{ bg: "gray.800" }}
+                                        borderWidth={msg.isAdmin ? "2px" : "1px"} borderColor={msg.isAdmin ? "red.400" : "border.subtle"}
                                     >
-                                        {msg.replyTo && (
-                                            <Box 
-                                                bg="blackAlpha.200" 
-                                                _dark={{ bg: "whiteAlpha.200" }}
-                                                p={1.5} borderRadius="md" mb={1}
-                                                borderLeft="2px solid" borderColor="whiteAlpha.500"
-                                                fontSize="10px" opacity={0.9}
-                                            >
-                                                <Text fontWeight="bold">{msg.replyTo.sender}</Text>
-                                                <Text noOfLines={1}>{msg.replyTo.text}</Text>
-                                            </Box>
-                                        )}
-                                        <Text fontSize="sm">
-                                            {msg.text}
-                                        </Text>
+                                        <img src={msg.picture} alt={msg.sender} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                                     </Box>
-                                    <Flex justify={isMe ? "flex-end" : "flex-start"} align="center" mt={1} gap={2} ml={isMe ? 0 : 1} mr={isMe ? 1 : 0}>
-                                        <Text fontSize="9px" color="fg.muted">
-                                            {formatTime(msg.timestamp)}
-                                        </Text>
-                                        <IconButton 
-                                            size="xs" variant="ghost" aria-label="Reply" 
-                                            color="gray.400" _hover={{ color: "blue.500", bg: "blue.50" }}
-                                            onClick={() => setReplyingTo(msg)}
+                                    <Box maxW="80%">
+                                        {!isMe && (
+                                            <HStack mb={0.5} ml={1} gap={1} align="center">
+                                                <Text fontSize="10px" fontWeight="bold" color={msg.isAdmin ? "red.500" : "blue.500"}>
+                                                    {msg.sender}
+                                                </Text>
+                                                {msg.isAdmin && (
+                                                    <Box bg="red.500" color="white" fontSize="8px" px={1} py={0.5} borderRadius="sm" fontWeight="bold">
+                                                        ADMIN
+                                                    </Box>
+                                                )}
+                                            </HStack>
+                                        )}
+                                        {isMe && (
+                                            <HStack mb={0.5} mr={1} justify="flex-end" gap={1} align="center">
+                                                {msg.isAdmin && (
+                                                    <Box bg="red.500" color="white" fontSize="8px" px={1} py={0.5} borderRadius="sm" fontWeight="bold">
+                                                        ADMIN
+                                                    </Box>
+                                                )}
+                                                <Text fontSize="10px" fontWeight="bold" color="fg.muted">
+                                                    Bạn
+                                                </Text>
+                                            </HStack>
+                                        )}
+                                        <Box
+                                            bg={isMe ? "blue.500" : "bg.subtle"}
+                                            color={isMe ? "white" : "fg"}
+                                            p={2} px={3}
+                                            borderRadius="xl"
+                                            borderTopLeftRadius={!isMe ? "0" : "xl"}
+                                            borderTopRightRadius={isMe ? "0" : "xl"}
                                         >
-                                            <FiCornerUpLeft size={12} />
-                                        </IconButton>
-                                    </Flex>
-                                </Box>
-                            </HStack>
-                        );
-                    })}
+                                            {msg.replyTo && (
+                                                <Box
+                                                    bg="blackAlpha.200"
+                                                    _dark={{ bg: "whiteAlpha.200" }}
+                                                    p={1.5} borderRadius="md" mb={1}
+                                                    borderLeft="2px solid" borderColor="whiteAlpha.500"
+                                                    fontSize="10px" opacity={0.9}
+                                                >
+                                                    <Text fontWeight="bold">{msg.replyTo.sender}</Text>
+                                                    <Text noOfLines={1}>{msg.replyTo.text}</Text>
+                                                </Box>
+                                            )}
+                                            <Text fontSize="sm">
+                                                {msg.text}
+                                            </Text>
+                                        </Box>
+                                        <Flex justify={isMe ? "flex-end" : "flex-start"} align="center" mt={1} gap={2} ml={isMe ? 0 : 1} mr={isMe ? 1 : 0}>
+                                            <Text fontSize="9px" color="fg.muted">
+                                                {formatTime(msg.timestamp)}
+                                            </Text>
+                                            <IconButton
+                                                size="xs" variant="ghost" aria-label="Reply"
+                                                color="gray.400" _hover={{ color: "blue.500", bg: "blue.50" }}
+                                                onClick={() => setReplyingTo(msg)}
+                                            >
+                                                <FiCornerUpLeft size={12} />
+                                            </IconButton>
+                                        </Flex>
+                                    </Box>
+                                </HStack>
+                            );
+                        })}
                     </>
                 )}
             </VStack>
