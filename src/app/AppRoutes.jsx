@@ -6,6 +6,8 @@ import SetsPage from "../features/vocabulary/pages/SetsPage.jsx";
 import VocabularyPage from "../features/vocabulary/pages/VocabularyPage";
 import StudyPage from "../features/study/pages/StudyPage.jsx";
 import DictationPage from "../features/dictation/pages/DictationPage.jsx";
+import GameLobbyPage from "../features/game/pages/GameLobbyPage.jsx";
+import GamePlayPage from "../features/game/pages/GamePlayPage.jsx";
 import SettingsPage from "../features/settings/pages/SettingsPage.jsx";
 import PrivateRoute from "../shared/components/PrivateRoute.jsx";
 
@@ -22,6 +24,8 @@ export default function AppRoutes() {
             <Route path="/sets/:setId" element={<PrivateRoute><VocabularyPage /></PrivateRoute>} />
             <Route path="/study/:setId" element={<PrivateRoute><StudyPage /></PrivateRoute>} />
             <Route path="/dictation" element={<PrivateRoute><DictationPage /></PrivateRoute>} />
+            <Route path="/game" element={<PrivateRoute><GameLobbyPage /></PrivateRoute>} />
+            <Route path="/game/:roomId" element={<PrivateRoute><GamePlayPage /></PrivateRoute>} />
             <Route path="/settings" element={<PrivateRoute><SettingsPage /></PrivateRoute>} />
         </Routes>
     );
