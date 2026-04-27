@@ -15,60 +15,44 @@ const formatTime = (isoString) => {
     });
 };
 
+import { useSocketStore } from "../../../stores/useSocketStore";
+
 const CommunityChat = () => {
     const { user } = useAuthStore();
+    const { socket, connected } = useSocketStore();
     const [messages, setMessages] = useState([]);
     const [replyingTo, setReplyingTo] = useState(null);
     const [hasMore, setHasMore] = useState(true);
     const [isLoadingMore, setIsLoadingMore] = useState(false);
-    const socketRef = useRef();
     const scrollRef = useRef();
     const previousScrollHeight = useRef(0);
 
     useEffect(() => {
-        const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
-        const token = localStorage.getItem("token");
+        if (!socket) return;
 
-        // Strip /api suffix to avoid "Invalid namespace" error
-        const socketURL = API_URL.replace(/\/api\/?$/, "");
+        // Request initial history if not already loaded or just to be sure
+        socket.emit("load_more_history", 0);
 
-        socketRef.current = io(socketURL, {
-            path: "/socket.io",
-            auth: { token },
-            withCredentials: true,
-            transports: ["websocket"]
-        });
-
-        socketRef.current.on("connect", () => {
-            console.log("✅ Connected:", socketRef.current.id);
-        });
-
-        socketRef.current.on("connect_error", (err) => {
-            console.error("❌ Connect error:", err.message);
-        });
-
-        socketRef.current.on("disconnect", (reason) => {
-            console.warn("⚠️ Disconnected:", reason);
-        });
-
-        socketRef.current.on("chat_history", (history) => {
+        socket.on("chat_history", (history) => {
             setMessages(history);
             if (history.length < 15) setHasMore(false);
         });
 
-        socketRef.current.on("older_messages", (older) => {
+        socket.on("older_messages", (older) => {
             if (older.length < 15) setHasMore(false);
             setMessages((prev) => [...older, ...prev]);
         });
 
-        socketRef.current.on("receive_message", (message) => {
+        socket.on("receive_message", (message) => {
             setMessages((prev) => [...prev, message]);
         });
 
         return () => {
-            socketRef.current.disconnect();
+            socket.off("chat_history");
+            socket.off("older_messages");
+            socket.off("receive_message");
         };
-    }, []);
+    }, [socket]);
 
     useLayoutEffect(() => {
         if (scrollRef.current) {
@@ -88,7 +72,7 @@ const CommunityChat = () => {
         if (e.target.scrollTop === 0 && hasMore && !isLoadingMore) {
             setIsLoadingMore(true);
             previousScrollHeight.current = scrollRef.current.scrollHeight;
-            socketRef.current.emit("load_more_history", messages.length);
+            socket.emit("load_more_history", messages.length);
         }
     };
 
@@ -104,7 +88,7 @@ const CommunityChat = () => {
             replyTo: replyingTo ? { sender: replyingTo.sender, text: replyingTo.text } : null,
         };
 
-        socketRef.current.emit("send_message", messageData);
+        socket.emit("send_message", messageData);
         setReplyingTo(null);
     };
 
