@@ -29,11 +29,26 @@ const CommunityChat = () => {
         const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
         const token = localStorage.getItem("token");
 
-        socketRef.current = io(API_URL, {
+        // Strip /api suffix to avoid "Invalid namespace" error
+        const socketURL = API_URL.replace(/\/api\/?$/, "");
+
+        socketRef.current = io(socketURL, {
             path: "/socket.io",
             auth: { token },
             withCredentials: true,
             transports: ["websocket"]
+        });
+
+        socketRef.current.on("connect", () => {
+            console.log("✅ Connected:", socketRef.current.id);
+        });
+
+        socketRef.current.on("connect_error", (err) => {
+            console.error("❌ Connect error:", err.message);
+        });
+
+        socketRef.current.on("disconnect", (reason) => {
+            console.warn("⚠️ Disconnected:", reason);
         });
 
         socketRef.current.on("chat_history", (history) => {
