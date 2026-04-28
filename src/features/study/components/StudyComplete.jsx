@@ -151,7 +151,7 @@ const StudyComplete = ({ submitResult, setId, setTitle, onRestart }) => {
                             variant="ghost"
                             borderRadius="xl"
                             color="fg.muted"
-                            onClick={() => navigate(`/sets/${setId}`)}
+                            onClick={() => navigate(setId === "global" ? "/sets" : `/sets/${setId}`)}
                         >
                             Quản lý bộ từ
                         </Button>

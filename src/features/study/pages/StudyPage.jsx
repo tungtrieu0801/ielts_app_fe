@@ -188,7 +188,7 @@ const StudyPage = () => {
                             </Button>
                             <Button
                                 variant="ghost" size="sm" color="fg.muted"
-                                onClick={() => navigate(`/sets/${setId}`)}
+                                onClick={() => navigate(setId === "global" ? "/sets" : `/sets/${setId}`)}
                             >
                                 Quản lý bộ từ
                             </Button>
@@ -273,7 +273,11 @@ const StudyPage = () => {
                         setTitle={currentSet?.title}
                         onRestart={() => {
                             resetSession();
-                            startSession(setId);
+                            if (setId === "global") {
+                                startGlobalSession();
+                            } else {
+                                startSession(setId);
+                            }
                         }}
                     />
                 </Flex>
