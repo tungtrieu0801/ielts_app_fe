@@ -65,7 +65,7 @@ function useYouTubePlayer(divRef, videoId) {
 }
 
 // ── Scoring ───────────────────────────────────────────────────────────────
-const norm = (s) => s.toLowerCase().trim().replace(/[.,;:!?'"’\-]/g, "").replace(/\s+/g, " ");
+const norm = (s) => s.toLowerCase().trim().replace(/[.,;:!?'"‘’“”\-\(\)\[\]]/g, "").replace(/\s+/g, " ");
 
 function getHintParts(answer, correct) {
     const ansWords = answer.trim().split(/\s+/).filter(Boolean);
