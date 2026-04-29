@@ -563,7 +563,7 @@ const SetsPage = () => {
 
     return (
         <BaseLayout>
-            <Box maxW="1200px" mx="auto">
+            <Box maxW="1400px" mx="auto">
                 {/* Header */}
                 <Flex
                     direction={{ base: "column", sm: "row" }}

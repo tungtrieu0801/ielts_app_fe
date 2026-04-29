@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import {
-    Box, Flex, Text, Button, Input, Image, HStack, VStack, 
+    Box, Flex, Text, Button, Input, Image, HStack, VStack,
     Icon, Badge, Portal, Spinner, IconButton,
 } from "@chakra-ui/react";
 import { FiArrowLeft, FiSend, FiZap, FiCheckCircle, FiXCircle, FiTarget } from "react-icons/fi";
@@ -15,7 +15,7 @@ const GamePlayPage = () => {
     const navigate = useNavigate();
     const { user } = useAuthStore();
     const { socket } = useSocketStore();
-    
+
     // Custom CSS for Game Effects
     const gameStyles = `
         @keyframes cardFlyPlayer {
@@ -43,9 +43,9 @@ const GamePlayPage = () => {
             animation: shake 0.4s ease-in-out;
         }
     `;
-    const { 
+    const {
         currentRoom, players, gameState, currentTurn, scores, phase, activeWord,
-        lastResult, submitAnswer, pickCard, leaveRoom, initListeners, clearListeners 
+        lastResult, submitAnswer, pickCard, leaveRoom, initListeners, clearListeners
     } = useGameStore();
 
     const [answer, setAnswer] = useState("");
@@ -59,7 +59,7 @@ const GamePlayPage = () => {
 
     const me = players.find(p => p.socketId === socket?.id);
     const opponent = players.find(p => p.socketId !== socket?.id);
-    
+
     // Who is currently the challenger (picking the card)
     const isMyTurnToPick = players[currentTurn]?.socketId === socket?.id && phase === 'picking';
     // Who is currently the answerer
@@ -88,7 +88,7 @@ const GamePlayPage = () => {
     return (
         <BaseLayout>
             <style>{gameStyles}</style>
-            <Box h="full" maxW="1200px" mx="auto" position="relative">
+            <Box h="full" maxW="1400px" mx="auto" position="relative">
                 {/* Header */}
                 <Flex justify="space-between" align="center" mb={10}>
                     <Button variant="ghost" gap={2} onClick={handleBack} color="fg.muted">
@@ -110,7 +110,7 @@ const GamePlayPage = () => {
 
                 {/* Battle Area */}
                 <Flex direction="column" gap={12} align="center" justify="center" py={4}>
-                    
+
                     {/* Opponent Info */}
                     <VStack gap={4}>
                         <Flex align="center" gap={5} p={4} bg="bg.panel" borderRadius="3xl" shadow="xl" borderWidth="2px" borderColor={!isMyTurnToPick && phase === 'picking' ? "orange.400" : "border.muted"} transition="all 0.3s">
@@ -132,13 +132,13 @@ const GamePlayPage = () => {
                                 </Flex>
                             </Box>
                         </Flex>
-                        
+
                         {/* Opponent Cards (Back side) */}
                         <HStack gap={2}>
                             {opponent?.cards?.map((_, i) => (
-                                <Box 
-                                    key={i} w="45px" h="65px" 
-                                    bgGradient="linear(to-br, blue.600, blue.800)" 
+                                <Box
+                                    key={i} w="45px" h="65px"
+                                    bgGradient="linear(to-br, blue.600, blue.800)"
                                     borderRadius="md" shadow="lg" border="2px solid" borderColor="whiteAlpha.400"
                                     position="relative"
                                     _after={{
@@ -152,17 +152,17 @@ const GamePlayPage = () => {
                     {/* VS Center / Active Card Area */}
                     <Flex direction="column" align="center" justify="center" h="220px" position="relative" w="full">
                         {phase === 'answering' && activeWord ? (
-                            <VStack 
+                            <VStack
                                 className="active-card"
-                                sx={{ 
-                                    animation: players[currentTurn]?.socketId === socket?.id 
-                                        ? "cardFlyPlayer 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275)" 
-                                        : "cardFlyOpponent 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275)" 
+                                sx={{
+                                    animation: players[currentTurn]?.socketId === socket?.id
+                                        ? "cardFlyPlayer 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275)"
+                                        : "cardFlyOpponent 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275)"
                                 }}
                             >
                                 <Text fontSize="xs" fontWeight="black" color="orange.500" letterSpacing="widest" mb={1}>ACTIVE CHALLENGE</Text>
-                                <Box 
-                                    p={8} 
+                                <Box
+                                    p={8}
                                     bgGradient="linear(to-br, white, gray.50)"
                                     _dark={{ bgGradient: "linear(to-br, gray.700, gray.800)" }}
                                     borderRadius="3xl" shadow="dark-lg" border="5px solid" borderColor="orange.400"
@@ -182,10 +182,10 @@ const GamePlayPage = () => {
                                 <Text fontSize="9xl" fontWeight="1000">VS</Text>
                             </Box>
                         )}
-                        
+
                         {/* Feedback Overlay */}
                         {lastResult && (
-                            <Box 
+                            <Box
                                 position="absolute" top="50%" left="50%" transform="translate(-50%, -50%)"
                                 zIndex={100} textAlign="center" animation="fadeIn 0.4s ease-out"
                             >
@@ -219,15 +219,15 @@ const GamePlayPage = () => {
                     <VStack gap={8} w="full">
                         {/* Answer Input Area */}
                         {isMyTurnToAnswer && (
-                            <Box 
+                            <Box
                                 w="full" maxW="450px" p={1} bgGradient="linear(to-r, blue.400, purple.500)" borderRadius="3xl" shadow="2xl"
                                 animation="slideUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)"
                             >
                                 <VStack gap={4} p={6} bg="bg.panel" borderRadius="2.5xl">
                                     <Text fontSize="md" fontWeight="800" color="blue.600" textTransform="uppercase">Hóa giải thử thách này:</Text>
                                     <HStack w="full">
-                                        <Input 
-                                            placeholder="Nghĩa tiếng Việt..." 
+                                        <Input
+                                            placeholder="Nghĩa tiếng Việt..."
                                             bg="bg.subtle"
                                             size="lg"
                                             h="60px"
@@ -241,8 +241,8 @@ const GamePlayPage = () => {
                                             border="none"
                                             _focus={{ bg: "bg.panel", ring: "2px", ringColor: "blue.400" }}
                                         />
-                                        <IconButton 
-                                            colorPalette="blue" 
+                                        <IconButton
+                                            colorPalette="blue"
                                             size="lg"
                                             h="60px"
                                             w="60px"
@@ -266,7 +266,7 @@ const GamePlayPage = () => {
                             )}
                             <HStack gap={5} py={2} px={6} bg="blackAlpha.50" _dark={{ bg: "whiteAlpha.50" }} borderRadius="3xl">
                                 {me?.cards?.map((card) => (
-                                    <Box 
+                                    <Box
                                         key={card._id}
                                         w="130px" h="180px"
                                         bgGradient="linear(to-br, white, gray.50)"
@@ -279,9 +279,9 @@ const GamePlayPage = () => {
                                         cursor={isMyTurnToPick ? "pointer" : "default"}
                                         transition="all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)"
                                         position="relative"
-                                        _hover={isMyTurnToPick ? { 
-                                            transform: "translateY(-30px) rotate(2deg)", 
-                                            shadow: "dark-lg", 
+                                        _hover={isMyTurnToPick ? {
+                                            transform: "translateY(-30px) rotate(2deg)",
+                                            shadow: "dark-lg",
                                             borderColor: "orange.400",
                                             bg: "orange.50"
                                         } : {}}
@@ -322,7 +322,7 @@ const GamePlayPage = () => {
                                     <Text fontSize="3xl" fontWeight="900">Trận đấu kết thúc!</Text>
                                     <Text color="fg.muted">Kết quả chung cuộc</Text>
                                 </Box>
-                                
+
                                 <HStack gap={12}>
                                     <VStack>
                                         <Image src={me?.picture} boxSize="60px" borderRadius="full" />

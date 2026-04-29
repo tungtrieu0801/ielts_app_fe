@@ -124,7 +124,7 @@ const Flashcard = ({ word, onAnswer, existingAnswer }) => {
                 h={{ base: "340px", md: "420px" }}
                 cursor="pointer"
                 onClick={handleCardClick}
-                style={{ perspective: "1200px" }}
+                style={{ perspective: "1400px" }}
                 mb={6}
                 userSelect="none"
             >

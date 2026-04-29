@@ -99,7 +99,7 @@ const HomePage = () => {
 
     return (
         <BaseLayout>
-            <Box maxW="1200px" mx="auto" px={{ base: 4, md: 8 }} py={{ base: 4, md: 8 }}>
+            <Box maxW="1400px" mx="auto" px={{ base: 4, md: 8 }} py={{ base: 4, md: 8 }}>
                 {/* Welcome */}
                 <Box mb={6}>
                     <Text fontSize={{ base: "2xl", md: "3xl" }} fontWeight="extrabold" mb={1}>
@@ -113,26 +113,26 @@ const HomePage = () => {
                     <Box flex="1" w="full" minW="0" display="flex" flexDirection="column" gap={6}>
 
 
-                {/* Stats Grid */}
-                <SimpleGrid columns={{ base: 2, md: 4 }} gap={4}>
-                    <StatCard
-                        icon={FiZap}
-                        label="Có thể học ngay"
-                        value={stats?.dueCards ?? "—"}
-                        color="blue"
-                        highlight={stats?.dueCards > 0}
-                        onClick={() => navigate("/study/global")}
-                    />
-                    <StatCard icon={FiLayers} label="Tổng từ vựng" value={stats?.totalWords} color="purple" />
-                    <StatCard icon={FiBook} label="Đã học hôm nay" value={stats?.reviewedToday} color="green" />
-                    <StatCard icon={FiAward} label="Từ đã thuộc (Lv5)" value={stats?.masteredCards} color="orange" />
-                </SimpleGrid>
+                        {/* Stats Grid */}
+                        <SimpleGrid columns={{ base: 2, md: 4 }} gap={4}>
+                            <StatCard
+                                icon={FiZap}
+                                label="Có thể học ngay"
+                                value={stats?.dueCards ?? "—"}
+                                color="blue"
+                                highlight={stats?.dueCards > 0}
+                                onClick={() => navigate("/study/global")}
+                            />
+                            <StatCard icon={FiLayers} label="Tổng từ vựng" value={stats?.totalWords} color="purple" />
+                            <StatCard icon={FiBook} label="Đã học hôm nay" value={stats?.reviewedToday} color="green" />
+                            <StatCard icon={FiAward} label="Từ đã thuộc (Lv5)" value={stats?.masteredCards} color="orange" />
+                        </SimpleGrid>
 
-                {/* Study Streak Heatmap — full width */}
-                <StudyStreakHeatmap />
+                        {/* Study Streak Heatmap — full width */}
+                        <StudyStreakHeatmap />
 
-                {/* SRS Schedule Widget */}
-                <SRSScheduleWidget />
+                        {/* SRS Schedule Widget */}
+                        <SRSScheduleWidget />
 
                         {/* Recent Sets */}
                         <Box>
