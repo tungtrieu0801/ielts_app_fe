@@ -1,7 +1,7 @@
 import React, { useEffect } from "react";
 import { Box, Flex, Text, SimpleGrid, Spinner, Button, Badge, VStack } from "@chakra-ui/react";
 import { useNavigate } from "react-router-dom";
-import { FiBook, FiClock, FiAward, FiLayers, FiPlay, FiZap } from "react-icons/fi";
+import { FiBook, FiClock, FiAward, FiLayers, FiPlay, FiZap, FiActivity } from "react-icons/fi";
 import BaseLayout from "../../../layouts/BaseLayout.jsx";
 import { useStudyStore } from "../../../stores/useStudyStore.js";
 import { useVocabularyStore } from "../../../stores/useVocabularyStore.js";
@@ -114,19 +114,28 @@ const HomePage = () => {
 
 
                         {/* Stats Grid */}
-                        <SimpleGrid columns={{ base: 2, md: 4 }} gap={4}>
-                            <StatCard
-                                icon={FiZap}
-                                label="Có thể học ngay"
-                                value={stats?.dueCards ?? "—"}
-                                color="blue"
-                                highlight={stats?.dueCards > 0}
-                                onClick={() => navigate("/study/global")}
-                            />
-                            <StatCard icon={FiLayers} label="Tổng từ vựng" value={stats?.totalWords} color="purple" />
-                            <StatCard icon={FiBook} label="Đã học hôm nay" value={stats?.reviewedToday} color="green" />
-                            <StatCard icon={FiAward} label="Từ đã thuộc (Lv5)" value={stats?.masteredCards} color="orange" />
-                        </SimpleGrid>
+                        <VStack gap={4} align="stretch">
+                            <SimpleGrid columns={{ base: 2, md: 4 }} gap={4}>
+                                <StatCard
+                                    icon={FiZap}
+                                    label="Có thể học ngay"
+                                    value={stats?.dueCards ?? "—"}
+                                    color="blue"
+                                    highlight={stats?.dueCards > 0}
+                                    onClick={() => navigate("/study/global")}
+                                />
+                                <StatCard icon={FiLayers} label="Tổng từ vựng" value={stats?.totalWords} color="purple" />
+                                <StatCard icon={FiBook} label="Đã học hôm nay" value={stats?.reviewedToday} color="green" />
+                                <StatCard icon={FiAward} label="Từ đã thuộc (Lv5)" value={stats?.masteredCards} color="orange" />
+                            </SimpleGrid>
+
+                            <SimpleGrid columns={{ base: 2, md: 4 }} gap={4}>
+                                <StatCard icon={FiActivity} label="Cấp độ 1" value={stats?.level1Count ?? 0} color="red" />
+                                <StatCard icon={FiActivity} label="Cấp độ 2" value={stats?.level2Count ?? 0} color="orange" />
+                                <StatCard icon={FiActivity} label="Cấp độ 3" value={stats?.level3Count ?? 0} color="cyan" />
+                                <StatCard icon={FiActivity} label="Cấp độ 4" value={stats?.level4Count ?? 0} color="teal" />
+                            </SimpleGrid>
+                        </VStack>
 
                         {/* Study Streak Heatmap — full width */}
                         <StudyStreakHeatmap />

@@ -8,6 +8,48 @@ import { useStudyStore } from "../../stores/useStudyStore.js";
 import { DrawerRoot, DrawerTrigger, DrawerContent, DrawerBody, DrawerCloseTrigger } from "../../components/ui/drawer.jsx";
 import Sidebar from "../../shared/components/Slidebar.jsx";
 
+const BannerMarquee = React.memo(() => {
+    const duration = 40;
+    // We use a fixed offset calculated at mount time to keep it synced
+    const offset = React.useMemo(() => -( (Date.now() / 1000) % duration ), [duration]);
+
+    return (
+        <Box flex="1" mx={10} overflow="hidden" display={{ base: "none", md: "block" }} position="relative" h="60px">
+            <style>
+                {`
+                @keyframes marquee_header_v3 {
+                    0% { transform: translateX(0); }
+                    100% { transform: translateX(-50%); }
+                }
+                `}
+            </style>
+            <Flex
+                as="div"
+                w="max-content"
+                h="100%"
+                align="center"
+                position="absolute"
+                left="0"
+                top="0"
+                animation={`marquee_header_v3 ${duration}s linear infinite`}
+                style={{ 
+                    animationDelay: `${offset}s`,
+                    willChange: 'transform'
+                }}
+            >
+                {[1, 2].map((i) => (
+                    <Flex key={i} align="center" gap={12} pr={12} h="100%">
+                        <Text fontSize="md" fontWeight="bold" color="blue.700" whiteSpace="nowrap">🔥 Practice makes perfect</Text>
+                        <Text fontSize="md" fontWeight="bold" color="green.700" whiteSpace="nowrap">🚀 Consistency is key to success</Text>
+                        <Text fontSize="md" fontWeight="bold" color="purple.700" whiteSpace="nowrap">💡 Learning never exhausts the mind</Text>
+                        <Text fontSize="md" fontWeight="bold" color="orange.700" whiteSpace="nowrap">🌟 A journey of a thousand miles begins with a single step</Text>
+                    </Flex>
+                ))}
+            </Flex>
+        </Box>
+    );
+});
+
 const Header = () => {
     const location = useLocation();
     const { streakInfo } = useStudyStore();
@@ -32,7 +74,7 @@ const Header = () => {
             flexShrink={0}
         >
             {/* Left: Mobile Menu & Page title */}
-            <Flex align="center" gap={{ base: 2, md: 0 }}>
+            <Flex align="center" gap={{ base: 2, md: 4 }}>
                 {/* Mobile Hamburger Menu */}
                 <Box display={{ base: "block", md: "none" }}>
                     <DrawerRoot placement="start" open={isMobileMenuOpen} onOpenChange={(e) => setIsMobileMenuOpen(e.open)}>
@@ -50,13 +92,21 @@ const Header = () => {
                     </DrawerRoot>
                 </Box>
 
-                <Text fontSize="lg" fontWeight="bold" color="fg" ml={{ base: 1, md: 0 }}>
+                <Text 
+                    fontSize="2xl" 
+                    fontWeight="800" 
+                    color="blue.700"
+                    ml={{ base: 1, md: 0 }}
+                >
                     {activeMenu?.name || 'Dashboard'}
                 </Text>
             </Flex>
 
+            {/* Middle: Running Banner */}
+            <BannerMarquee />
+
             {/* Right: Actions */}
-            <Flex gap={2} align="center">
+            <Flex gap={3} align="center">
                 <IconButton
                     variant="ghost" size="sm" borderRadius="lg"
                     display={{ base: "none", sm: "flex" }}
