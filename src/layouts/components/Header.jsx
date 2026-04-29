@@ -11,7 +11,7 @@ import Sidebar from "../../shared/components/Slidebar.jsx";
 const BannerMarquee = React.memo(() => {
     const duration = 40;
     // We use a fixed offset calculated at mount time to keep it synced
-    const offset = React.useMemo(() => -( (Date.now() / 1000) % duration ), [duration]);
+    const offset = React.useMemo(() => -((Date.now() / 1000) % duration), [duration]);
 
     return (
         <Box flex="1" mx={10} overflow="hidden" display={{ base: "none", md: "block" }} position="relative" h="60px">
@@ -32,7 +32,7 @@ const BannerMarquee = React.memo(() => {
                 left="0"
                 top="0"
                 animation={`marquee_header_v3 ${duration}s linear infinite`}
-                style={{ 
+                style={{
                     animationDelay: `${offset}s`,
                     willChange: 'transform'
                 }}
@@ -92,9 +92,9 @@ const Header = () => {
                     </DrawerRoot>
                 </Box>
 
-                <Text 
-                    fontSize="2xl" 
-                    fontWeight="800" 
+                <Text
+                    fontSize="2xl"
+                    fontWeight="800"
                     color="blue.700"
                     ml={{ base: 1, md: 0 }}
                 >

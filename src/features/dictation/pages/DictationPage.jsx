@@ -43,7 +43,7 @@ const DictationPage = () => {
 
     return (
         <BaseLayout>
-            <Box maxW="860px" mx="auto" transition="max-width 0.3s ease">
+            <Box maxW="1400px" mx="auto" transition="max-width 0.3s ease">
                 {phase === "exercise" && (
                     <Flex mb={5} align="center" gap={2}>
                         <Button variant="ghost" size="sm" gap={1.5} color="fg.muted" _hover={{ color: "fg" }} onClick={handleReset}>
