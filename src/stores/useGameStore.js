@@ -91,14 +91,14 @@ export const useGameStore = create((set, get) => ({
         socket?.emit("game_get_rooms");
     },
 
-    createRoom: (name, user) => {
+    createRoom: (name, user, password) => {
         const { socket } = useSocketStore.getState();
-        socket?.emit("game_create_room", { roomName: name, user });
+        socket?.emit("game_create_room", { roomName: name, user, password });
     },
 
-    joinRoom: (roomId, user) => {
+    joinRoom: (roomId, user, password) => {
         const { socket } = useSocketStore.getState();
-        socket?.emit("game_join_room", { roomId, user });
+        socket?.emit("game_join_room", { roomId, user, password });
     },
 
     pickCard: (roomId, wordId) => {
@@ -112,7 +112,8 @@ export const useGameStore = create((set, get) => ({
     },
 
     leaveRoom: (roomId) => {
+        const { socket } = useSocketStore.getState();
+        socket?.emit("game_leave_room", { roomId });
         set({ currentRoom: null, gameState: null, players: [], scores: {}, lastResult: null });
-        // Socket leave will be handled by disconnect or manual leave if we add it
     }
 }));
