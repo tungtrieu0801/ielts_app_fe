@@ -33,12 +33,13 @@ const ReadType = ({ word, onAnswer }) => {
 
     const handleNext = () => {
         const quality = correct ? (hintLevel > 0 ? "GOOD" : "EASY") : "AGAIN";
+        // Note: more hints used = worse quality could be added here
         onAnswer(word.cardId, quality);
     };
 
     const handleHint = () => {
-        if (hintLevel < 3) setHintLevel(v => v + 1);
-        if (hintLevel === 0) setShowExample(true);
+        const maxHint = word.english.length;
+        if (hintLevel < maxHint) setHintLevel(v => v + 1);
     };
 
     // Keyboard shortcuts
@@ -71,7 +72,7 @@ const ReadType = ({ word, onAnswer }) => {
     const getHintText = () => {
         if (hintLevel >= 1) {
             const letters = word.english.split("");
-            return letters.map((l, i) => (i === 0 || hintLevel >= 3 ? l : "_")).join(" ");
+            return letters.map((l, i) => (i < hintLevel ? l : "_")).join(" ");
         }
         return "Chưa có gợi ý";
     };
@@ -172,7 +173,7 @@ const ReadType = ({ word, onAnswer }) => {
                             <Button
                                 variant="ghost" size="sm" borderRadius="lg"
                                 onClick={handleHint}
-                                disabled={hintLevel >= 3}
+                                disabled={hintLevel >= word.english.length}
                                 leftIcon={<FiHelpCircle />}
                             >
                                 Gợi ý (Ctrl+Space)
