@@ -220,6 +220,14 @@ const ReadType = ({ word, onAnswer }) => {
                             )}
                         </Box>
 
+                        {word.example && (
+                            <Box bg="bg.subtle" p={4} borderRadius="xl" w="full" border="1px dashed" borderColor="border.strong">
+                                <Text fontStyle="italic" color="fg" fontSize="sm">
+                                    "{word.example}"
+                                </Text>
+                            </Box>
+                        )}
+
                         <Button
                             colorPalette="blue" size="lg" w="full" borderRadius="xl"
                             onClick={handleNext} fontWeight="800"
