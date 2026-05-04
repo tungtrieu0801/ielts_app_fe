@@ -5,9 +5,9 @@
  * Bảng mapping:
  *  Sai               → AGAIN
  *  Đúng, ≤ 4s        → EASY   (+2 level)
- *  Đúng, 4–8s        → GOOD   (+1 level)
- *  Đúng, 8–12s       → HARD   (giữ level)
- *  Đúng, > 12s       → AGAIN  (reset — nhớ quá lâu tương đương không nhớ)
+ *  Đúng, 4–10s       → GOOD   (+1 level)
+ *  Đúng, 10–13s      → HARD   (giữ level)
+ *  Đúng, > 13s       → AGAIN  (nhớ quá lâu tương đương không nhớ)
  *
  * @param {boolean} isCorrect  - Người dùng trả lời đúng hay sai
  * @param {number}  elapsedMs  - Thời gian từ lúc từ xuất hiện tới khi submit (ms)
@@ -18,8 +18,8 @@ export const calcQualityByTime = (isCorrect, elapsedMs) => {
 
     const seconds = elapsedMs / 1000;
 
-    if (seconds <= 4) return "EASY";
-    if (seconds <= 8) return "GOOD";
-    if (seconds <= 12) return "HARD";
+    if (seconds <= 4)  return "EASY";
+    if (seconds <= 10) return "GOOD";
+    if (seconds <= 13) return "HARD";
     return "AGAIN"; // đúng nhưng phải nghĩ quá lâu → học lại
 };
