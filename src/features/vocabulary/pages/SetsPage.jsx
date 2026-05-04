@@ -216,7 +216,7 @@ const WordSetModal = ({ onClose, onSave, initialData = null }) => {
 };
 
 // ── My Set Card ───────────────────────────────────────────────────────────────
-const SetCard = ({ set, onDelete, onTogglePublic }) => {
+const SetCard = ({ set, onDelete, onTogglePublic, onEdit }) => {
     const navigate = useNavigate();
     const [toggling, setToggling] = useState(false);
     const c = set.color || "blue";

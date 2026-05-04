@@ -23,3 +23,6 @@ export const getSchedule = () =>
 
 export const getRanking = () =>
     axiosClient.get("/study/ranking").then((r) => r.data.data);
+
+export const getSetStats = (setId) =>
+    axiosClient.get(`/study/${setId}/stats`).then((r) => r.data.data);

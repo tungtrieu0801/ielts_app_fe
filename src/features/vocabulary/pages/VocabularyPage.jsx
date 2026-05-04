@@ -1,9 +1,10 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { Box, Flex, Text, Button, Badge, Spinner, Input, Select, SimpleGrid, Textarea } from "@chakra-ui/react";
 import { useParams, useNavigate } from "react-router-dom";
-import { FiDownload, FiArrowLeft, FiPlay, FiUpload, FiSearch, FiPlus } from "react-icons/fi";
+import { FiDownload, FiArrowLeft, FiPlay, FiUpload, FiSearch, FiPlus, FiActivity } from "react-icons/fi";
 import BaseLayout from "../../../layouts/BaseLayout.jsx";
 import { useVocabularyStore } from "../../../stores/useVocabularyStore.js";
+import { getSetStats } from "../../../services/studyApi.js";
 import FileUpload from "../components/FileUpload.jsx";
 import ImportPreviewTable from "../components/ImportPreviewTable.jsx";
 import WordTable from "../components/WordTable.jsx";
@@ -158,6 +159,7 @@ const VocabularyPage = () => {
     const [saveResult, setSaveResult] = useState(null);
     const [search, setSearch] = useState("");
     const [filterSet, setFilterSet] = useState(setId || "");
+    const [setStats, setSetStats] = useState(null);
 
     const currentSet = wordSets.find((s) => s._id === (filterSet || setId));
 
@@ -165,9 +167,12 @@ const VocabularyPage = () => {
         if (!wordSets.length) fetchWordSets();
     }, []);
 
-    // Khi filter set thay đổi → fetch từ của set đó
+    // Khi filter set thay đổi → fetch từ của set đó + stats
     useEffect(() => {
-        if (filterSet) fetchWords(filterSet);
+        if (filterSet) {
+            fetchWords(filterSet);
+            getSetStats(filterSet).then(setSetStats).catch(() => setSetStats(null));
+        }
     }, [filterSet]);
 
     // Đồng bộ khi param thay đổi
@@ -267,6 +272,67 @@ const VocabularyPage = () => {
                         </Button>
                     </Flex>
                 </Flex>
+
+                {/* SRS Level Stats */}
+                {setStats && setStats.total > 0 && (
+                    <Box
+                        bg="bg.panel" borderRadius="2xl" borderWidth="1px" borderColor="border.muted"
+                        p={5} mb={6}
+                    >
+                        <Flex align="center" gap={2} mb={4}>
+                            <FiActivity size={16} />
+                            <Text fontWeight="800" fontSize="md">Phân bổ cấp độ SRS</Text>
+                        </Flex>
+                        <SimpleGrid columns={{ base: 3, sm: 4, md: 7 }} gap={3}>
+                            {[
+                                { label: "Từ mới", value: setStats.newCount, color: "cyan" },
+                                { label: "Lv 0", value: setStats.level0, color: "gray" },
+                                { label: "Lv 1", value: setStats.level1, color: "red" },
+                                { label: "Lv 2", value: setStats.level2, color: "orange" },
+                                { label: "Lv 3", value: setStats.level3, color: "yellow" },
+                                { label: "Lv 4", value: setStats.level4, color: "blue" },
+                                { label: "Lv 5 ✅", value: setStats.level5, color: "green" },
+                            ].map((item) => (
+                                <Box
+                                    key={item.label}
+                                    bg={`${item.color}.50`}
+                                    _dark={{ bg: `${item.color}.900/20` }}
+                                    borderRadius="xl"
+                                    p={3}
+                                    textAlign="center"
+                                    borderWidth="1px"
+                                    borderColor={`${item.color}.200`}
+                                    _dark_borderColor={`${item.color}.700`}
+                                >
+                                    <Text fontSize="2xl" fontWeight="900" color={`${item.color}.500`}>
+                                        {item.value ?? 0}
+                                    </Text>
+                                    <Text fontSize="xs" fontWeight="700" color="fg.muted">{item.label}</Text>
+                                </Box>
+                            ))}
+                        </SimpleGrid>
+                        {/* Progress bar */}
+                        {setStats.total > 0 && (
+                            <Box mt={4}>
+                                <Flex justify="space-between" mb={1}>
+                                    <Text fontSize="xs" color="fg.muted">Tiến độ thành thạo</Text>
+                                    <Text fontSize="xs" fontWeight="bold" color="green.500">
+                                        {Math.round((setStats.level5 / setStats.total) * 100)}%
+                                    </Text>
+                                </Flex>
+                                <Box h="8px" bg="bg.subtle" borderRadius="full" overflow="hidden">
+                                    <Box
+                                        h="full"
+                                        w={`${Math.round((setStats.level5 / setStats.total) * 100)}%`}
+                                        bg="linear-gradient(90deg, #22c55e, #10b981)"
+                                        borderRadius="full"
+                                        transition="width 0.5s ease"
+                                    />
+                                </Box>
+                            </Box>
+                        )}
+                    </Box>
+                )}
 
                 {/* ── Toolbar: Filter + Search ── */}
                 <Flex gap={3} mb={5} flexWrap="wrap">

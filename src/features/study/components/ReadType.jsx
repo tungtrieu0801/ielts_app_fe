@@ -135,6 +135,8 @@ const ReadType = ({ word, onAnswer }) => {
 
     // Reset when word changes
     useEffect(() => {
+        // Cancel any lingering speech from previous word
+        if (window.speechSynthesis) window.speechSynthesis.cancel();
         setInput("");
         setSubmitted(false);
         setCorrect(false);

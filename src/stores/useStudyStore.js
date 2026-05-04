@@ -127,7 +127,9 @@ export const useStudyStore = create(
                 }
             },
 
-            resetSession: () =>
+            resetSession: () => {
+                // Cancel any pending speech to avoid old word playing over new session
+                if (window.speechSynthesis) window.speechSynthesis.cancel();
                 set({
                     queue: [],
                     currentIndex: 0,
@@ -135,7 +137,8 @@ export const useStudyStore = create(
                     submitResult: null,
                     answers: {},
                     currentSetId: null,
-                }),
+                });
+            },
 
             // ── Stats/streak fetchers ─────────────────────────────────────────
             fetchStreakInfo: async () => {

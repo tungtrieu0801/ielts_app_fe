@@ -41,6 +41,7 @@ const FillInBlank = ({ word, onAnswer, existingAnswer }) => {
 
     // Reset when card changes
     React.useEffect(() => {
+        if (window.speechSynthesis) window.speechSynthesis.cancel();
         setInput("");
         setSubmitted(false);
         setCorrect(false);
