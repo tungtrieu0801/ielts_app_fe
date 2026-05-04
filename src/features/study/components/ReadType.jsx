@@ -40,20 +40,36 @@ const playWrongSound = () => {
 const Fireworks = ({ active }) => {
     const canvasRef = useRef(null);
     const animRef = useRef(null);
+    const burstTimers = useRef([]);
 
     useEffect(() => {
-        if (!active) return;
         const canvas = canvasRef.current;
         if (!canvas) return;
         const ctx = canvas.getContext("2d");
+
+        // Always clear canvas when active changes
+        if (!active) {
+            if (animRef.current) {
+                cancelAnimationFrame(animRef.current);
+                animRef.current = null;
+            }
+            burstTimers.current.forEach(clearTimeout);
+            burstTimers.current = [];
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            return;
+        }
+
         canvas.width = canvas.offsetWidth;
         canvas.height = canvas.offsetHeight;
 
         const particles = [];
         const colors = ["#f59e0b", "#6366f1", "#ec4899", "#10b981", "#f97316", "#3b82f6", "#a855f7"];
 
+        let cancelled = false;
+
         // Spawn 3 bursts
         const burst = (x, y) => {
+            if (cancelled) return;
             for (let i = 0; i < 60; i++) {
                 const angle = (Math.PI * 2 * i) / 60 + Math.random() * 0.3;
                 const speed = 2 + Math.random() * 5;
@@ -70,12 +86,13 @@ const Fireworks = ({ active }) => {
         };
 
         burst(canvas.width * 0.3, canvas.height * 0.35);
-        setTimeout(() => burst(canvas.width * 0.7, canvas.height * 0.25), 150);
-        setTimeout(() => burst(canvas.width * 0.5, canvas.height * 0.4), 300);
+        burstTimers.current.push(setTimeout(() => burst(canvas.width * 0.7, canvas.height * 0.25), 150));
+        burstTimers.current.push(setTimeout(() => burst(canvas.width * 0.5, canvas.height * 0.4), 300));
 
         const draw = () => {
+            if (cancelled) return;
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            particles.forEach((p, i) => {
+            particles.forEach((p) => {
                 p.x += p.vx;
                 p.y += p.vy;
                 p.vy += p.gravity;
@@ -87,6 +104,7 @@ const Fireworks = ({ active }) => {
                 ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
                 ctx.fill();
             });
+            ctx.globalAlpha = 1;
             // remove dead
             particles.splice(0, particles.length, ...particles.filter(p => p.alpha > 0));
             if (particles.length > 0) {
@@ -97,8 +115,17 @@ const Fireworks = ({ active }) => {
         };
 
         animRef.current = requestAnimationFrame(draw);
+
         return () => {
-            if (animRef.current) cancelAnimationFrame(animRef.current);
+            cancelled = true;
+            if (animRef.current) {
+                cancelAnimationFrame(animRef.current);
+                animRef.current = null;
+            }
+            burstTimers.current.forEach(clearTimeout);
+            burstTimers.current = [];
+            // Clear canvas immediately on cleanup
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
         };
     }, [active]);
 
@@ -129,6 +156,7 @@ const ReadType = ({ word, onAnswer }) => {
     const [quality, setQuality] = useState(null);
     const inputRef = useRef(null);
     const startTimeRef = useRef(Date.now());
+    const fireworksTimerRef = useRef(null);
 
     const srsLevel = word?.srs?.level ?? 0;
     const srsStatus = word?.srs?.status ?? "NEW";
@@ -137,6 +165,11 @@ const ReadType = ({ word, onAnswer }) => {
     useEffect(() => {
         // Cancel any lingering speech from previous word
         if (window.speechSynthesis) window.speechSynthesis.cancel();
+        // Clear lingering fireworks timer from previous word
+        if (fireworksTimerRef.current) {
+            clearTimeout(fireworksTimerRef.current);
+            fireworksTimerRef.current = null;
+        }
         setInput("");
         setSubmitted(false);
         setCorrect(false);
@@ -163,7 +196,10 @@ const ReadType = ({ word, onAnswer }) => {
             speak(word.english);
             playCorrectSound();
             setShowFireworks(true);
-            setTimeout(() => setShowFireworks(false), 2200);
+            fireworksTimerRef.current = setTimeout(() => {
+                setShowFireworks(false);
+                fireworksTimerRef.current = null;
+            }, 2200);
         } else {
             playWrongSound();
         }
