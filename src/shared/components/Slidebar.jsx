@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { Box, Flex, Text, VStack, Image, Button, IconButton } from '@chakra-ui/react';
-import { FiHome, FiBook, FiLogOut, FiMic, FiChevronLeft, FiChevronRight, FiSettings, FiZap } from 'react-icons/fi';
+import { FiHome, FiBook, FiLogOut, FiMic, FiChevronLeft, FiChevronRight, FiSettings, FiZap, FiStar } from 'react-icons/fi';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ColorModeButton, useColorMode } from '../../components/ui/color-mode.jsx';
 import { useAuthStore } from '../../stores/useAuthStore.js';
@@ -12,6 +12,7 @@ const menuItems = [
     { name: 'Dictation', icon: FiMic, path: '/dictation' },
     { name: 'Game', icon: FiZap, path: '/game' },
     { name: 'Cài đặt', icon: FiSettings, path: '/settings' },
+    { name: 'Premium', icon: FiStar, path: '/premium', isPremium: true },
 ];
 
 const Sidebar = ({ onNavigate, isCollapsed, onToggle }) => {
@@ -145,23 +146,28 @@ const Sidebar = ({ onNavigate, isCollapsed, onToggle }) => {
                                     borderRadius="xl"
                                     gap={3}
                                     justify={isCollapsed ? "center" : "flex-start"}
-                                    bg={isActive ? 'brand.solid' : 'transparent'}
-                                    color={isActive ? 'white' : 'fg.muted'}
+                                    bg={isActive ? 'brand.solid' : item.isPremium ? 'linear-gradient(135deg, rgba(139,92,246,0.1), rgba(59,130,246,0.1))' : 'transparent'}
+                                    color={isActive ? 'white' : item.isPremium ? 'purple.500' : 'fg.muted'}
                                     shadow={isActive ? '0 4px 15px rgba(245, 130, 174, 0.25)' : 'none'}
                                     cursor="pointer"
                                     _hover={{
-                                        bg: isActive ? 'brand.solid' : 'bg.subtle',
-                                        color: isActive ? 'white' : 'fg',
+                                        bg: isActive ? 'brand.solid' : item.isPremium ? 'linear-gradient(135deg, rgba(139,92,246,0.2), rgba(59,130,246,0.2))' : 'bg.subtle',
+                                        color: isActive ? 'white' : item.isPremium ? 'purple.600' : 'fg',
                                         transform: isCollapsed ? 'none' : 'translateX(4px)',
                                     }}
                                     transition="all 0.2s cubic-bezier(0.4, 0, 0.2, 1)"
                                     textDecoration="none"
                                     title={isCollapsed ? item.name : ""}
+                                    borderWidth={item.isPremium && !isActive ? "1px" : "0"}
+                                    borderColor={item.isPremium && !isActive ? "purple.200" : "transparent"}
+                                    _dark={{
+                                        borderColor: item.isPremium && !isActive ? "purple.800" : "transparent",
+                                    }}
                                 >
                                     <Box as={item.icon} fontSize="lg" flexShrink={0} />
                                     {!isCollapsed && (
-                                        <Text fontSize="sm" fontWeight={isActive ? '800' : '600'}>
-                                            {item.name}
+                                        <Text fontSize="sm" fontWeight={isActive ? '800' : item.isPremium ? '700' : '600'}>
+                                            {item.isPremium ? '⭐ ' : ''}{item.name}
                                         </Text>
                                     )}
                                 </Flex>

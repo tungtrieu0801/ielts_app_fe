@@ -247,7 +247,7 @@ const HomePage = () => {
                                 <Text fontSize="sm" color="white/80" mb={4}>
                                     Mở khóa phát âm AI, học không giới hạn và xoá quảng cáo.
                                 </Text>
-                                <Button size="sm" bg="white" color="purple.600" w="full" fontWeight="bold" _hover={{ bg: "gray.50" }}>
+                                <Button size="sm" bg="white" color="purple.600" w="full" fontWeight="bold" _hover={{ bg: "gray.50" }} onClick={() => navigate("/premium")}>
                                     Nâng cấp ngay
                                 </Button>
                             </Box>

@@ -10,6 +10,7 @@ import DictationPage from "../features/dictation/pages/DictationPage.jsx";
 import GameLobbyPage from "../features/game/pages/GameLobbyPage.jsx";
 import GamePlayPage from "../features/game/pages/GamePlayPage.jsx";
 import SettingsPage from "../features/settings/pages/SettingsPage.jsx";
+import PremiumPage from "../features/premium/pages/PremiumPage.jsx";
 import PrivateRoute from "../shared/components/PrivateRoute.jsx";
 
 export default function AppRoutes() {
@@ -29,6 +30,7 @@ export default function AppRoutes() {
             <Route path="/game" element={<PrivateRoute><GameLobbyPage /></PrivateRoute>} />
             <Route path="/game/:roomId" element={<PrivateRoute><GamePlayPage /></PrivateRoute>} />
             <Route path="/settings" element={<PrivateRoute><SettingsPage /></PrivateRoute>} />
+            <Route path="/premium" element={<PrivateRoute><PremiumPage /></PrivateRoute>} />
         </Routes>
     );
 }

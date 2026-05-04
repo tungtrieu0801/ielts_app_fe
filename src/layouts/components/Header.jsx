@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Flex, Text, IconButton, Box, Button } from "@chakra-ui/react";
 import { FiBell, FiSearch, FiMenu } from "react-icons/fi";
 import { FaFire } from "react-icons/fa";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { menuItems } from "../../shared/const/menuConfig.js";
 import { useStudyStore } from "../../stores/useStudyStore.js";
 import { DrawerRoot, DrawerTrigger, DrawerContent, DrawerBody, DrawerCloseTrigger } from "../../components/ui/drawer.jsx";
@@ -52,6 +52,7 @@ const BannerMarquee = React.memo(() => {
 
 const Header = () => {
     const location = useLocation();
+    const navigate = useNavigate();
     const { streakInfo } = useStudyStore();
     const currentStreak = streakInfo?.currentStreak ?? 0;
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -168,6 +169,7 @@ const Header = () => {
                     }}
                     onMouseEnter={(e) => Object.assign(e.target.style, { opacity: '0.9', transform: 'translateY(-1px)' })}
                     onMouseLeave={(e) => Object.assign(e.target.style, { opacity: '1', transform: 'translateY(0)' })}
+                    onClick={() => navigate('/premium')}
                 >
                     ✨ Premium
                 </button>
