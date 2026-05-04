@@ -1,4 +1,5 @@
 import { Routes, Route } from "react-router-dom";
+import LandingPage from "../features/landing/pages/LandingPage";
 import LoginPage from "../features/auth/pages/LoginPage";
 import { OAuthSuccess } from "../features/auth/pages/OAuthSuccess.jsx";
 import HomePage from "../features/home/pages/HomePage";
@@ -15,7 +16,8 @@ export default function AppRoutes() {
     return (
         <Routes>
             {/* Public */}
-            <Route path="/" element={<LoginPage />} />
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/login" element={<LoginPage />} />
             <Route path="/oauth-success" element={<OAuthSuccess />} />
 
             {/* Protected */}
