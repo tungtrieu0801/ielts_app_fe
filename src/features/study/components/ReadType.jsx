@@ -1,7 +1,123 @@
-import React, { useState, useEffect, useRef } from "react";
-import { Box, Flex, Text, Input, Button, Badge, Icon, VStack, Grid, IconButton } from "@chakra-ui/react";
-import { FiCheck, FiX, FiHelpCircle, FiEye, FiType, FiVolume2 } from "react-icons/fi";
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { Box, Flex, Text, Input, Button, Badge, Icon, VStack } from "@chakra-ui/react";
+import { FiCheck, FiX, FiHelpCircle, FiEye, FiVolume2 } from "react-icons/fi";
 import { speak } from "../../../shared/utils/speech.js";
+import { calcQualityByTime } from "../../../shared/utils/calcQualityByTime.js";
+
+/* ─── SRS Level colours (matches Flashcard.jsx) ─── */
+const LEVEL_COLORS = ["gray", "orange", "yellow", "blue", "purple", "green"];
+const LEVEL_LABELS = ["Mới học", "Ngày 1", "Ngày 3", "Tuần 1", "Tuần 2", "Thành thạo"];
+
+/* ─── Web Audio helpers ─── */
+const playBeep = (frequency, duration, type = "sine", vol = 0.25) => {
+    try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.type = type;
+        osc.frequency.value = frequency;
+        gain.gain.setValueAtTime(vol, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + duration);
+    } catch (_) {}
+};
+
+const playCorrectSound = () => {
+    playBeep(523, 0.12, "sine", 0.2);
+    setTimeout(() => playBeep(659, 0.12, "sine", 0.2), 120);
+    setTimeout(() => playBeep(784, 0.22, "sine", 0.2), 240);
+};
+
+const playWrongSound = () => {
+    playBeep(300, 0.18, "sawtooth", 0.18);
+    setTimeout(() => playBeep(220, 0.28, "sawtooth", 0.15), 180);
+};
+
+/* ─── Canvas Fireworks ─── */
+const Fireworks = ({ active }) => {
+    const canvasRef = useRef(null);
+    const animRef = useRef(null);
+
+    useEffect(() => {
+        if (!active) return;
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const ctx = canvas.getContext("2d");
+        canvas.width = canvas.offsetWidth;
+        canvas.height = canvas.offsetHeight;
+
+        const particles = [];
+        const colors = ["#f59e0b", "#6366f1", "#ec4899", "#10b981", "#f97316", "#3b82f6", "#a855f7"];
+
+        // Spawn 3 bursts
+        const burst = (x, y) => {
+            for (let i = 0; i < 60; i++) {
+                const angle = (Math.PI * 2 * i) / 60 + Math.random() * 0.3;
+                const speed = 2 + Math.random() * 5;
+                particles.push({
+                    x, y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed - 2,
+                    alpha: 1,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    size: 3 + Math.random() * 4,
+                    gravity: 0.12,
+                });
+            }
+        };
+
+        burst(canvas.width * 0.3, canvas.height * 0.35);
+        setTimeout(() => burst(canvas.width * 0.7, canvas.height * 0.25), 150);
+        setTimeout(() => burst(canvas.width * 0.5, canvas.height * 0.4), 300);
+
+        const draw = () => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach((p, i) => {
+                p.x += p.vx;
+                p.y += p.vy;
+                p.vy += p.gravity;
+                p.vx *= 0.98;
+                p.alpha -= 0.016;
+                ctx.globalAlpha = Math.max(0, p.alpha);
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            // remove dead
+            particles.splice(0, particles.length, ...particles.filter(p => p.alpha > 0));
+            if (particles.length > 0) {
+                animRef.current = requestAnimationFrame(draw);
+            } else {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }
+        };
+
+        animRef.current = requestAnimationFrame(draw);
+        return () => {
+            if (animRef.current) cancelAnimationFrame(animRef.current);
+        };
+    }, [active]);
+
+    return (
+        <canvas
+            ref={canvasRef}
+            style={{
+                position: "absolute",
+                inset: 0,
+                width: "100%",
+                height: "100%",
+                pointerEvents: "none",
+                borderRadius: "inherit",
+            }}
+        />
+    );
+};
+
+/* ═══════════════════════════════════════════════ */
 
 const ReadType = ({ word, onAnswer }) => {
     const [input, setInput] = useState("");
@@ -9,7 +125,13 @@ const ReadType = ({ word, onAnswer }) => {
     const [correct, setCorrect] = useState(false);
     const [hintLevel, setHintLevel] = useState(0);
     const [showExample, setShowExample] = useState(false);
+    const [showFireworks, setShowFireworks] = useState(false);
+    const [quality, setQuality] = useState(null);
     const inputRef = useRef(null);
+    const startTimeRef = useRef(Date.now());
+
+    const srsLevel = word?.srs?.level ?? 0;
+    const srsStatus = word?.srs?.status ?? "NEW";
 
     // Reset when word changes
     useEffect(() => {
@@ -18,66 +140,64 @@ const ReadType = ({ word, onAnswer }) => {
         setCorrect(false);
         setHintLevel(0);
         setShowExample(false);
-        setTimeout(() => {
-            inputRef.current?.focus();
-        }, 100);
+        setShowFireworks(false);
+        setQuality(null);
+        startTimeRef.current = Date.now();
+        setTimeout(() => inputRef.current?.focus(), 100);
     }, [word?._id]);
 
-    const handleSubmit = () => {
+    const handleSubmit = useCallback(() => {
         if (!input.trim() || submitted) return;
+        const elapsed = Date.now() - startTimeRef.current;
         const isCorrect = input.trim().toLowerCase() === word.english.toLowerCase();
+        // Time-based quality: sai → AGAIN, đúng nhanh → EASY, chậm → HARD/AGAIN
+        // Nếu dùng hint thì giới hạn tối đa GOOD
+        let q = calcQualityByTime(isCorrect, elapsed);
+        if (hintLevel > 0 && (q === "EASY")) q = "GOOD";
+        setQuality(q);
         setCorrect(isCorrect);
         setSubmitted(true);
-        if (isCorrect) speak(word.english);
-    };
+        if (isCorrect) {
+            speak(word.english);
+            playCorrectSound();
+            setShowFireworks(true);
+            setTimeout(() => setShowFireworks(false), 2200);
+        } else {
+            playWrongSound();
+        }
+    }, [input, submitted, word, hintLevel]);
 
-    const handleNext = () => {
-        const quality = correct ? (hintLevel > 0 ? "GOOD" : "EASY") : "AGAIN";
-        // Note: more hints used = worse quality could be added here
-        onAnswer(word.cardId, quality);
-    };
+    const handleNext = useCallback(() => {
+        onAnswer(word.cardId, quality ?? "AGAIN");
+    }, [quality, onAnswer, word]);
 
-    const handleHint = () => {
+    const handleHint = useCallback(() => {
         const maxHint = word.english.length;
         if (hintLevel < maxHint) setHintLevel(v => v + 1);
-    };
+    }, [hintLevel, word]);
 
     // Keyboard shortcuts
     useEffect(() => {
         const handleKeyDown = (e) => {
-            if (e.key === "Control") {
-                e.preventDefault();
-                speak(word.english);
-            }
-            if (e.key === "e" && e.ctrlKey) {
-                e.preventDefault();
-                setShowExample(v => !v);
-            }
-            if (e.code === "Space" && e.ctrlKey) {
-                e.preventDefault();
-                handleHint();
-            }
+            if (e.key === "Control") { e.preventDefault(); speak(word.english); }
+            if (e.key === "e" && e.ctrlKey) { e.preventDefault(); setShowExample(v => !v); }
+            if (e.code === "Space" && e.ctrlKey) { e.preventDefault(); handleHint(); }
             if (e.key === "Enter") {
-                if (submitted) {
-                    handleNext();
-                } else if (input.trim()) {
-                    handleSubmit();
-                }
+                if (submitted) handleNext();
+                else if (input.trim()) handleSubmit();
             }
         };
         window.addEventListener("keydown", handleKeyDown);
         return () => window.removeEventListener("keydown", handleKeyDown);
-    }, [word, input, submitted, hintLevel, correct]);
+    }, [word, input, submitted, hintLevel, correct, handleHint, handleNext, handleSubmit]);
 
     const getHintText = () => {
         if (hintLevel >= 1) {
-            const letters = word.english.split("");
-            return letters.map((l, i) => (i < hintLevel ? l : "_")).join(" ");
+            return word.english.split("").map((l, i) => (i < hintLevel ? l : "_")).join(" ");
         }
-        return "Chưa có gợi ý";
+        return null;
     };
 
-    // Progress feedback: is user on the right track?
     const isOnRightTrack = input.length > 0 && word.english.toLowerCase().startsWith(input.toLowerCase());
 
     return (
@@ -94,26 +214,58 @@ const ReadType = ({ word, onAnswer }) => {
                 position="relative"
                 overflow="hidden"
             >
-                {/* Header info */}
-                <Flex position="absolute" top={4} left={4} gap={2} align="center">
-                    <Box w="6px" h="6px" borderRadius="full" bg="blue.400" />
+                {/* Fireworks overlay */}
+                <Fireworks active={showFireworks} />
+
+                {/* ── Header badges ── */}
+                <Flex position="absolute" top={4} left={4} gap={2} align="center" flexWrap="wrap">
+                    <Box w="6px" h="6px" borderRadius="full" bg="blue.400" flexShrink={0} />
                     <Text fontSize="10px" fontWeight="800" color="blue.600" letterSpacing="1px" textTransform="uppercase">
                         Gõ từ theo nghĩa
                     </Text>
                 </Flex>
 
-                <VStack gap={4} mb={8} mt={2}>
+                {/* ── SRS + Word level badges (top-right) ── */}
+                <Flex position="absolute" top={4} right={4} gap={2} align="center" flexWrap="wrap" justify="flex-end">
+                    {srsStatus === "NEW" ? (
+                        <Badge colorPalette="cyan" variant="solid" fontSize="xs" px={2} borderRadius="md">
+                            ✨ TỪ MỚI
+                        </Badge>
+                    ) : (
+                        <Badge
+                            colorPalette={LEVEL_COLORS[srsLevel]}
+                            variant="subtle"
+                            fontSize="xs"
+                            px={2}
+                            borderRadius="md"
+                            fontWeight="bold"
+                        >
+                            SRS {srsLevel} · {LEVEL_LABELS[srsLevel] ?? ""}
+                        </Badge>
+                    )}
+                    {word.level && (
+                        <Badge colorPalette="purple" variant="subtle" fontSize="xs" px={2} borderRadius="md" fontWeight="bold">
+                            {word.level}
+                        </Badge>
+                    )}
+                </Flex>
+
+                {/* ── Word info ── */}
+                <VStack gap={3} mb={6} mt={8}>
                     <Text fontSize="10px" color="fg.muted" fontWeight="800" textTransform="uppercase" letterSpacing="widest">
                         Nghĩa của từ vựng
                     </Text>
                     <Text fontSize="3xl" fontWeight="900" color="fg" lineHeight="1.1" letterSpacing="-0.5px">
                         {word.vietnamese}
                     </Text>
-                    {word.partOfSpeech && (
-                        <Badge colorPalette="blue" variant="solid" px={3} py={0.5} borderRadius="full" fontSize="xs">
-                            {word.partOfSpeech}
-                        </Badge>
-                    )}
+                    <Flex gap={2} align="center" justify="center" flexWrap="wrap">
+                        {word.partOfSpeech && (
+                            <Badge colorPalette="blue" variant="solid" px={3} py={0.5} borderRadius="full" fontSize="xs">
+                                {word.partOfSpeech}
+                            </Badge>
+                        )}
+                    </Flex>
+                    {/* Hint letters */}
                     {hintLevel > 0 && (
                         <Text fontSize="md" color="brand.solid" fontWeight="bold" letterSpacing="3px">
                             {getHintText()}
@@ -121,14 +273,21 @@ const ReadType = ({ word, onAnswer }) => {
                     )}
                 </VStack>
 
+                {/* Pre-submit example */}
                 {showExample && word.example && (
-                    <Box bg="bg.subtle" p={4} borderRadius="xl" mb={6} border="1px dashed" borderColor="border.strong">
+                    <Box bg="bg.subtle" p={4} borderRadius="xl" mb={5} border="1px dashed" borderColor="border.strong">
                         <Text fontStyle="italic" color="fg" fontSize="sm">
-                            "{word.example.replace(new RegExp(word.english, 'gi'), '______')}"
+                            "{word.example.replace(new RegExp(word.english, "gi"), "______")}"
                         </Text>
+                        {word.exampleTranslation && (
+                            <Text fontSize="xs" color="fg.muted" mt={1}>
+                                → {word.exampleTranslation}
+                            </Text>
+                        )}
                     </Box>
                 )}
 
+                {/* ── Input state ── */}
                 {!submitted ? (
                     <VStack gap={4}>
                         <Box w="full" position="relative" maxW="320px" mx="auto">
@@ -147,7 +306,7 @@ const ReadType = ({ word, onAnswer }) => {
                                 borderColor={input.length > 0 ? (isOnRightTrack ? "green.300" : "red.300") : "border.muted"}
                                 _focus={{
                                     borderColor: isOnRightTrack ? "green.400" : "red.400",
-                                    bg: "bg.panel"
+                                    bg: "bg.panel",
                                 }}
                             />
                             {input.length > 0 && (
@@ -165,20 +324,16 @@ const ReadType = ({ word, onAnswer }) => {
                             <Button
                                 variant="ghost" size="sm" borderRadius="lg"
                                 onClick={() => setShowExample(!showExample)}
-                                leftIcon={<FiEye />}
                             >
-                                Ví dụ (Ctrl+E)
+                                <FiEye style={{ marginRight: 6 }} /> Ví dụ (Ctrl+E)
                             </Button>
-
                             <Button
                                 variant="ghost" size="sm" borderRadius="lg"
                                 onClick={handleHint}
                                 disabled={hintLevel >= word.english.length}
-                                leftIcon={<FiHelpCircle />}
                             >
-                                Gợi ý (Ctrl+Space)
+                                <FiHelpCircle style={{ marginRight: 6 }} /> Gợi ý (Ctrl+Space)
                             </Button>
-
                             <Button
                                 colorPalette="blue" size="md" borderRadius="xl" px={8}
                                 onClick={handleSubmit}
@@ -189,7 +344,8 @@ const ReadType = ({ word, onAnswer }) => {
                         </Flex>
                     </VStack>
                 ) : (
-                    <VStack gap={6}>
+                    <VStack gap={5}>
+                        {/* Result box */}
                         <Box
                             p={6} borderRadius="2xl" w="full"
                             bg={correct ? "green.50" : "red.50"}
@@ -197,22 +353,54 @@ const ReadType = ({ word, onAnswer }) => {
                             borderColor={correct ? "green.200" : "red.200"}
                             _dark={{ bg: correct ? "green.900/20" : "red.900/20" }}
                         >
-                            <Flex align="center" gap={3} justify="center" mb={3}>
+                            <Flex align="center" gap={3} justify="center" mb={2}>
                                 <Icon as={correct ? FiCheck : FiX} boxSize={6} color={correct ? "green.500" : "red.500"} />
                                 <Text fontSize="xl" fontWeight="800" color={correct ? "green.600" : "red.600"}>
-                                    {correct ? "Chính xác!" : "Sai rồi bạn ơi"}
+                                    {correct ? "Chính xác! 🎉" : "Sai rồi bạn ơi 😢"}
                                 </Text>
                             </Flex>
+                            {/* Quality badge */}
+                            {quality && (
+                                <Flex justify="center" mb={2}>
+                                    <Badge
+                                        colorPalette={quality === "EASY" ? "green" : quality === "GOOD" ? "blue" : quality === "HARD" ? "orange" : "red"}
+                                        variant="solid" px={3} py={1} borderRadius="lg" fontSize="xs" fontWeight="bold"
+                                    >
+                                        {quality === "EASY" ? "⚡ EASY — Rất nhanh" : quality === "GOOD" ? "👍 GOOD" : quality === "HARD" ? "😓 HARD — Hơi chậm" : "🔁 AGAIN — Quá chậm / Sai"}
+                                    </Badge>
+                                </Flex>
+                            )}
 
-                            <Flex align="center" gap={3} justify="center">
+                            {/* Show user's wrong input */}
+                            {!correct && (
+                                <Text fontSize="lg" color="red.400" fontWeight="600" mb={1} textDecoration="line-through" opacity={0.8}>
+                                    {input}
+                                </Text>
+                            )}
+
+                            {/* Word + speak button (inline, no circle) */}
+                            <Flex align="center" gap={2} justify="center">
                                 <Text fontSize="3xl" fontWeight="900" color="brand.solid" letterSpacing="1px">
                                     {word.english}
                                 </Text>
-                                <IconButton
-                                    icon={<FiVolume2 />} size="sm" colorPalette="blue" borderRadius="full" variant="subtle"
+                                <Box
+                                    as="button"
                                     onClick={() => speak(word.english)}
-                                />
+                                    display="inline-flex" alignItems="center" justifyContent="center"
+                                    w="28px" h="28px" borderRadius="md"
+                                    bg="bg.subtle"
+                                    border="1px solid"
+                                    borderColor="border.muted"
+                                    color="fg.muted"
+                                    cursor="pointer"
+                                    _hover={{ color: "blue.500", borderColor: "blue.300" }}
+                                    transition="all 0.15s"
+                                    title="Nghe phát âm"
+                                >
+                                    <FiVolume2 size={14} />
+                                </Box>
                             </Flex>
+
                             {word.pronunciation && (
                                 <Text fontSize="md" color="fg.muted" fontStyle="italic" mt={1}>
                                     {word.pronunciation}
@@ -220,11 +408,17 @@ const ReadType = ({ word, onAnswer }) => {
                             )}
                         </Box>
 
+                        {/* Example + translation */}
                         {word.example && (
                             <Box bg="bg.subtle" p={4} borderRadius="xl" w="full" border="1px dashed" borderColor="border.strong">
                                 <Text fontStyle="italic" color="fg" fontSize="sm">
                                     "{word.example}"
                                 </Text>
+                                {word.exampleTranslation && (
+                                    <Text fontSize="xs" color="fg.muted" mt={1}>
+                                        → {word.exampleTranslation}
+                                    </Text>
+                                )}
                             </Box>
                         )}
 

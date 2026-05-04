@@ -1,15 +1,18 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Box, Flex, Text, Input, Button, Badge, Icon, VStack, IconButton, Grid } from "@chakra-ui/react";
-import { FiCheck, FiX, FiHeadphones, FiHelpCircle, FiEye, FiVolume2 } from "react-icons/fi";
+import { Box, Flex, Text, Input, Button, Badge, Icon, VStack } from "@chakra-ui/react";
+import { FiCheck, FiX, FiHeadphones, FiHelpCircle, FiEye } from "react-icons/fi";
 import { speak } from "../../../shared/utils/speech.js";
+import { calcQualityByTime } from "../../../shared/utils/calcQualityByTime.js";
 
 const ListenType = ({ word, onAnswer }) => {
     const [input, setInput] = useState("");
     const [submitted, setSubmitted] = useState(false);
     const [correct, setCorrect] = useState(false);
-    const [hintLevel, setHintLevel] = useState(0); // 0: none, 1: example, 2: 1st letter, 3: full hint
+    const [quality, setQuality] = useState(null);
+    const [hintLevel, setHintLevel] = useState(0);
     const [showExample, setShowExample] = useState(false);
     const inputRef = useRef(null);
+    const startTimeRef = useRef(Date.now());
 
     // Auto-play sound on load
     useEffect(() => {
@@ -24,57 +27,42 @@ const ListenType = ({ word, onAnswer }) => {
         setInput("");
         setSubmitted(false);
         setCorrect(false);
+        setQuality(null);
         setHintLevel(0);
         setShowExample(false);
-
-        // Auto focus input when word changes
-        setTimeout(() => {
-            inputRef.current?.focus();
-        }, 100);
+        startTimeRef.current = Date.now();
+        setTimeout(() => inputRef.current?.focus(), 100);
     }, [word?._id]);
 
     const handleSubmit = () => {
         if (!input.trim() || submitted) return;
+        const elapsed = Date.now() - startTimeRef.current;
         const isCorrect = input.trim().toLowerCase() === word.english.toLowerCase();
+        let q = calcQualityByTime(isCorrect, elapsed);
+        // Dùng hint giới hạn tối đa GOOD
+        if (hintLevel > 0 && q === "EASY") q = "GOOD";
+        setQuality(q);
         setCorrect(isCorrect);
         setSubmitted(true);
     };
 
     const handleNext = () => {
-        const quality = correct ? (hintLevel > 0 ? "GOOD" : "EASY") : "AGAIN";
-        onAnswer(word.cardId, quality);
+        onAnswer(word.cardId, quality ?? "AGAIN");
     };
 
     const handleHint = () => {
-        if (hintLevel < 3) setHintLevel(v => v + 1);
-        if (hintLevel === 0) setShowExample(true);
+        if (hintLevel < word.english.length) setHintLevel(v => v + 1);
     };
 
     // Keyboard shortcuts
     useEffect(() => {
         const handleKeyDown = (e) => {
-            // Ctrl: Re-play audio
-            if (e.key === "Control") {
-                e.preventDefault();
-                speak(word.english);
-            }
-            // Ctrl + E: Toggle example
-            if (e.key === "e" && e.ctrlKey) {
-                e.preventDefault();
-                setShowExample(v => !v);
-            }
-            // Ctrl + Space: Hint
-            if (e.code === "Space" && e.ctrlKey) {
-                e.preventDefault();
-                handleHint();
-            }
-            // Enter: Submit or Next
+            if (e.key === "Control") { e.preventDefault(); speak(word.english); }
+            if (e.key === "e" && e.ctrlKey) { e.preventDefault(); setShowExample(v => !v); }
+            if (e.code === "Space" && e.ctrlKey) { e.preventDefault(); handleHint(); }
             if (e.key === "Enter") {
-                if (submitted) {
-                    handleNext();
-                } else if (input.trim()) {
-                    handleSubmit();
-                }
+                if (submitted) handleNext();
+                else if (input.trim()) handleSubmit();
             }
         };
         window.addEventListener("keydown", handleKeyDown);
@@ -82,11 +70,17 @@ const ListenType = ({ word, onAnswer }) => {
     }, [word, input, submitted, hintLevel, correct]);
 
     const getHintText = () => {
-        if (hintLevel >= 2) {
-            const letters = word.english.split("");
-            return letters.map((l, i) => (i === 0 || hintLevel === 3 ? l : "_")).join(" ");
+        if (hintLevel >= 1) {
+            return word.english.split("").map((l, i) => (i < hintLevel ? l : "_")).join(" ");
         }
-        return "Chưa có gợi ý";
+        return null;
+    };
+
+    const QUALITY_META = {
+        EASY: { color: "green",  label: "⚡ EASY — Rất nhanh" },
+        GOOD: { color: "blue",   label: "👍 GOOD" },
+        HARD: { color: "orange", label: "😓 HARD — Hơi chậm" },
+        AGAIN:{ color: "red",    label: "🔁 AGAIN — Quá chậm / Sai" },
     };
 
     return (
@@ -112,10 +106,10 @@ const ListenType = ({ word, onAnswer }) => {
                 </Flex>
 
                 <VStack gap={6} mb={8} mt={2}>
-                    {/* Compact Audio Icon */}
+                    {/* Audio button */}
                     <Box position="relative">
-                        <Box 
-                            p={6} bg="green.500" borderRadius="2xl" color="white" 
+                        <Box
+                            p={6} bg="green.500" borderRadius="2xl" color="white"
                             cursor="pointer" onClick={() => speak(word.english)}
                             _hover={{ transform: "translateY(-2px)", bg: "green.600" }}
                             transition="all 0.2s"
@@ -123,9 +117,9 @@ const ListenType = ({ word, onAnswer }) => {
                         >
                             <FiHeadphones size={32} />
                         </Box>
-                        <Badge 
+                        <Badge
                             position="absolute" bottom="-8px" left="50%" transform="translateX(-50%)"
-                            bg="gray.800" _dark={{ bg: "white", color: "black" }} color="white" 
+                            bg="gray.800" _dark={{ bg: "white", color: "black" }} color="white"
                             fontSize="8px" px={2} borderRadius="full" fontWeight="900"
                         >
                             CTRL
@@ -147,8 +141,11 @@ const ListenType = ({ word, onAnswer }) => {
                 {showExample && word.example && (
                     <Box bg="bg.subtle" p={4} borderRadius="xl" mb={6} border="1px dashed" borderColor="border.strong">
                         <Text fontStyle="italic" color="fg" fontSize="sm">
-                            "{word.example.replace(new RegExp(word.english, 'gi'), '______')}"
+                            "{word.example.replace(new RegExp(word.english, "gi"), "______")}"
                         </Text>
+                        {word.exampleTranslation && (
+                            <Text fontSize="xs" color="fg.muted" mt={1}>→ {word.exampleTranslation}</Text>
+                        )}
                     </Box>
                 )}
 
@@ -169,26 +166,22 @@ const ListenType = ({ word, onAnswer }) => {
                             bg="bg.subtle"
                             _focus={{ borderColor: "green.400", bg: "bg.panel" }}
                         />
-                        
+
                         <Flex gap={2} w="full" justify="center" flexWrap="wrap">
-                            <Button 
+                            <Button
                                 variant="ghost" size="sm" borderRadius="lg"
                                 onClick={() => setShowExample(!showExample)}
-                                leftIcon={<FiEye />}
                             >
-                                Ví dụ (Ctrl+E)
+                                <FiEye style={{ marginRight: 6 }} /> Ví dụ (Ctrl+E)
                             </Button>
-                            
-                            <Button 
+                            <Button
                                 variant="ghost" size="sm" borderRadius="lg"
                                 onClick={handleHint}
-                                disabled={hintLevel >= 3}
-                                leftIcon={<FiHelpCircle />}
+                                disabled={hintLevel >= word.english.length}
                             >
-                                Gợi ý (Ctrl+Space)
+                                <FiHelpCircle style={{ marginRight: 6 }} /> Gợi ý (Ctrl+Space)
                             </Button>
-
-                            <Button 
+                            <Button
                                 colorPalette="green" size="md" borderRadius="xl" px={8}
                                 onClick={handleSubmit}
                                 disabled={!input.trim()}
@@ -198,31 +191,69 @@ const ListenType = ({ word, onAnswer }) => {
                         </Flex>
                     </VStack>
                 ) : (
-                    <VStack gap={6}>
-                        <Box 
+                    <VStack gap={5}>
+                        <Box
                             p={6} borderRadius="2xl" w="full"
                             bg={correct ? "green.50" : "red.50"}
                             borderWidth="1px"
                             borderColor={correct ? "green.200" : "red.200"}
                             _dark={{ bg: correct ? "green.900/20" : "red.900/20" }}
                         >
-                            <Flex align="center" gap={3} justify="center" mb={3}>
+                            <Flex align="center" gap={3} justify="center" mb={2}>
                                 <Icon as={correct ? FiCheck : FiX} boxSize={6} color={correct ? "green.500" : "red.500"} />
                                 <Text fontSize="xl" fontWeight="800" color={correct ? "green.600" : "red.600"}>
-                                    {correct ? "Chính xác!" : "Chưa đúng rồi"}
+                                    {correct ? "Chính xác! 🎉" : "Sai rồi bạn ơi 😢"}
                                 </Text>
                             </Flex>
+
+                            {/* Quality badge */}
+                            {quality && (
+                                <Flex justify="center" mb={2}>
+                                    <Badge
+                                        colorPalette={QUALITY_META[quality].color}
+                                        variant="solid" px={3} py={1} borderRadius="lg" fontSize="xs" fontWeight="bold"
+                                    >
+                                        {QUALITY_META[quality].label}
+                                    </Badge>
+                                </Flex>
+                            )}
+
+                            {/* Wrong input strikethrough */}
+                            {!correct && (
+                                <Text fontSize="lg" color="red.400" fontWeight="600" mb={1} textDecoration="line-through" opacity={0.8}>
+                                    {input}
+                                </Text>
+                            )}
+
                             <Text fontSize="3xl" fontWeight="900" color="brand.solid" letterSpacing="1px">
                                 {word.english}
                             </Text>
-                            {word.vietnamese && <Text fontSize="sm" fontWeight="bold">({word.vietnamese})</Text>}
+                            {word.pronunciation && (
+                                <Text fontSize="md" color="fg.muted" fontStyle="italic" mt={1}>
+                                    {word.pronunciation}
+                                </Text>
+                            )}
+                            {word.vietnamese && (
+                                <Text fontSize="sm" fontWeight="bold" color="fg.muted" mt={1}>
+                                    ({word.vietnamese})
+                                </Text>
+                            )}
                         </Box>
 
-                        <Button 
-                            colorPalette="blue" size="lg" w="full" borderRadius="xl" 
+                        {word.example && (
+                            <Box bg="bg.subtle" p={4} borderRadius="xl" w="full" border="1px dashed" borderColor="border.strong">
+                                <Text fontStyle="italic" color="fg" fontSize="sm">"{word.example}"</Text>
+                                {word.exampleTranslation && (
+                                    <Text fontSize="xs" color="fg.muted" mt={1}>→ {word.exampleTranslation}</Text>
+                                )}
+                            </Box>
+                        )}
+
+                        <Button
+                            colorPalette="blue" size="lg" w="full" borderRadius="xl"
                             onClick={handleNext} fontWeight="800"
                         >
-                            Từ tiếp theo (Enter)
+                            Từ tiếp theo →
                         </Button>
                     </VStack>
                 )}

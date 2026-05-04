@@ -1,8 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { Box, Flex, Text, Input, Button, Badge } from "@chakra-ui/react";
 import { FiCheck, FiX } from "react-icons/fi";
 import { speak } from "../../../shared/utils/speech.js";
 import SpeakButton from "../../../shared/components/SpeakButton.jsx";
+import { calcQualityByTime } from "../../../shared/utils/calcQualityByTime.js";
 
 // Tạo câu ví dụ với ô trống thay thế từ cần điền
 const createBlankSentence = (example, english) => {
@@ -17,7 +18,9 @@ const FillInBlank = ({ word, onAnswer, existingAnswer }) => {
     const [input, setInput] = useState("");
     const [submitted, setSubmitted] = useState(false);
     const [correct, setCorrect] = useState(false);
+    const [quality, setQuality] = useState(null);
     const isFirstRender = React.useRef(true);
+    const startTimeRef = useRef(Date.now());
 
     const srsLevel = word?.srs?.level ?? 0;
     const srsStatus = word?.srs?.status ?? "NEW";
@@ -41,21 +44,24 @@ const FillInBlank = ({ word, onAnswer, existingAnswer }) => {
         setInput("");
         setSubmitted(false);
         setCorrect(false);
+        setQuality(null);
+        startTimeRef.current = Date.now();
     }, [word?._id]);
 
     const blankSentence = createBlankSentence(word.example, word.english)
         || `What is the English word for "${word.vietnamese}"?`;
 
     const handleSubmit = () => {
+        const elapsed = Date.now() - startTimeRef.current;
         const isCorrect = input.trim().toLowerCase() === word.english.toLowerCase();
+        const q = calcQualityByTime(isCorrect, elapsed);
+        setQuality(q);
         setCorrect(isCorrect);
         setSubmitted(true);
     };
 
     const handleNext = () => {
-        // Map fill-in result to quality string
-        const quality = correct ? "GOOD" : "AGAIN";
-        onAnswer(word.cardId, quality);
+        onAnswer(word.cardId, quality ?? "AGAIN");
     };
 
     React.useEffect(() => {
@@ -171,11 +177,23 @@ const FillInBlank = ({ word, onAnswer, existingAnswer }) => {
                             align="center" gap={2} px={5} py={3} borderRadius="xl"
                             bg={correct ? "green.50" : "red.50"}
                             _dark={{ bg: correct ? "green.900/30" : "red.900/30" }}
+                            flexDirection="column"
                         >
-                            {correct ? <FiCheck color="var(--chakra-colors-green-500)" /> : <FiX color="var(--chakra-colors-red-500)" />}
-                            <Text fontWeight="bold" color={correct ? "green.600" : "red.600"}>
-                                {correct ? "Chính xác! 🎉" : `Đáp án đúng: ${word.english}`}
-                            </Text>
+                            <Flex align="center" gap={2}>
+                                {correct ? <FiCheck color="var(--chakra-colors-green-500)" /> : <FiX color="var(--chakra-colors-red-500)" />}
+                                <Text fontWeight="bold" color={correct ? "green.600" : "red.600"}>
+                                    {correct ? "Chính xác! 🎉" : `Đáp án đúng: ${word.english}`}
+                                </Text>
+                            </Flex>
+                            {/* Quality badge */}
+                            {quality && (
+                                <Badge
+                                    colorPalette={quality === "EASY" ? "green" : quality === "GOOD" ? "blue" : quality === "HARD" ? "orange" : "red"}
+                                    variant="solid" px={3} py={1} borderRadius="lg" fontSize="xs" fontWeight="bold"
+                                >
+                                    {quality === "EASY" ? "⚡ EASY — Rất nhanh" : quality === "GOOD" ? "👍 GOOD" : quality === "HARD" ? "😓 HARD — Hơi chậm" : "🔁 AGAIN — Quá chậm / Sai"}
+                                </Badge>
+                            )}
                         </Flex>
                         {word.vietnamese && (
                             <Text color="fg.muted" fontSize="sm">Nghĩa: {word.vietnamese}</Text>
