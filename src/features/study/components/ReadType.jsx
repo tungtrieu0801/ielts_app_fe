@@ -69,9 +69,9 @@ const ReadType = ({ word, onAnswer }) => {
     }, [word, input, submitted, hintLevel, correct]);
 
     const getHintText = () => {
-        if (hintLevel >= 2) {
+        if (hintLevel >= 1) {
             const letters = word.english.split("");
-            return letters.map((l, i) => (i === 0 || hintLevel === 3 ? l : "_")).join(" ");
+            return letters.map((l, i) => (i === 0 || hintLevel >= 3 ? l : "_")).join(" ");
         }
         return "Chưa có gợi ý";
     };
