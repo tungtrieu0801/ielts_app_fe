@@ -18,21 +18,6 @@ const DictationPage = () => {
     if (isYoutube) {
         return (
             <div style={{ width: "100%", height: "100vh", overflow: "hidden", display: "flex", flexDirection: "column", background: "var(--chakra-colors-bg-subtle, #F7FAFC)" }}>
-                {/* Compact top bar */}
-                <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "0 12px", height: 56, borderBottom: "1px solid var(--chakra-colors-border-muted)", flexShrink: 0, background: "var(--chakra-colors-bg-panel)" }}>
-                    <button
-                        onClick={handleReset}
-                        style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 8, border: "1px solid var(--chakra-colors-border-muted)", background: "transparent", cursor: "pointer", color: "inherit", fontSize: 13, fontWeight: 600 }}
-                    >
-                        ← Quay lại
-                    </button>
-                    <span style={{ fontSize: 12, padding: "2px 10px", borderRadius: 20, background: "rgba(229,62,62,0.12)", color: "#E53E3E", fontWeight: 700 }}>
-                        ▶️ YouTube
-                    </span>
-                    <span style={{ fontSize: 12, color: "var(--chakra-colors-fg-muted)" }}>
-                        {exerciseData?.title || ""} &nbsp;·&nbsp; {exerciseData?.total} câu
-                    </span>
-                </div>
                 {/* Full-width exercise, no padding */}
                 <div style={{ flex: 1, overflow: "hidden" }}>
                     <YoutubeExercise data={exerciseData} onReset={handleReset} />

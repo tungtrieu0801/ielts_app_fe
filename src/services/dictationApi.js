@@ -8,3 +8,6 @@ export const prepareYoutube = (url) =>
 
 export const getSharedLibrary = () =>
     axiosClient.get("/dictation/shared-library");
+
+export const saveDictationProgress = (data) =>
+    axiosClient.post("/dictation/progress/save", data);
