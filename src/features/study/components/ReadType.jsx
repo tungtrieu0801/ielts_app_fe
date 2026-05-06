@@ -217,7 +217,7 @@ const ReadType = ({ word, onAnswer }) => {
     // Keyboard shortcuts
     useEffect(() => {
         const handleKeyDown = (e) => {
-            if (e.key === "Control") { e.preventDefault(); speak(word.english); }
+            if (e.key === "Control" && submitted) { e.preventDefault(); speak(word.english); }
             if (e.key === "e" && e.ctrlKey) { e.preventDefault(); setShowExample(v => !v); }
             if (e.code === "Space" && e.ctrlKey) { e.preventDefault(); handleHint(); }
             if (e.key === "Enter") {
