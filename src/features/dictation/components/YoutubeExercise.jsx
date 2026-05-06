@@ -142,6 +142,7 @@ const S = {
 };
 
 import { saveDictationProgress } from "../../../services/dictationApi.js";
+import { toaster } from "../../../components/ui/toaster.jsx";
 
 // ── Note Table ────────────────────────────────────────────────────────────
 const NoteTable = ({ notes, setNotes }) => {
@@ -295,10 +296,21 @@ const YoutubeExercise = ({ data, onReset }) => {
             if (!isSilent) setIsSaving(true);
             await saveDictationProgress(saveStateRef.current);
             if (!isSilent) {
-                // Toast or something, but we just reset button state
+                toaster.create({
+                    title: "Lưu thành công",
+                    description: "Tiến trình của bạn đã được lưu lại.",
+                    type: "success",
+                });
             }
         } catch (e) {
             console.error(e);
+            if (!isSilent) {
+                toaster.create({
+                    title: "Lỗi",
+                    description: "Không thể lưu tiến trình. Vui lòng thử lại sau.",
+                    type: "error",
+                });
+            }
         } finally {
             if (!isSilent) setIsSaving(false);
         }
@@ -329,7 +341,7 @@ const YoutubeExercise = ({ data, onReset }) => {
 
     useEffect(() => {
         if (!cur) return;
-        setAnswer(""); setAttemptResult(null); setAttempts(0);
+        setAnswer(""); setAttemptResult(null); setAttempts(0); setRevealedWords(new Set());
         const t = setTimeout(() => {
             seekRef.current(cur.start ?? 0, cur.end);
             setTimeout(() => taRef.current?.focus(), 350);
@@ -497,16 +509,16 @@ const YoutubeExercise = ({ data, onReset }) => {
                     <NoteTable notes={notes} setNotes={setNotes} />
                 </div>
 
-            {/* ═══ RIGHT COLUMN (45%) — Input + Transcript ═══ */}
-            <div style={{ flex: "0 0 55%", display: "flex", flexDirection: "column", gap: 16, overflow: "hidden" }}>
+                {/* ═══ RIGHT COLUMN (45%) — Input + Transcript ═══ */}
+                <div style={{ flex: "0 0 55%", display: "flex", flexDirection: "column", gap: 16, overflow: "hidden" }}>
 
-                <div style={{ ...S.panel, flex: 1, minHeight: 0 }}>
-                    {/* <div style={S.header}> */}
-                    {/* <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <div style={{ ...S.panel, flex: 1, minHeight: 0 }}>
+                        {/* <div style={S.header}> */}
+                        {/* <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                             <span style={{ fontSize: 16 }}>⌨️</span>
                             <span style={S.title}>Khu vực viết</span>
                         </div> */}
-                    {/* <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+                        {/* <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
                             <div style={{ display: "flex", gap: 4, alignItems: "center", background: "rgba(56,161,105,0.1)", padding: "2px 8px", borderRadius: 12 }}>
                                 <span style={{ fontSize: 12, color: "#38A169", fontWeight: 800 }}>✓ {stats.correct}</span>
                             </div>
@@ -514,176 +526,206 @@ const YoutubeExercise = ({ data, onReset }) => {
                                 <span style={{ fontSize: 12, color: "#E53E3E", fontWeight: 800 }}>✗ {stats.wrong}</span>
                             </div>
                         </div> */}
-                    {/* </div> */}
+                        {/* </div> */}
 
-                    <div style={{ display: "flex", flexDirection: "column", padding: 16, flex: 1, gap: 12, overflowY: "auto", overflowX: "hidden" }}>
-                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                                <div style={{
-                                    width: 10, height: 10, borderRadius: "50%",
-                                    background: isCorrect ? "#38A169" : hasAttempt ? "#E53E3E" : "#3182CE",
-                                    transition: "background 0.3s",
-                                    animation: !hasAttempt ? "pulse 1.5s infinite" : "none",
-                                    boxShadow: !hasAttempt ? "0 0 10px #3182CE" : "none"
-                                }} />
-                                <span style={{ fontSize: 13, fontWeight: 800, color: "#2D3748", letterSpacing: "0.05em" }}>CÂU {idx + 1} / {exercises.length}</span>
-                                {attempts > 0 && !isCorrect && (
-                                    <span style={{ fontSize: 11, background: "rgba(229,62,62,0.1)", color: "#C53030", padding: "2px 8px", borderRadius: 10, fontWeight: 700 }}>Thử {attempts} lần</span>
+                        <div style={{ display: "flex", flexDirection: "column", padding: 16, flex: 1, gap: 12, overflowY: "auto", overflowX: "hidden" }}>
+                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
+                                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                    <div style={{
+                                        width: 10, height: 10, borderRadius: "50%",
+                                        background: isCorrect ? "#38A169" : hasAttempt ? "#E53E3E" : "#3182CE",
+                                        transition: "background 0.3s",
+                                        animation: !hasAttempt ? "pulse 1.5s infinite" : "none",
+                                        boxShadow: !hasAttempt ? "0 0 10px #3182CE" : "none"
+                                    }} />
+                                    <span style={{ fontSize: 13, fontWeight: 800, color: "#2D3748", letterSpacing: "0.05em" }}>CÂU {idx + 1} / {exercises.length}</span>
+                                    {attempts > 0 && !isCorrect && (
+                                        <span style={{ fontSize: 11, background: "rgba(229,62,62,0.1)", color: "#C53030", padding: "2px 8px", borderRadius: 10, fontWeight: 700 }}>Thử {attempts} lần</span>
+                                    )}
+                                </div>
+                            </div>
+
+                            <textarea
+                                ref={taRef}
+                                value={answer}
+                                onChange={e => !isCorrect && setAnswer(e.target.value)}
+                                placeholder="Type the sentence here... (Enter to check)"
+                                disabled={isCorrect}
+                                style={{
+                                    flexShrink: 0, minHeight: "60px", width: "100%", padding: "16px 20px",
+                                    borderRadius: 16, resize: "none",
+                                    border: `2px solid ${isCorrect ? "#38A169" : shake ? "#E53E3E" : "#FBB6CE"}`,
+                                    background: isCorrect ? "rgba(56,161,105,0.04)" : shake ? "rgba(229,62,62,0.04)" : "#fff",
+                                    fontSize: 16, fontFamily: "inherit", color: "#2D3748", outline: "none",
+                                    transition: "all 0.25s", boxSizing: "border-box", lineHeight: 1.6,
+                                    boxShadow: !isCorrect ? "0 4px 14px rgba(251,182,206,0.15)" : "none"
+                                }}
+                            />
+
+                            {/* Word Blocks UI */}
+                            <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 8 }}>
+                                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "#718096", padding: "0 4px" }}>
+                                    <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                        {/* 👁 Click to reveal */}
+                                    </span>
+                                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                                        <span
+                                            style={{
+                                                display: "flex", alignItems: "center", gap: 6, cursor: "pointer", fontWeight: 700,
+                                                padding: "4px 10px", borderRadius: 6, border: "1px solid #CBD5E0", background: "#EDF2F7",
+                                                boxShadow: "0 2px 0 #CBD5E0", color: "#4A5568", fontSize: 12, userSelect: "none",
+                                                transition: "all 0.1s"
+                                            }}
+                                            onClick={() => goNextRef.current(true)}
+                                            onMouseDown={e => { e.currentTarget.style.transform = "translateY(2px)"; e.currentTarget.style.boxShadow = "none"; }}
+                                            onMouseUp={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 2px 0 #CBD5E0"; }}
+                                            onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 2px 0 #CBD5E0"; }}
+                                        >
+                                            ⏭ Bỏ qua
+                                        </span>
+                                        <span
+                                            style={{
+                                                display: "flex", alignItems: "center", gap: 6, cursor: "pointer", fontWeight: 700,
+                                                padding: "4px 10px", borderRadius: 6, border: "1px solid #CBD5E0", background: "#EDF2F7",
+                                                boxShadow: "0 2px 0 #CBD5E0", color: "#4A5568", fontSize: 12, userSelect: "none",
+                                                transition: "all 0.1s"
+                                            }}
+                                            onClick={() => {
+                                                if (revealedWords.size === origWords.length && origWords.length > 0) {
+                                                    setRevealedWords(new Set());
+                                                } else {
+                                                    setRevealedWords(new Set(origWords.map((_, i) => i)));
+                                                }
+                                            }}
+                                            onMouseDown={e => { e.currentTarget.style.transform = "translateY(2px)"; e.currentTarget.style.boxShadow = "none"; }}
+                                            onMouseUp={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 2px 0 #CBD5E0"; }}
+                                            onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 2px 0 #CBD5E0"; }}
+                                        >
+                                            {revealedWords.size === origWords.length && origWords.length > 0 ? "👁 Hide all" : "👁 Show all"}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                                    {origWords.map((word, i) => {
+                                        const isCorrectWord = i < okCount;
+                                        const isRevealed = revealedWords.has(i);
+                                        const masked = word.replace(/[a-zA-Z0-9À-ỹ]/g, "•");
+
+                                        return (
+                                            <div
+                                                key={i}
+                                                onClick={() => !isCorrectWord && setRevealedWords(p => { const next = new Set(p); next.add(i); return next; })}
+                                                className={(!isCorrectWord && shake) ? "shake-anim" : ""}
+                                                style={{
+                                                    padding: "8px 14px",
+                                                    borderRadius: 8,
+                                                    background: isCorrectWord ? "#C6F6D5" : "#EDF2F7",
+                                                    color: isCorrectWord ? "#22543D" : (isRevealed ? "#2D3748" : "#A0AEC0"),
+                                                    border: isCorrectWord ? "1px solid #9AE6B4" : "1px solid #E2E8F0",
+                                                    cursor: isCorrectWord ? "default" : "pointer",
+                                                    fontSize: 16,
+                                                    fontWeight: 600,
+                                                    fontFamily: isRevealed || isCorrectWord ? "inherit" : "monospace",
+                                                    letterSpacing: isRevealed || isCorrectWord ? "normal" : "2px",
+                                                    transition: "all 0.2s",
+                                                    display: "flex",
+                                                    alignItems: "center",
+                                                    justifyContent: "center",
+                                                    minWidth: 40,
+                                                    userSelect: "none"
+                                                }}
+                                            >
+                                                {isCorrectWord || isRevealed ? word : masked}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            <div style={{ display: "flex", gap: 10, flexShrink: 0 }}>
+                                <button
+                                    onClick={() => cur && seekRef.current(cur.start ?? 0, cur.end)}
+                                    style={{ flex: "0 0 auto", padding: "11px 16px", borderRadius: 10, border: "2px solid #CBD5E0", background: "#EDF2F7", fontSize: 13, cursor: "pointer", color: "#4A5568", fontWeight: 800, transition: "all 0.2s" }}
+                                    onMouseEnter={e => { e.currentTarget.style.borderColor = "#A0AEC0"; e.currentTarget.style.background = "#E2E8F0"; }}
+                                    onMouseLeave={e => { e.currentTarget.style.borderColor = "#CBD5E0"; e.currentTarget.style.background = "#EDF2F7"; }}
+                                >
+                                    🎧 Nghe lại
+                                </button>
+                                {!isCorrect ? (
+                                    <button
+                                        onClick={submit} disabled={!answer.trim()}
+                                        style={{ ...S.buttonPrimary, flex: 1, padding: "11px 0", fontSize: 14, opacity: answer.trim() ? 1 : 0.6, cursor: answer.trim() ? "pointer" : "not-allowed" }}
+                                    >
+                                        ✨ Kiểm tra (Enter)
+                                    </button>
+                                ) : (
+                                    <button
+                                        onClick={() => goNextRef.current(false)}
+                                        style={{ ...S.buttonSuccess, flex: 1, padding: "11px 0", fontSize: 14, boxShadow: "0 4px 12px rgba(56,161,105,0.3)" }}
+                                    >
+                                        {idx >= exercises.length - 1 ? "🏁 Hoàn thành bài" : "Câu tiếp theo (Enter) ➔"}
+                                    </button>
                                 )}
                             </div>
                         </div>
+                    </div>
 
-                        <textarea
-                            ref={taRef}
-                            value={answer}
-                            onChange={e => !isCorrect && setAnswer(e.target.value)}
-                            placeholder="Type the sentence here... (Enter to check)"
-                            disabled={isCorrect}
-                            style={{
-                                flexShrink: 0, minHeight: "60px", width: "100%", padding: "16px 20px",
-                                borderRadius: 16, resize: "none",
-                                border: `2px solid ${isCorrect ? "#38A169" : shake ? "#E53E3E" : "#FBB6CE"}`,
-                                background: isCorrect ? "rgba(56,161,105,0.04)" : shake ? "rgba(229,62,62,0.04)" : "#fff",
-                                fontSize: 16, fontFamily: "inherit", color: "#2D3748", outline: "none",
-                                transition: "all 0.25s", boxSizing: "border-box", lineHeight: 1.6,
-                                boxShadow: !isCorrect ? "0 4px 14px rgba(251,182,206,0.15)" : "none"
-                            }}
-                        />
-
-                        {/* Word Blocks UI */}
-                        <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 8 }}>
-                            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "#718096", padding: "0 4px" }}>
-                                <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                                    👁 Click to reveal
-                                </span>
-                                <span
-                                    style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", fontWeight: 600 }}
-                                    onClick={() => setRevealedWords(new Set(origWords.map((_, i) => i)))}
-                                >
-                                    👁 Show all
-                                </span>
+                    <div style={{ ...S.panel, flex: "0 0 40%" }}>
+                        <div style={S.header}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                <span style={{ fontSize: 16 }}>📜</span>
+                                <span style={S.title}>Transcript</span>
                             </div>
-
-                            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                                {origWords.map((word, i) => {
-                                    const isCorrectWord = i < okCount;
-                                    const isRevealed = revealedWords.has(i);
-                                    const masked = word.replace(/[a-zA-Z0-9À-ỹ]/g, "•");
-
-                                    return (
-                                        <div
-                                            key={i}
-                                            onClick={() => !isCorrectWord && setRevealedWords(p => { const next = new Set(p); next.add(i); return next; })}
-                                            className={(!isCorrectWord && shake) ? "shake-anim" : ""}
-                                            style={{
-                                                padding: "8px 14px",
-                                                borderRadius: 8,
-                                                background: isCorrectWord ? "#C6F6D5" : "#EDF2F7",
-                                                color: isCorrectWord ? "#22543D" : (isRevealed ? "#2D3748" : "#A0AEC0"),
-                                                border: isCorrectWord ? "1px solid #9AE6B4" : "1px solid #E2E8F0",
-                                                cursor: isCorrectWord ? "default" : "pointer",
-                                                fontSize: 16,
-                                                fontWeight: 600,
-                                                fontFamily: isRevealed || isCorrectWord ? "inherit" : "monospace",
-                                                letterSpacing: isRevealed || isCorrectWord ? "normal" : "2px",
-                                                transition: "all 0.2s",
-                                                display: "flex",
-                                                alignItems: "center",
-                                                justifyContent: "center",
-                                                minWidth: 40,
-                                                userSelect: "none"
-                                            }}
-                                        >
-                                            {isCorrectWord || isRevealed ? word : masked}
-                                        </div>
-                                    );
-                                })}
-                            </div>
+                            <span style={{ fontSize: 11, color: "#4A5568", fontWeight: 700, background: "#CBD5E0", padding: "4px 10px", borderRadius: 12 }}>
+                                {title ? (title.length > 30 ? title.substring(0, 30) + '...' : title) : `${exercises.length} câu`}
+                            </span>
                         </div>
 
-                        <div style={{ display: "flex", gap: 10, flexShrink: 0 }}>
-                            <button
-                                onClick={() => cur && seekRef.current(cur.start ?? 0, cur.end)}
-                                style={{ flex: "0 0 auto", padding: "11px 16px", borderRadius: 10, border: "2px solid #CBD5E0", background: "#EDF2F7", fontSize: 13, cursor: "pointer", color: "#4A5568", fontWeight: 800, transition: "all 0.2s" }}
-                                onMouseEnter={e => { e.currentTarget.style.borderColor = "#A0AEC0"; e.currentTarget.style.background = "#E2E8F0"; }}
-                                onMouseLeave={e => { e.currentTarget.style.borderColor = "#CBD5E0"; e.currentTarget.style.background = "#EDF2F7"; }}
-                            >
-                                🎧 Nghe lại
-                            </button>
-                            {!isCorrect ? (
-                                <button
-                                    onClick={submit} disabled={!answer.trim()}
-                                    style={{ ...S.buttonPrimary, flex: 1, padding: "11px 0", fontSize: 14, opacity: answer.trim() ? 1 : 0.6, cursor: answer.trim() ? "pointer" : "not-allowed" }}
-                                >
-                                    ✨ Kiểm tra (Enter)
-                                </button>
-                            ) : (
-                                <button
-                                    onClick={() => goNextRef.current(false)}
-                                    style={{ ...S.buttonSuccess, flex: 1, padding: "11px 0", fontSize: 14, boxShadow: "0 4px 12px rgba(56,161,105,0.3)" }}
-                                >
-                                    {idx >= exercises.length - 1 ? "🏁 Hoàn thành bài" : "Câu tiếp theo (Enter) ➔"}
-                                </button>
+                        <div ref={transcriptRef} style={{ flex: 1, overflowY: "auto", padding: 12, background: "#F7FAFC", display: "flex", flexDirection: "column", gap: 8 }}>
+                            {done.length === 0 && (
+                                <div style={{ padding: "40px 20px", textAlign: "center", display: "flex", flexDirection: "column", gap: 8, opacity: 0.5 }}>
+                                    <span style={{ fontSize: 32 }}>👀</span>
+                                    <span style={{ fontSize: 13, fontWeight: 700, color: "#718096" }}>Các câu bạn đã hoàn thành sẽ xuất hiện ở đây</span>
+                                </div>
                             )}
+                            {done.map((s) => (
+                                <div
+                                    key={s.idx}
+                                    onClick={() => seekRef.current(s.start, s.end)}
+                                    style={{
+                                        padding: "12px 14px", borderRadius: 12, cursor: "pointer",
+                                        border: "1px solid #E2E8F0",
+                                        background: "#fff",
+                                        borderLeft: `4px solid ${s.ok ? "#38A169" : "#E53E3E"}`,
+                                        transition: "all 0.2s",
+                                        boxShadow: "0 2px 8px rgba(0,0,0,0.02)"
+                                    }}
+                                    onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-1px)"; e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.05)"; }}
+                                    onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.02)"; }}
+                                >
+                                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8, marginBottom: 4 }}>
+                                        <div style={{ fontSize: 15, fontWeight: 700, lineHeight: 1.5, color: "#2D3748" }}>
+                                            {s.original}
+                                        </div>
+                                        <div style={{ fontSize: 10, fontWeight: 800, color: s.ok ? "#2F855A" : "#C53030", background: s.ok ? "rgba(56,161,105,0.15)" : "rgba(229,62,62,0.15)", padding: "4px 8px", borderRadius: 8, flexShrink: 0 }}>
+                                            {s.skipped && "⏭ "}#{s.idx + 1}
+                                        </div>
+                                    </div>
+                                    {/* Duo sub */}
+                                    <div style={{ fontSize: 13, color: "#A0AEC0", fontWeight: 600, fontStyle: "italic", marginTop: 4 }}>
+                                        {s.translated || "(Bản dịch tiếng Việt đang cập nhật...)"}
+                                    </div>
+                                    <div style={{ fontSize: 10, color: "#718096", marginTop: 8, fontWeight: 700, display: "flex", alignItems: "center", gap: 4 }}>
+                                        <span style={{ color: "#3182CE" }}>▶</span> {s.start?.toFixed(1)}s
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                     </div>
                 </div>
 
-                <div style={{ ...S.panel, flex: "0 0 40%" }}>
-                    <div style={S.header}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                            <span style={{ fontSize: 16 }}>📜</span>
-                            <span style={S.title}>Transcript</span>
-                        </div>
-                        <span style={{ fontSize: 11, color: "#4A5568", fontWeight: 700, background: "#CBD5E0", padding: "4px 10px", borderRadius: 12 }}>
-                            {title ? (title.length > 30 ? title.substring(0, 30) + '...' : title) : `${exercises.length} câu`}
-                        </span>
-                    </div>
-
-                    <div ref={transcriptRef} style={{ flex: 1, overflowY: "auto", padding: 12, background: "#F7FAFC", display: "flex", flexDirection: "column", gap: 8 }}>
-                        {done.length === 0 && (
-                            <div style={{ padding: "40px 20px", textAlign: "center", display: "flex", flexDirection: "column", gap: 8, opacity: 0.5 }}>
-                                <span style={{ fontSize: 32 }}>👀</span>
-                                <span style={{ fontSize: 13, fontWeight: 700, color: "#718096" }}>Các câu bạn đã hoàn thành sẽ xuất hiện ở đây</span>
-                            </div>
-                        )}
-                        {done.map((s) => (
-                            <div
-                                key={s.idx}
-                                onClick={() => seekRef.current(s.start, s.end)}
-                                style={{
-                                    padding: "12px 14px", borderRadius: 12, cursor: "pointer",
-                                    border: "1px solid #E2E8F0",
-                                    background: "#fff",
-                                    borderLeft: `4px solid ${s.ok ? "#38A169" : "#E53E3E"}`,
-                                    transition: "all 0.2s",
-                                    boxShadow: "0 2px 8px rgba(0,0,0,0.02)"
-                                }}
-                                onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-1px)"; e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.05)"; }}
-                                onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.02)"; }}
-                            >
-                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8, marginBottom: 4 }}>
-                                    <div style={{ fontSize: 15, fontWeight: 700, lineHeight: 1.5, color: "#2D3748" }}>
-                                        {s.original}
-                                    </div>
-                                    <div style={{ fontSize: 10, fontWeight: 800, color: s.ok ? "#2F855A" : "#C53030", background: s.ok ? "rgba(56,161,105,0.15)" : "rgba(229,62,62,0.15)", padding: "4px 8px", borderRadius: 8, flexShrink: 0 }}>
-                                        {s.skipped ? "⏭" : `#${s.idx + 1}`}
-                                    </div>
-                                </div>
-                                {/* Duo sub */}
-                                <div style={{ fontSize: 13, color: "#A0AEC0", fontWeight: 600, fontStyle: "italic", marginTop: 4 }}>
-                                    {s.translated || "(Bản dịch tiếng Việt đang cập nhật...)"}
-                                </div>
-                                <div style={{ fontSize: 10, color: "#718096", marginTop: 8, fontWeight: 700, display: "flex", alignItems: "center", gap: 4 }}>
-                                    <span style={{ color: "#3182CE" }}>▶</span> {s.start?.toFixed(1)}s
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            </div>
-
-            <style>{`
+                <style>{`
                 @keyframes pulse {
                     0% { opacity: 1; transform: scale(1); }
                     50% { opacity: 0.6; transform: scale(1.1); }
