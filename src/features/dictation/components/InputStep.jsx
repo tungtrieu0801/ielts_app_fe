@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import {
     Box, Flex, Text, Button, Textarea, Input, Spinner,
+    PaginationRoot, PaginationPrevTrigger, PaginationNextTrigger, PaginationItems,
 } from "@chakra-ui/react";
 import {
     FiFileText, FiYoutube, FiArrowRight, FiAlertCircle,
@@ -22,6 +23,8 @@ const InputStep = ({ onReady }) => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [library, setLibrary] = useState([]);
+    const [page, setPage] = useState(1);
+    const [paginationData, setPaginationData] = useState(null);
     const tabs = [
         { key: "text", label: "📄 Đoạn văn" },
         { key: "youtube", label: "▶️ YouTube" },
@@ -51,10 +54,13 @@ const InputStep = ({ onReady }) => {
     // Fetch shared library when YouTube tab is active
     useEffect(() => {
         if (tab !== "youtube") return;
-        getSharedLibrary()
-            .then(res => setLibrary(res.data?.data || []))
+        getSharedLibrary(page, 10)
+            .then(res => {
+                setLibrary(res.data?.data || []);
+                setPaginationData(res.data?.pagination || null);
+            })
             .catch(() => setLibrary([]));
-    }, [tab]);
+    }, [tab, page]);
 
     const handleSubmit = async (urlOverride) => {
         if (loading) return;
@@ -247,11 +253,34 @@ const InputStep = ({ onReady }) => {
                                                 {video.title}
                                             </Text>
                                             <Text fontSize="11px" color="fg.muted">
-                                                {video.total} câu · ⚡ từ cache
+                                                {video.doneCount > 0 ? (
+                                                    <span style={{ color: "#38A169", fontWeight: "700" }}>
+                                                        {Math.round((Math.min(video.doneCount, video.total) / video.total) * 100)}% hoàn thành
+                                                    </span>
+                                                ) : (
+                                                    <span>0%</span>
+                                                )}
+                                                {" · "}{video.total} câu · ⚡ từ cache
                                             </Text>
                                         </Box>
                                     ))}
                                 </Box>
+                                {paginationData && paginationData.totalPages > 1 && (
+                                    <Flex justify="center" mt={6}>
+                                        <PaginationRoot 
+                                            count={paginationData.totalItems} 
+                                            pageSize={paginationData.pageSize} 
+                                            page={page} 
+                                            onPageChange={(e) => setPage(e.page)}
+                                        >
+                                            <Flex gap={2} align="center">
+                                                <PaginationPrevTrigger>Trước</PaginationPrevTrigger>
+                                                <PaginationItems />
+                                                <PaginationNextTrigger>Sau</PaginationNextTrigger>
+                                            </Flex>
+                                        </PaginationRoot>
+                                    </Flex>
+                                )}
                             </Box>
                         )}
                     </Box>
