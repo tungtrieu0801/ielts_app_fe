@@ -144,7 +144,7 @@ const HomePage = () => {
                         <SRSScheduleWidget />
 
                         {/* Recent Sets */}
-                        <Box>
+                        {/* <Box>
                             <Flex justify="space-between" align="center" mb={4}>
                                 <Text fontSize="xl" fontWeight="bold">Bộ từ gần đây</Text>
                                 <Button variant="ghost" size="sm" colorPalette="blue" onClick={() => navigate("/sets")}>
@@ -220,7 +220,7 @@ const HomePage = () => {
                                     ))}
                                 </SimpleGrid>
                             )}
-                        </Box>
+                        </Box> */}
                     </Box>
 
                     {/* Right Column (Side Widgets) */}
