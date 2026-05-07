@@ -25,8 +25,9 @@ const InputStep = ({ onReady }) => {
     const [page, setPage] = useState(1);
     const [paginationData, setPaginationData] = useState(null);
     const tabs = [
+        { key: "youtube", label: "▶️ Video youtube" },
         { key: "text", label: "📄 Đoạn văn" },
-        { key: "youtube", label: "▶️ YouTube" },
+        // { key: "text", label: "📄 Âm thanh" },
     ];
 
     // Admin check for YouTube link input
@@ -100,9 +101,9 @@ const InputStep = ({ onReady }) => {
                 >
                     🎧
                 </Box> */}
-                <Text fontSize={{ base: "2xl", md: "4xl" }} fontWeight="extrabold" mb={2}>
+                {/* <Text fontSize={{ base: "2xl", md: "4xl" }} fontWeight="extrabold" mb={2}>
                     Dictation
-                </Text>
+                </Text> */}
                 <Text color="fg.muted" maxW="480px" mx="auto" fontSize="sm">
                     Luyện kỹ năng nghe – chép tiếng Anh theo chuẩn IELTS.
                     Dán đoạn văn hoặc link YouTube để bắt đầu.
