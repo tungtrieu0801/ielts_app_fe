@@ -18,8 +18,8 @@ export const calcQualityByTime = (isCorrect, elapsedMs) => {
 
     const seconds = elapsedMs / 1000;
 
-    if (seconds <= 6) return "EASY";
-    if (seconds <= 12) return "GOOD";
-    if (seconds <= 15) return "HARD";
+    if (seconds <= 8) return "EASY";
+    if (seconds <= 15) return "GOOD";
+    if (seconds <= 18) return "HARD";
     return "AGAIN"; // đúng nhưng phải nghĩ quá lâu → học lại
 };

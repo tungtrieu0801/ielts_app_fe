@@ -4,6 +4,7 @@ import { FiCheck, FiX } from "react-icons/fi";
 import { speak } from "../../../shared/utils/speech.js";
 import SpeakButton from "../../../shared/components/SpeakButton.jsx";
 import { calcQualityByTime } from "../../../shared/utils/calcQualityByTime.js";
+import StudyTimer from "./StudyTimer.jsx";
 
 // Tạo câu ví dụ với ô trống thay thế từ cần điền
 const createBlankSentence = (example, english) => {
@@ -19,6 +20,7 @@ const FillInBlank = ({ word, onAnswer, existingAnswer }) => {
     const [submitted, setSubmitted] = useState(false);
     const [correct, setCorrect] = useState(false);
     const [quality, setQuality] = useState(null);
+    const [finalTimeMs, setFinalTimeMs] = useState(0);
     const isFirstRender = React.useRef(true);
     const startTimeRef = useRef(Date.now());
 
@@ -46,6 +48,7 @@ const FillInBlank = ({ word, onAnswer, existingAnswer }) => {
         setSubmitted(false);
         setCorrect(false);
         setQuality(null);
+        setFinalTimeMs(0);
         startTimeRef.current = Date.now();
     }, [word?._id]);
 
@@ -56,6 +59,7 @@ const FillInBlank = ({ word, onAnswer, existingAnswer }) => {
         const elapsed = Date.now() - startTimeRef.current;
         const isCorrect = input.trim().toLowerCase() === word.english.toLowerCase();
         const q = calcQualityByTime(isCorrect, elapsed);
+        setFinalTimeMs(elapsed);
         setQuality(q);
         setCorrect(isCorrect);
         setSubmitted(true);
@@ -122,6 +126,10 @@ const FillInBlank = ({ word, onAnswer, existingAnswer }) => {
                             </Badge>
                         </Flex>
                     )}
+                </Flex>
+
+                <Flex position="absolute" top={4} right={4} gap={2} align="center">
+                    <StudyTimer startTime={startTimeRef.current} isRunning={!submitted} stoppedTimeMs={finalTimeMs} />
                 </Flex>
 
                 <Flex align="center" justify="center" gap={3} mb={6}>

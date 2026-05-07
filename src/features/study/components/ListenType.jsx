@@ -3,12 +3,14 @@ import { Box, Flex, Text, Input, Button, Badge, Icon, VStack } from "@chakra-ui/
 import { FiCheck, FiX, FiHeadphones, FiHelpCircle, FiEye } from "react-icons/fi";
 import { speak } from "../../../shared/utils/speech.js";
 import { calcQualityByTime } from "../../../shared/utils/calcQualityByTime.js";
+import StudyTimer from "./StudyTimer.jsx";
 
 const ListenType = ({ word, onAnswer }) => {
     const [input, setInput] = useState("");
     const [submitted, setSubmitted] = useState(false);
     const [correct, setCorrect] = useState(false);
     const [quality, setQuality] = useState(null);
+    const [finalTimeMs, setFinalTimeMs] = useState(0);
     const [hintLevel, setHintLevel] = useState(0);
     const [showExample, setShowExample] = useState(false);
     const inputRef = useRef(null);
@@ -30,6 +32,7 @@ const ListenType = ({ word, onAnswer }) => {
         setSubmitted(false);
         setCorrect(false);
         setQuality(null);
+        setFinalTimeMs(0);
         setHintLevel(0);
         setShowExample(false);
         startTimeRef.current = Date.now();
@@ -43,6 +46,7 @@ const ListenType = ({ word, onAnswer }) => {
         let q = calcQualityByTime(isCorrect, elapsed);
         // Dùng hint giới hạn tối đa GOOD
         if (hintLevel > 0 && q === "EASY") q = "GOOD";
+        setFinalTimeMs(elapsed);
         setQuality(q);
         setCorrect(isCorrect);
         setSubmitted(true);
@@ -105,6 +109,10 @@ const ListenType = ({ word, onAnswer }) => {
                     <Text fontSize="10px" fontWeight="800" color="green.600" letterSpacing="1px" textTransform="uppercase">
                         Nghe & Gõ từ
                     </Text>
+                </Flex>
+
+                <Flex position="absolute" top={4} right={4} gap={2} align="center">
+                    <StudyTimer startTime={startTimeRef.current} isRunning={!submitted} stoppedTimeMs={finalTimeMs} />
                 </Flex>
 
                 <VStack gap={6} mb={8} mt={2}>

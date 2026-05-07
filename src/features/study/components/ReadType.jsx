@@ -3,6 +3,7 @@ import { Box, Flex, Text, Input, Button, Badge, Icon, VStack } from "@chakra-ui/
 import { FiCheck, FiX, FiHelpCircle, FiEye, FiVolume2 } from "react-icons/fi";
 import { speak } from "../../../shared/utils/speech.js";
 import { calcQualityByTime } from "../../../shared/utils/calcQualityByTime.js";
+import StudyTimer from "./StudyTimer.jsx";
 
 /* ─── SRS Level colours (matches Flashcard.jsx) ─── */
 const LEVEL_COLORS = ["gray", "orange", "yellow", "blue", "purple", "green"];
@@ -154,6 +155,7 @@ const ReadType = ({ word, onAnswer }) => {
     const [showExample, setShowExample] = useState(false);
     const [showFireworks, setShowFireworks] = useState(false);
     const [quality, setQuality] = useState(null);
+    const [finalTimeMs, setFinalTimeMs] = useState(0);
     const inputRef = useRef(null);
     const startTimeRef = useRef(Date.now());
     const fireworksTimerRef = useRef(null);
@@ -177,6 +179,7 @@ const ReadType = ({ word, onAnswer }) => {
         setShowExample(false);
         setShowFireworks(false);
         setQuality(null);
+        setFinalTimeMs(0);
         startTimeRef.current = Date.now();
         setTimeout(() => inputRef.current?.focus(), 100);
     }, [word?._id]);
@@ -189,6 +192,7 @@ const ReadType = ({ word, onAnswer }) => {
         // Nếu dùng hint thì giới hạn tối đa GOOD
         let q = calcQualityByTime(isCorrect, elapsed);
         if (hintLevel > 0 && (q === "EASY")) q = "GOOD";
+        setFinalTimeMs(elapsed);
         setQuality(q);
         setCorrect(isCorrect);
         setSubmitted(true);
@@ -265,6 +269,7 @@ const ReadType = ({ word, onAnswer }) => {
 
                 {/* ── SRS + Word level badges (top-right) ── */}
                 <Flex position="absolute" top={4} right={4} gap={2} align="center" flexWrap="wrap" justify="flex-end">
+                    <StudyTimer startTime={startTimeRef.current} isRunning={!submitted} stoppedTimeMs={finalTimeMs} />
                     {srsStatus === "NEW" ? (
                         <Badge colorPalette="cyan" variant="solid" fontSize="xs" px={2} borderRadius="md">
                             ✨ TỪ MỚI
