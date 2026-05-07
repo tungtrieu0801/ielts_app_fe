@@ -75,6 +75,18 @@ export const useVocabularyStore = create((set, get) => ({
         set((s) => ({ wordSets: s.wordSets.filter((ws) => ws._id !== id) }));
     },
 
+    toggleDisableWordSet: async (id) => {
+        const res = await vocab.toggleDisableWordSet(id);
+        if (res.data) {
+            set((s) => ({
+                wordSets: s.wordSets.map((ws) =>
+                    ws._id === id ? { ...ws, isDisabled: res.data.isDisabled } : ws
+                ),
+            }));
+        }
+        return res;
+    },
+
     setCurrentSet: (set_) => set({ currentSet: set_ }),
 
     // --- Public WordSets ---

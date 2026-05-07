@@ -19,6 +19,9 @@ export const deleteWordSet = (id) =>
 export const forkWordSet = (id) =>
     axiosClient.post(`/wordsets/${id}/fork`).then((r) => r.data);
 
+export const toggleDisableWordSet = (id) =>
+    axiosClient.patch(`/wordsets/${id}/toggle-disable`).then((r) => r.data);
+
 // Words CRUD
 export const getWords = (setId, params = {}) =>
     axiosClient.get(`/wordsets/${setId}/words`, { params }).then((r) => r.data);

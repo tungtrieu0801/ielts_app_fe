@@ -3,7 +3,7 @@ import {
     Box, Flex, Text, SimpleGrid, Button, Input, Textarea, Spinner,
     IconButton, Badge,
 } from "@chakra-ui/react";
-import { FiPlus, FiTrash2, FiBook, FiPlay, FiGlobe, FiLock, FiGitBranch, FiFolder, FiChevronLeft, FiEdit2, FiChevronRight } from "react-icons/fi";
+import { FiPlus, FiTrash2, FiBook, FiPlay, FiGlobe, FiLock, FiGitBranch, FiFolder, FiChevronLeft, FiEdit2, FiChevronRight, FiPauseCircle, FiPlayCircle } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import BaseLayout from "../../../layouts/BaseLayout.jsx";
 import { useVocabularyStore } from "../../../stores/useVocabularyStore.js";
@@ -215,40 +215,64 @@ const WordSetModal = ({ onClose, onSave, initialData = null }) => {
     );
 };
 
-// ── My Set Card ───────────────────────────────────────────────────────────────
-const SetCard = ({ set, onDelete, onTogglePublic, onEdit }) => {
+// ── My Set Card ─────────────────────────────────────────────────────────────────
+const SetCard = ({ set, onDelete, onTogglePublic, onEdit, onToggleDisable }) => {
     const navigate = useNavigate();
     const [toggling, setToggling] = useState(false);
+    const [togglingDisable, setTogglingDisable] = useState(false);
     const c = set.color || "blue";
+    const isDisabled = !!set.isDisabled;
 
     return (
         <Box
             position="relative" bg="bg.panel" borderRadius="2xl" p={5}
-            borderWidth="1px" borderColor="border.muted" overflow="hidden"
-            cursor="pointer" transition="all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)"
-            _hover={{
+            borderWidth="1px"
+            borderColor={isDisabled ? "orange.300" : "border.muted"}
+            overflow="hidden"
+            cursor={isDisabled ? "default" : "pointer"}
+            opacity={isDisabled ? 0.65 : 1}
+            transition="all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)"
+            _hover={isDisabled ? {} : {
                 transform: "translateY(-6px)",
                 shadow: `0 20px 40px -10px var(--chakra-colors-${c}-500)`,
                 borderColor: `${c}.400`,
             }}
-            onClick={() => navigate(`/sets/${set._id}`)}
+            onClick={() => !isDisabled && navigate(`/sets/${set._id}`)}
         >
+            {/* Disabled overlay badge */}
+            {isDisabled && (
+                <Box
+                    position="absolute" top={3} right={3} zIndex={2}
+                    bg="orange.100" color="orange.700"
+                    _dark={{ bg: "orange.900/50", color: "orange.300" }}
+                    px={2} py={0.5} borderRadius="md" fontSize="10px" fontWeight="800"
+                    textTransform="uppercase" letterSpacing="wider"
+                    display="flex" alignItems="center" gap={1}
+                >
+                    <FiPauseCircle size={10} /> Tắt
+                </Box>
+            )}
+
             <Box position="absolute" top="-20px" right="-20px"
-                w="120px" h="120px" bg={`${c}.400`} opacity={0.15}
+                w="120px" h="120px" bg={isDisabled ? "gray.400" : `${c}.400`} opacity={0.15}
                 filter="blur(40px)" borderRadius="full" pointerEvents="none"
             />
             <Box position="absolute" top={0} left={0} right={0} h="5px"
-                bg={`linear-gradient(90deg, var(--chakra-colors-${c}-400) 0%, var(--chakra-colors-${c}-600) 100%)`}
+                bg={isDisabled
+                    ? "linear-gradient(90deg, var(--chakra-colors-gray-300) 0%, var(--chakra-colors-gray-400) 100%)"
+                    : `linear-gradient(90deg, var(--chakra-colors-${c}-400) 0%, var(--chakra-colors-${c}-600) 100%)`
+                }
             />
 
             <Flex align="flex-start" justify="space-between" mb={4} mt={2}>
                 <Flex align="center" gap={4} flex={1} minW={0}>
                     <Flex w="48px" h="48px" flexShrink={0} borderRadius="xl"
-                        bg={`${c}.100`} _dark={{ bg: `${c}.900` }}
+                        bg={isDisabled ? "gray.100" : `${c}.100`}
+                        _dark={{ bg: isDisabled ? "gray.700" : `${c}.900` }}
                         align="center" justify="center" fontSize="2xl"
-                        boxShadow={`0 10px 20px -5px var(--chakra-colors-${c}-500)`}
+                        boxShadow={isDisabled ? "none" : `0 10px 20px -5px var(--chakra-colors-${c}-500)`}
                     >
-                        📖
+                        {isDisabled ? "🚫" : "📖"}
                     </Flex>
                     <Box minW={0}>
                         <Flex align="center" gap={2}>
@@ -261,7 +285,7 @@ const SetCard = ({ set, onDelete, onTogglePublic, onEdit }) => {
                                 <FiLock size={13} color="var(--chakra-colors-gray-400)" title="Riêng tư" />
                             )}
                         </Flex>
-                        <Badge colorPalette={c} variant="subtle" size="sm" mt={1}
+                        <Badge colorPalette={isDisabled ? "orange" : c} variant="subtle" size="sm" mt={1}
                             px={2} py={0.5} borderRadius="md" fontWeight="bold">
                             {set.wordCount} TỪ VỰNG
                         </Badge>
@@ -288,26 +312,63 @@ const SetCard = ({ set, onDelete, onTogglePublic, onEdit }) => {
                 </Flex>
             </Flex>
 
-            <Text color="fg.muted" fontSize="sm" mb={6} lineHeight="1.6" noOfLines={2} minH="45px">
-                {set.description || "Chưa có mô tả nào cho bộ từ này."}
+            <Text color="fg.muted" fontSize="sm" mb={4} lineHeight="1.6" noOfLines={2} minH="45px">
+                {isDisabled
+                    ? <Text as="span" color="orange.500" fontStyle="italic" fontSize="xs">⚠️ Bộ từ này đang bị tắt. Các từ sẽ không được học hay tính vào thống kê.</Text>
+                    : (set.description || "Chưa có mô tả nào cho bộ từ này.")
+                }
             </Text>
 
             <Flex gap={3} mb={2}>
-                <Button flex={1} size="md" variant="subtle" colorPalette={c} borderRadius="xl" gap={2}
+                <Button flex={1} size="md" variant="subtle" colorPalette={isDisabled ? "gray" : c} borderRadius="xl" gap={2}
                     onClick={(e) => { e.stopPropagation(); navigate(`/sets/${set._id}`); }}
-                    _hover={{ bg: `${c}.200` }} _dark={{ _hover: { bg: `${c}.800` } }} transition="all 0.2s"
+                    _hover={{ bg: isDisabled ? "gray.200" : `${c}.200` }}
+                    _dark={{ _hover: { bg: isDisabled ? "gray.700" : `${c}.800` } }}
+                    transition="all 0.2s"
                 >
                     <FiBook size={16} /> Quản lý
                 </Button>
                 <Button flex={1} size="md" borderRadius="xl" gap={2}
-                    bg={`linear-gradient(135deg, var(--chakra-colors-${c}-400) 0%, var(--chakra-colors-${c}-600) 100%)`}
-                    color="white"
-                    onClick={(e) => { e.stopPropagation(); navigate(`/study/${set._id}`); }}
-                    _hover={{ opacity: 0.9, transform: "scale(1.02)" }} transition="all 0.2s"
+                    bg={isDisabled
+                        ? "gray.200"
+                        : `linear-gradient(135deg, var(--chakra-colors-${c}-400) 0%, var(--chakra-colors-${c}-600) 100%)`
+                    }
+                    color={isDisabled ? "gray.500" : "white"}
+                    cursor={isDisabled ? "not-allowed" : "pointer"}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        if (!isDisabled) navigate(`/study/${set._id}`);
+                    }}
+                    _hover={isDisabled ? {} : { opacity: 0.9, transform: "scale(1.02)" }}
+                    transition="all 0.2s"
+                    title={isDisabled ? "Bộ từ đang bị tắt" : "Học ngay"}
                 >
                     <FiPlay size={16} /> Học ngay
                 </Button>
             </Flex>
+
+            {/* Disable toggle */}
+            <Button
+                w="full" size="sm" borderRadius="xl" gap={2} variant="ghost"
+                colorPalette={isDisabled ? "orange" : "gray"}
+                loading={togglingDisable}
+                onClick={async (e) => {
+                    e.stopPropagation();
+                    setTogglingDisable(true);
+                    try { await onToggleDisable(set._id); }
+                    finally { setTogglingDisable(false); }
+                }}
+                borderWidth="1px"
+                borderColor={isDisabled ? "orange.300" : "border.muted"}
+                _dark={{ borderColor: isDisabled ? "orange.700" : "border.muted" }}
+                transition="all 0.2s"
+                mb={1}
+            >
+                {isDisabled
+                    ? <><FiPlayCircle size={13} /> Bật lại bộ từ</>  
+                    : <><FiPauseCircle size={13} /> Tắt bộ từ</>  
+                }
+            </Button>
 
             {/* Privacy toggle */}
             <Button
@@ -485,7 +546,7 @@ const SetsPage = () => {
     const {
         wordSets, folders, publicSets,
         fetchWordSets, fetchFolders, fetchPublicSets,
-        createWordSet, deleteWordSet, updateWordSet,
+        createWordSet, deleteWordSet, updateWordSet, toggleDisableWordSet,
         createFolder, updateFolder, deleteFolder,
         forkWordSet,
         loading, publicLoading, totalPublicSets
@@ -528,6 +589,10 @@ const SetsPage = () => {
 
     const handleTogglePublic = async (id, isPublic) => {
         await updateWordSet(id, { isPublic });
+    };
+
+    const handleToggleDisable = async (id) => {
+        await toggleDisableWordSet(id);
     };
 
     const handleFork = async (id) => {
@@ -730,15 +795,16 @@ const SetsPage = () => {
                                     <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} gap={6}>
                                         {wordSets.map((set) => (
                                             <SetCard
-                                                key={set._id}
-                                                set={set}
-                                                onDelete={handleDelete}
-                                                onTogglePublic={handleTogglePublic}
-                                                onEdit={(s) => {
-                                                    setEditingSet(s);
-                                                    setShowCreate(true);
-                                                }}
-                                            />
+                                            key={set._id}
+                                            set={set}
+                                            onDelete={handleDelete}
+                                            onTogglePublic={handleTogglePublic}
+                                            onToggleDisable={handleToggleDisable}
+                                            onEdit={(s) => {
+                                                setEditingSet(s);
+                                                setShowCreate(true);
+                                            }}
+                                        />
                                         ))}
                                     </SimpleGrid>
                                 ) : !isRoot && (
