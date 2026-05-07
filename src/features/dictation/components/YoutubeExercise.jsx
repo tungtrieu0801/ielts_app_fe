@@ -290,6 +290,10 @@ const YoutubeExercise = ({ data, onReset }) => {
     // Refs for saving
     const saveStateRef = useRef({ idx, done, stats, notes, videoId });
     saveStateRef.current = { 
+        userId: (() => {
+            const raw = localStorage.getItem("auth-storage");
+            return raw ? JSON.parse(raw)?.state?.user?._id : null;
+        })(),
         idx: (attemptResult?.allCorrect && idx < exercises.length - 1) ? idx + 1 : idx, 
         done, stats, notes, videoId 
     };

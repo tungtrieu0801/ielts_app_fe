@@ -54,7 +54,11 @@ const InputStep = ({ onReady }) => {
     // Fetch shared library when YouTube tab is active
     useEffect(() => {
         if (tab !== "youtube") return;
-        getSharedLibrary(page, 12)
+        const raw = localStorage.getItem("auth-storage");
+        const userId = raw ? JSON.parse(raw)?.state?.user?._id : null;
+        if (!userId) return;
+
+        getSharedLibrary(userId, page, 12)
             .then(res => {
                 setLibrary(res.data?.data || []);
                 setPaginationData(res.data?.pagination || null);
@@ -67,11 +71,14 @@ const InputStep = ({ onReady }) => {
         setError("");
         setLoading(true);
         try {
+            const raw = localStorage.getItem("auth-storage");
+            const userId = raw ? JSON.parse(raw)?.state?.user?._id : null;
+
             let res;
             if (tab === "text") {
-                res = await prepareText(textInput);
+                res = await prepareText({ userId, text: textInput });
             } else {
-                res = await prepareYoutube(urlOverride || youtubeUrl);
+                res = await prepareYoutube({ userId, url: urlOverride || youtubeUrl });
             }
             onReady(res.data);
         } catch (err) {
