@@ -54,7 +54,7 @@ const InputStep = ({ onReady }) => {
     // Fetch shared library when YouTube tab is active
     useEffect(() => {
         if (tab !== "youtube") return;
-        getSharedLibrary(page, 10)
+        getSharedLibrary(page, 12)
             .then(res => {
                 setLibrary(res.data?.data || []);
                 setPaginationData(res.data?.pagination || null);
