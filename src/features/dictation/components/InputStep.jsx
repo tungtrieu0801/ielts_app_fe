@@ -16,7 +16,7 @@ const SHORTCUT_HINTS = [
 ];
 
 const InputStep = ({ onReady }) => {
-    const [tab, setTab] = useState("text");
+    const [tab, setTab] = useState("youtube");
     const [textInput, setTextInput] = useState("");
     const [youtubeUrl, setYoutubeUrl] = useState("");
     const [loading, setLoading] = useState(false);
@@ -253,14 +253,14 @@ const InputStep = ({ onReady }) => {
                                                 {video.title}
                                             </Text>
                                             <Text fontSize="11px" color="fg.muted">
+                                                {video.total} sentences
+                                            </Text>
+                                            <Text fontSize="13px" fontWeight="700" color={video.doneCount > 0 ? "#38A169" : "fg.muted"}>
                                                 {video.doneCount > 0 ? (
-                                                    <span style={{ color: "#38A169", fontWeight: "700" }}>
-                                                        {Math.round((Math.min(video.doneCount, video.total) / video.total) * 100)}% hoàn thành
-                                                    </span>
+                                                    `${Math.round((Math.min(video.doneCount, video.total) / video.total) * 100)}% completed`
                                                 ) : (
-                                                    <span>0%</span>
+                                                    "0% completed"
                                                 )}
-                                                {" · "}{video.total} câu · ⚡ từ cache
                                             </Text>
                                         </Box>
                                     ))}
