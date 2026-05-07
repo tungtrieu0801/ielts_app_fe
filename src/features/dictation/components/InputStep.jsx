@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import {
     Box, Flex, Text, Button, Textarea, Input, Spinner,
-    PaginationRoot, PaginationPrevTrigger, PaginationNextTrigger, PaginationItems,
 } from "@chakra-ui/react";
 import {
     FiFileText, FiYoutube, FiArrowRight, FiAlertCircle,
@@ -92,7 +91,7 @@ const InputStep = ({ onReady }) => {
         <Box>
             {/* Page header */}
             <Box mb={8} textAlign="center">
-                <Box
+                {/* <Box
                     w="72px" h="72px" borderRadius="2xl"
                     bg="brand.muted" mx="auto" mb={4}
                     display="flex" alignItems="center" justifyContent="center"
@@ -100,7 +99,7 @@ const InputStep = ({ onReady }) => {
                     boxShadow="0 0 40px var(--chakra-colors-brand-muted)"
                 >
                     🎧
-                </Box>
+                </Box> */}
                 <Text fontSize={{ base: "2xl", md: "4xl" }} fontWeight="extrabold" mb={2}>
                     Dictation
                 </Text>
@@ -266,19 +265,26 @@ const InputStep = ({ onReady }) => {
                                     ))}
                                 </Box>
                                 {paginationData && paginationData.totalPages > 1 && (
-                                    <Flex justify="center" mt={6}>
-                                        <PaginationRoot 
-                                            count={paginationData.totalItems} 
-                                            pageSize={paginationData.pageSize} 
-                                            page={page} 
-                                            onPageChange={(e) => setPage(e.page)}
+                                    <Flex justify="center" align="center" gap={4} mt={6}>
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            disabled={page === 1}
+                                            onClick={(e) => { e.stopPropagation(); setPage(p => Math.max(1, p - 1)); }}
                                         >
-                                            <Flex gap={2} align="center">
-                                                <PaginationPrevTrigger>Trước</PaginationPrevTrigger>
-                                                <PaginationItems />
-                                                <PaginationNextTrigger>Sau</PaginationNextTrigger>
-                                            </Flex>
-                                        </PaginationRoot>
+                                            ← Trang trước
+                                        </Button>
+                                        <Text fontSize="sm" fontWeight="bold" color="fg.muted">
+                                            {page} / {paginationData.totalPages}
+                                        </Text>
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            disabled={page >= paginationData.totalPages}
+                                            onClick={(e) => { e.stopPropagation(); setPage(p => p + 1); }}
+                                        >
+                                            Trang sau →
+                                        </Button>
                                     </Flex>
                                 )}
                             </Box>
@@ -291,9 +297,10 @@ const InputStep = ({ onReady }) => {
                 {error && (
                     <Flex
                         align="center" gap={2} mt={4} p={3}
-                        bg="red.50" _dark={{ bg: "red.900/20" }}
+                        bg="red.50"
                         borderRadius="lg" borderWidth="1px"
-                        borderColor="red.200" _dark={{ borderColor: "red.800" }}
+                        borderColor="red.200"
+                        _dark={{ bg: "red.900/20", borderColor: "red.800" }}
                     >
                         <Box color="red.500" flexShrink={0}><FiAlertCircle size={16} /></Box>
                         <Text fontSize="sm" color="red.600" _dark={{ color: "red.300" }}>
