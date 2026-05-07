@@ -9,7 +9,7 @@ import { useColorMode } from "../../../components/ui/color-mode.jsx";
 import { useTTS } from "../hooks/useTTS.js";
 
 const normalize = (s) =>
-    s.toLowerCase().trim().replace(/[.,;:!?'"‘’“”\-\(\)\[\]]/g, "").replace(/\s+/g, " ");
+    s.toLowerCase().trim().replace(/[.,;:!?'"‘’“”\-\(\)\[\]…—–]/g, "").replace(/\s+/g, " ");
 
 // ── Finished screen ──────────────────────────────────────────────────
 const FinishedScreen = ({ total, correct, wrong, onReset }) => {
