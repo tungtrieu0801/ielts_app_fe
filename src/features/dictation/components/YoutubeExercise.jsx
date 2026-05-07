@@ -289,7 +289,10 @@ const YoutubeExercise = ({ data, onReset }) => {
 
     // Refs for saving
     const saveStateRef = useRef({ idx, done, stats, notes, videoId });
-    saveStateRef.current = { idx, done, stats, notes, videoId };
+    saveStateRef.current = { 
+        idx: (attemptResult?.allCorrect && idx < exercises.length - 1) ? idx + 1 : idx, 
+        done, stats, notes, videoId 
+    };
 
     const handleSaveProgress = useCallback(async (isSilent = false) => {
         try {
@@ -689,9 +692,9 @@ const YoutubeExercise = ({ data, onReset }) => {
                                     <span style={{ fontSize: 13, fontWeight: 700, color: "#718096" }}>Các câu bạn đã hoàn thành sẽ xuất hiện ở đây</span>
                                 </div>
                             )}
-                            {done.map((s) => (
+                            {done.map((s, i) => (
                                 <div
-                                    key={s.idx}
+                                    key={`${s.idx}-${i}`}
                                     onClick={() => seekRef.current(s.start, s.end)}
                                     style={{
                                         padding: "12px 14px", borderRadius: 12, cursor: "pointer",
