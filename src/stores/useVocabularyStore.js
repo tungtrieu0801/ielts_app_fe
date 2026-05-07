@@ -87,6 +87,17 @@ export const useVocabularyStore = create((set, get) => ({
         return res;
     },
 
+    moveWordSetToFolder: async (id, folderId) => {
+        const res = await vocab.moveWordSetToFolder(id, folderId);
+        if (res.data) {
+            // Xóa bộ từ khỏi danh sách hiện tại (vì đã chuyển sang folder khác)
+            set((s) => ({
+                wordSets: s.wordSets.filter((ws) => ws._id !== id),
+            }));
+        }
+        return res;
+    },
+
     setCurrentSet: (set_) => set({ currentSet: set_ }),
 
     // --- Public WordSets ---

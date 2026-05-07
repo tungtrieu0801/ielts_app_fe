@@ -3,12 +3,162 @@ import {
     Box, Flex, Text, SimpleGrid, Button, Input, Textarea, Spinner,
     IconButton, Badge,
 } from "@chakra-ui/react";
-import { FiPlus, FiTrash2, FiBook, FiPlay, FiGlobe, FiLock, FiGitBranch, FiFolder, FiChevronLeft, FiEdit2, FiChevronRight, FiPauseCircle, FiPlayCircle } from "react-icons/fi";
+import { FiPlus, FiTrash2, FiBook, FiPlay, FiGlobe, FiLock, FiGitBranch, FiFolder, FiChevronLeft, FiEdit2, FiChevronRight, FiPauseCircle, FiPlayCircle, FiCornerUpRight } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import BaseLayout from "../../../layouts/BaseLayout.jsx";
 import { useVocabularyStore } from "../../../stores/useVocabularyStore.js";
 
 const COLORS = ["blue", "purple", "green", "orange", "red", "teal", "pink"];
+
+// ── Move to Folder Modal ───────────────────────────────────────────────────────
+const MoveFolderModal = ({ set, folders, onClose, onMove }) => {
+    const [selected, setSelected] = useState(set.folderId || null);
+    const [moving, setMoving] = useState(false);
+
+    const handleMove = async () => {
+        setMoving(true);
+        try {
+            await onMove(set._id, selected);
+            onClose();
+        } finally {
+            setMoving(false);
+        }
+    };
+
+    const c = set.color || "blue";
+    const currentFolderName = folders.find(f => f._id === set.folderId)?.name;
+    const selectedFolderName = folders.find(f => f._id === selected)?.name;
+
+    return (
+        <Box
+            position="fixed" inset={0} zIndex={100}
+            bg="blackAlpha.600" display="flex" alignItems="center" justifyContent="center"
+            onClick={onClose}
+        >
+            <Box
+                bg="bg.panel" borderRadius="2xl" p={7} w="full" maxW="440px"
+                mx={4} shadow="2xl" onClick={(e) => e.stopPropagation()}
+            >
+                {/* Header */}
+                <Flex align="center" gap={3} mb={2}>
+                    <Flex w="40px" h="40px" borderRadius="xl"
+                        bg={`${c}.100`} _dark={{ bg: `${c}.900` }}
+                        align="center" justify="center" fontSize="xl" flexShrink={0}
+                    >
+                        📖
+                    </Flex>
+                    <Box minW={0}>
+                        <Text fontWeight="800" fontSize="md" isTruncated>{set.title}</Text>
+                        <Text fontSize="xs" color="fg.muted">
+                            {currentFolderName
+                                ? `Đang trong: ${currentFolderName}`
+                                : "Hiện đang ở ngoài (không thuộc thư mục nào)"
+                            }
+                        </Text>
+                    </Box>
+                </Flex>
+
+                <Text fontSize="sm" fontWeight="700" color="fg" mb={3} mt={5}>
+                    Chọn thư mục đích
+                </Text>
+
+                {/* Option: move to root */}
+                <Box
+                    p={3} mb={2} borderRadius="xl" cursor="pointer"
+                    borderWidth="2px"
+                    borderColor={selected === null ? "blue.400" : "border.muted"}
+                    bg={selected === null ? "blue.50" : "bg.subtle"}
+                    _dark={{ bg: selected === null ? "blue.900/30" : "gray.800" }}
+                    onClick={() => setSelected(null)}
+                    transition="all 0.15s"
+                >
+                    <Flex align="center" gap={3}>
+                        <Box fontSize="lg">🗂️</Box>
+                        <Box flex={1}>
+                            <Text fontSize="sm" fontWeight={selected === null ? "700" : "500"}
+                                color={selected === null ? "blue.600" : "fg"}
+                                _dark={{ color: selected === null ? "blue.300" : "fg" }}
+                            >
+                                Không thuộc thư mục nào (root)
+                            </Text>
+                            <Text fontSize="xs" color="fg.muted">Đưa bộ từ ra màn hình chính</Text>
+                        </Box>
+                        {selected === null && (
+                            <Box w="8px" h="8px" borderRadius="full" bg="blue.400" flexShrink={0} />
+                        )}
+                    </Flex>
+                </Box>
+
+                {/* Folder list */}
+                {folders.length === 0 ? (
+                    <Box py={6} textAlign="center">
+                        <Text fontSize="2xl" mb={2}>📁</Text>
+                        <Text fontSize="sm" color="fg.muted">Bạn chưa có thư mục nào. Hãy tạo một thư mục trước!</Text>
+                    </Box>
+                ) : (
+                    <Box maxH="260px" overflowY="auto" display="flex" flexDirection="column" gap={2} pr={1}>
+                        {folders.map(folder => {
+                            const fc = folder.color || "purple";
+                            const isSelected = selected === folder._id;
+                            return (
+                                <Box
+                                    key={folder._id}
+                                    p={3} borderRadius="xl" cursor="pointer"
+                                    borderWidth="2px"
+                                    borderColor={isSelected ? `${fc}.400` : "border.muted"}
+                                    bg={isSelected ? `${fc}.50` : "bg.subtle"}
+                                    _dark={{ bg: isSelected ? `${fc}.900/30` : "gray.800" }}
+                                    onClick={() => setSelected(folder._id)}
+                                    transition="all 0.15s"
+                                    _hover={{ borderColor: `${fc}.300` }}
+                                >
+                                    <Flex align="center" gap={3}>
+                                        <Flex w="32px" h="32px" borderRadius="lg"
+                                            bg={`${fc}.500`} color="white"
+                                            align="center" justify="center" flexShrink={0}
+                                        >
+                                            <FiFolder size={16} />
+                                        </Flex>
+                                        <Box flex={1} minW={0}>
+                                            <Text fontSize="sm"
+                                                fontWeight={isSelected ? "700" : "500"}
+                                                color={isSelected ? `${fc}.700` : "fg"}
+                                                _dark={{ color: isSelected ? `${fc}.300` : "fg" }}
+                                                isTruncated
+                                            >
+                                                {folder.name}
+                                            </Text>
+                                            {folder.setCount !== undefined && (
+                                                <Text fontSize="xs" color="fg.muted">{folder.setCount || 0} bộ từ</Text>
+                                            )}
+                                        </Box>
+                                        {isSelected && (
+                                            <Box w="8px" h="8px" borderRadius="full" bg={`${fc}.400`} flexShrink={0} />
+                                        )}
+                                    </Flex>
+                                </Box>
+                            );
+                        })}
+                    </Box>
+                )}
+
+                {/* Footer */}
+                <Flex gap={3} justify="flex-end" mt={6}>
+                    <Button variant="ghost" onClick={onClose} size="md">Hủy</Button>
+                    <Button
+                        colorPalette="blue" onClick={handleMove}
+                        loading={moving}
+                        size="md" borderRadius="xl"
+                        disabled={selected === (set.folderId || null)}
+                    >
+                        <FiCornerUpRight size={15} />
+                        {selected === null ? "Chuyển ra ngoài" : `Chuyển vào "${selectedFolderName}"`}
+                    </Button>
+                </Flex>
+            </Box>
+        </Box>
+    );
+};
 
 // ── Create/Edit Folder Modal ──────────────────────────────────────────────────
 const FolderModal = ({ onClose, onSave, initialData = null }) => {
@@ -216,10 +366,11 @@ const WordSetModal = ({ onClose, onSave, initialData = null }) => {
 };
 
 // ── My Set Card ─────────────────────────────────────────────────────────────────
-const SetCard = ({ set, onDelete, onTogglePublic, onEdit, onToggleDisable }) => {
+const SetCard = ({ set, folders, onDelete, onTogglePublic, onEdit, onToggleDisable, onMoveToFolder }) => {
     const navigate = useNavigate();
     const [toggling, setToggling] = useState(false);
     const [togglingDisable, setTogglingDisable] = useState(false);
+    const [showMoveModal, setShowMoveModal] = useState(false);
     const c = set.color || "blue";
     const isDisabled = !!set.isDisabled;
 
@@ -388,6 +539,28 @@ const SetCard = ({ set, onDelete, onTogglePublic, onEdit, onToggleDisable }) => 
             >
                 {set.isPublic ? <><FiGlobe size={13} /> Công khai — chuyển thành Riêng tư</> : <><FiLock size={13} /> Riêng tư — chuyển thành Công khai</>}
             </Button>
+
+            {/* Move to folder */}
+            <Button
+                w="full" size="sm" borderRadius="xl" gap={2} variant="ghost"
+                colorPalette="purple"
+                onClick={(e) => { e.stopPropagation(); setShowMoveModal(true); }}
+                borderWidth="1px" borderColor="border.muted"
+                _dark={{ borderColor: "border.muted" }}
+                transition="all 0.2s"
+            >
+                <FiCornerUpRight size={13} /> Chuyển vào thư mục
+            </Button>
+
+            {/* Move Modal */}
+            {showMoveModal && (
+                <MoveFolderModal
+                    set={set}
+                    folders={folders}
+                    onClose={() => setShowMoveModal(false)}
+                    onMove={onMoveToFolder}
+                />
+            )}
         </Box>
     );
 };
@@ -546,7 +719,7 @@ const SetsPage = () => {
     const {
         wordSets, folders, publicSets,
         fetchWordSets, fetchFolders, fetchPublicSets,
-        createWordSet, deleteWordSet, updateWordSet, toggleDisableWordSet,
+        createWordSet, deleteWordSet, updateWordSet, toggleDisableWordSet, moveWordSetToFolder,
         createFolder, updateFolder, deleteFolder,
         forkWordSet,
         loading, publicLoading, totalPublicSets
@@ -593,6 +766,13 @@ const SetsPage = () => {
 
     const handleToggleDisable = async (id) => {
         await toggleDisableWordSet(id);
+    };
+
+    const handleMoveToFolder = async (id, folderId) => {
+        const res = await moveWordSetToFolder(id, folderId);
+        // Refresh folders to update setCount
+        await fetchFolders();
+        return res;
     };
 
     const handleFork = async (id) => {
@@ -797,9 +977,11 @@ const SetsPage = () => {
                                             <SetCard
                                             key={set._id}
                                             set={set}
+                                            folders={folders}
                                             onDelete={handleDelete}
                                             onTogglePublic={handleTogglePublic}
                                             onToggleDisable={handleToggleDisable}
+                                            onMoveToFolder={handleMoveToFolder}
                                             onEdit={(s) => {
                                                 setEditingSet(s);
                                                 setShowCreate(true);

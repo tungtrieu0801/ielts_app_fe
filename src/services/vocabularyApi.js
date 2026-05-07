@@ -22,6 +22,9 @@ export const forkWordSet = (id) =>
 export const toggleDisableWordSet = (id) =>
     axiosClient.patch(`/wordsets/${id}/toggle-disable`).then((r) => r.data);
 
+export const moveWordSetToFolder = (id, folderId) =>
+    axiosClient.patch(`/wordsets/${id}/move-to-folder`, { folderId: folderId || null }).then((r) => r.data);
+
 // Words CRUD
 export const getWords = (setId, params = {}) =>
     axiosClient.get(`/wordsets/${setId}/words`, { params }).then((r) => r.data);
