@@ -731,6 +731,7 @@ const SetsPage = () => {
     const [editingFolder, setEditingFolder] = useState(null);
     const [tab, setTab] = useState("mine"); // "mine" | "community"
     const [publicPage, setPublicPage] = useState(1);
+    const [setFilter, setSetFilter] = useState("active"); // "all" | "active" | "disabled"
 
     // Navigation state
     const [currentFolder, setCurrentFolder] = useState(null); // { id, name } | null
@@ -744,6 +745,8 @@ const SetsPage = () => {
                 fetchWordSets("root"); // Fetch orphaned sets
             }
         }
+        // Reset filter khi chuyển folder/tab
+        setSetFilter("active");
     }, [tab, currentFolder]);
 
     useEffect(() => {
@@ -960,20 +963,63 @@ const SetsPage = () => {
 
                             {/* Render Sets */}
                             <Box>
+                                {/* Filter bar — chỉ hiện khi bên trong folder */}
                                 {!isRoot && wordSets.length > 0 && (
-                                    <Text fontSize="xs" fontWeight="900" color="fg.muted" mb={5} textTransform="uppercase" letterSpacing="widest">
-                                        Bộ từ trong "{currentFolder.name}"
-                                    </Text>
+                                    <Flex align="center" justify="space-between" mb={5} gap={3} flexWrap="wrap">
+                                        <Text fontSize="xs" fontWeight="900" color="fg.muted" textTransform="uppercase" letterSpacing="widest">
+                                            Bộ từ trong "{currentFolder.name}"
+                                        </Text>
+                                        <Flex gap={1} bg="bg.subtle" p={1} borderRadius="lg">
+                                            {[
+                                                { key: "all", label: "Tất cả", count: wordSets.length },
+                                                { key: "active", label: "✅ Bật", count: wordSets.filter(s => !s.isDisabled).length },
+                                                { key: "disabled", label: "⏸ Tắt", count: wordSets.filter(s => s.isDisabled).length },
+                                            ].map(({ key, label, count }) => (
+                                                <Button
+                                                    key={key} size="xs" borderRadius="md"
+                                                    variant={setFilter === key ? "solid" : "ghost"}
+                                                    colorPalette={setFilter === key
+                                                        ? key === "disabled" ? "orange" : "blue"
+                                                        : "gray"
+                                                    }
+                                                    onClick={() => setSetFilter(key)}
+                                                    gap={1}
+                                                >
+                                                    {label}
+                                                    <Badge
+                                                        size="xs" borderRadius="full"
+                                                        colorPalette={setFilter === key
+                                                            ? key === "disabled" ? "orange" : "blue"
+                                                            : "gray"
+                                                        }
+                                                        variant="subtle"
+                                                    >
+                                                        {count}
+                                                    </Badge>
+                                                </Button>
+                                            ))}
+                                        </Flex>
+                                    </Flex>
                                 )}
+
                                 {isRoot && wordSets.length > 0 && (
                                     <Text fontSize="xs" fontWeight="900" color="fg.muted" mb={5} textTransform="uppercase" letterSpacing="widest">
                                         Bộ từ lẻ
                                     </Text>
                                 )}
 
-                                {wordSets.length > 0 ? (
+                                {(() => {
+                                    const filteredSets = !isRoot
+                                        ? wordSets.filter(s => {
+                                            if (setFilter === "active") return !s.isDisabled;
+                                            if (setFilter === "disabled") return !!s.isDisabled;
+                                            return true;
+                                        })
+                                        : wordSets;
+
+                                    return filteredSets.length > 0 ? (
                                     <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} gap={6}>
-                                        {wordSets.map((set) => (
+                                        {filteredSets.map((set) => (
                                             <SetCard
                                             key={set._id}
                                             set={set}
@@ -989,18 +1035,46 @@ const SetsPage = () => {
                                         />
                                         ))}
                                     </SimpleGrid>
-                                ) : !isRoot && (
-                                    <Flex direction="column" align="center" justify="center" py={32} bg="bg.panel" borderRadius="3xl" borderStyle="dashed" borderWidth="2px" borderColor="border.muted" gap={4}>
-                                        <Box fontSize="5xl">📖</Box>
-                                        <Box textAlign="center">
-                                            <Text fontWeight="bold" fontSize="lg">Thư mục này chưa có bộ từ</Text>
-                                            <Text fontSize="sm" color="fg.muted">Bắt đầu tạo học liệu đầu tiên cho thư mục này</Text>
-                                        </Box>
-                                        <Button size="lg" colorPalette="blue" borderRadius="xl" onClick={() => setShowCreate(true)}>
-                                            <FiPlus /> Tạo bộ từ mới
-                                        </Button>
-                                    </Flex>
-                                )}
+                                    ) : (
+                                        <Flex direction="column" align="center" justify="center"
+                                            py={20} bg="bg.panel" borderRadius="3xl"
+                                            borderStyle="dashed" borderWidth="2px" borderColor="border.muted" gap={3}
+                                        >
+                                            <Box fontSize="4xl">
+                                                {setFilter === "disabled" ? "⏸" : setFilter === "active" ? "✅" : "📖"}
+                                            </Box>
+                                            <Box textAlign="center">
+                                                <Text fontWeight="bold" fontSize="md">
+                                                    {setFilter === "disabled"
+                                                        ? "Không có bộ từ nào đang tắt"
+                                                        : setFilter === "active"
+                                                        ? "Không có bộ từ nào đang bật"
+                                                        : "Thư mục này chưa có bộ từ"
+                                                    }
+                                                </Text>
+                                                <Text fontSize="sm" color="fg.muted">
+                                                    {setFilter !== "all"
+                                                        ? `Chuyển sang xem "Tất cả" để xem đầy đủ`
+                                                        : "Bắt đầu tạo học liệu đầu tiên cho thư mục này"
+                                                    }
+                                                </Text>
+                                            </Box>
+                                            {setFilter !== "all" && (
+                                                <Button size="sm" variant="subtle" colorPalette="blue"
+                                                    borderRadius="xl"
+                                                    onClick={() => setSetFilter("all")}
+                                                >
+                                                    Xem tất cả bộ từ
+                                                </Button>
+                                            )}
+                                            {setFilter === "all" && !isRoot && (
+                                                <Button size="lg" colorPalette="blue" borderRadius="xl" onClick={() => setShowCreate(true)}>
+                                                    <FiPlus /> Tạo bộ từ mới
+                                                </Button>
+                                            )}
+                                        </Flex>
+                                    );
+                                })()}
                             </Box>
                         </Box>
                     )
