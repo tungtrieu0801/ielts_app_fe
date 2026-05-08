@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { Box, Flex, Text, VStack, Image, Button, IconButton } from '@chakra-ui/react';
-import { FiHome, FiBook, FiLogOut, FiMic, FiChevronLeft, FiChevronRight, FiSettings, FiZap, FiStar } from 'react-icons/fi';
+import { FiHome, FiBook, FiLogOut, FiMic, FiChevronLeft, FiChevronRight, FiSettings, FiZap, FiStar, FiAward } from 'react-icons/fi';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ColorModeButton, useColorMode } from '../../components/ui/color-mode.jsx';
 import { useAuthStore } from '../../stores/useAuthStore.js';
@@ -11,6 +11,7 @@ const menuItems = [
     { name: 'Bộ từ', icon: FiBook, path: '/sets' },
     { name: 'Dictation', icon: FiMic, path: '/dictation' },
     { name: 'Game', icon: FiZap, path: '/game' },
+    { name: 'Ranking', icon: FiAward, path: '/ranking' },
     { name: 'Cài đặt', icon: FiSettings, path: '/settings' },
     { name: 'Premium', icon: FiStar, path: '/premium', isPremium: true },
 ];
@@ -133,7 +134,8 @@ const Sidebar = ({ onNavigate, isCollapsed, onToggle }) => {
                             const isActive = location.pathname === item.path
                                 || (item.path === '/sets' && location.pathname.startsWith('/sets'))
                                 || (item.path === '/dictation' && location.pathname.startsWith('/dictation'))
-                                || (item.path === '/settings' && location.pathname.startsWith('/settings'));
+                                || (item.path === '/settings' && location.pathname.startsWith('/settings'))
+                                || (item.path === '/ranking' && location.pathname.startsWith('/ranking'));
                             
                             return (
                                 <Flex

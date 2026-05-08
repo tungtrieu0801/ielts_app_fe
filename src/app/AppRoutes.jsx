@@ -11,6 +11,7 @@ import GameLobbyPage from "../features/game/pages/GameLobbyPage.jsx";
 import GamePlayPage from "../features/game/pages/GamePlayPage.jsx";
 import SettingsPage from "../features/settings/pages/SettingsPage.jsx";
 import PremiumPage from "../features/premium/pages/PremiumPage.jsx";
+import RankingPage from "../features/ranking/pages/RankingPage.jsx";
 import PrivateRoute from "../shared/components/PrivateRoute.jsx";
 
 export default function AppRoutes() {
@@ -31,6 +32,7 @@ export default function AppRoutes() {
             <Route path="/game/:roomId" element={<PrivateRoute><GamePlayPage /></PrivateRoute>} />
             <Route path="/settings" element={<PrivateRoute><SettingsPage /></PrivateRoute>} />
             <Route path="/premium" element={<PrivateRoute><PremiumPage /></PrivateRoute>} />
+            <Route path="/ranking" element={<PrivateRoute><RankingPage /></PrivateRoute>} />
         </Routes>
     );
 }
