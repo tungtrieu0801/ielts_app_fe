@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import {
     Box, Flex, Text, SimpleGrid, Button, Input, Textarea, Spinner,
-    IconButton, Badge,
+    IconButton, Badge, Portal
 } from "@chakra-ui/react";
 import { FiPlus, FiTrash2, FiBook, FiPlay, FiGlobe, FiLock, FiGitBranch, FiFolder, FiChevronLeft, FiEdit2, FiChevronRight, FiPauseCircle, FiPlayCircle, FiCornerUpRight } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
@@ -554,12 +554,14 @@ const SetCard = ({ set, folders, onDelete, onTogglePublic, onEdit, onToggleDisab
 
             {/* Move Modal */}
             {showMoveModal && (
-                <MoveFolderModal
-                    set={set}
-                    folders={folders}
-                    onClose={() => setShowMoveModal(false)}
-                    onMove={onMoveToFolder}
-                />
+                <Portal>
+                    <MoveFolderModal
+                        set={set}
+                        folders={folders}
+                        onClose={() => setShowMoveModal(false)}
+                        onMove={onMoveToFolder}
+                    />
+                </Portal>
             )}
         </Box>
     );
