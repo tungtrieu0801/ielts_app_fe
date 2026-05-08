@@ -411,6 +411,7 @@ const YoutubeExercise = ({ data, onReset }) => {
                     taRef.current.setSelectionRange(len, len);
                 }
             }, 30);
+            seekRef.current(cur.start ?? 0, cur.end); // Tự động đọc lại khi sai
         }
     }, [pauseVideo]);
     const submitRef = useRef(submit); submitRef.current = submit;

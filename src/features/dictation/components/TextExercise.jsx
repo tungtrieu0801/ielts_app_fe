@@ -115,7 +115,12 @@ const TextExercise = ({ data, onReset }) => {
             correct: p.correct + numCorrect,
             wrong: p.wrong + (blanks.length - numCorrect),
         }));
-        if (newResults.every(Boolean)) setTimeout(() => handleNextRef.current(), 1600);
+        if (newResults.every(Boolean)) {
+            setTimeout(() => handleNextRef.current(), 1600);
+        } else {
+            // Tự động đọc lại khi sai
+            setTimeout(() => speakRef.current(sentenceRef.current?.original ?? ""), 400);
+        }
     }, [answers, blanks]);
 
     const handleSubmitRef = useRef(handleSubmit);
