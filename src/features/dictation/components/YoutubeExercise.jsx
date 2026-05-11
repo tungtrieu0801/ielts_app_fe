@@ -204,6 +204,7 @@ const NoteTable = ({ notes, setNotes }) => {
     const inp = {
         flex: 1, border: "none", background: "transparent", outline: "none",
         fontSize: 14, padding: "10px 12px", fontFamily: "inherit", color: "inherit",
+        minWidth: 0
     };
 
     return (
@@ -221,26 +222,43 @@ const NoteTable = ({ notes, setNotes }) => {
 
             <div style={{ display: "flex", flexDirection: "column", flex: 1, overflow: "hidden", padding: 12, background: "#F7FAFC", gap: 8 }}>
                 <div style={{ display: "flex", background: "#EDF2F7", borderRadius: "8px 8px 0 0", borderBottom: "1px solid #E2E8F0", flexShrink: 0 }}>
-                    <div style={{ flex: 1, padding: "8px 12px", fontSize: 12, fontWeight: 800, color: "#4A5568", textTransform: "uppercase" }}>Tiếng Anh</div>
-                    <div style={{ width: 1, background: "#E2E8F0" }} />
-                    <div style={{ flex: 1, padding: "8px 12px", fontSize: 12, fontWeight: 800, color: "#4A5568", textTransform: "uppercase" }}>Tiếng Việt</div>
+                    <div style={{ flex: "1 1 0", minWidth: 0, padding: "8px 12px", fontSize: 12, fontWeight: 800, color: "#4A5568", textTransform: "uppercase" }}>Tiếng Anh</div>
+                    <div style={{ width: 1, background: "#E2E8F0", flexShrink: 0 }} />
+                    <div style={{ flex: "1 1 0", minWidth: 0, padding: "8px 12px", fontSize: 12, fontWeight: 800, color: "#4A5568", textTransform: "uppercase" }}>Tiếng Việt</div>
                 </div>
 
                 <div style={{ display: "flex", borderBottom: `2px solid #ED8936`, background: "#FFF5F5", flexShrink: 0, boxShadow: "0 4px 12px rgba(237,137,54,0.05)", borderRadius: "0 0 8px 8px" }}>
-                    <input ref={enRef} value={en} onChange={e => setEn(e.target.value)}
-                        placeholder="Từ / cụm từ mới..."
-                        style={{ ...inp, fontWeight: 700, color: "#9B2C2C" }}
-                        onKeyDown={e => { if (e.key === "Tab") { e.preventDefault(); viRef.current?.focus(); } }}
-                    />
-                    <div style={{ width: 1, background: "rgba(237,137,54,0.1)" }} />
-                    <input ref={viRef} value={vi} onChange={e => setVi(e.target.value)}
-                        placeholder="Nghĩa tiếng Việt..."
-                        style={{ ...inp, fontWeight: 700, color: "#9B2C2C" }}
-                        onKeyDown={e => {
-                            if (e.key === "Enter") { e.preventDefault(); commit(); }
-                            if (e.key === "Tab" && e.shiftKey) { e.preventDefault(); enRef.current?.focus(); }
-                        }}
-                    />
+                    <div style={{ flex: "1 1 0", minWidth: 0, display: "flex" }}>
+                        <input ref={enRef} value={en} onChange={e => setEn(e.target.value)}
+                            placeholder="Từ / cụm từ mới..."
+                            style={{ ...inp, fontWeight: 700, color: "#9B2C2C", width: "100%" }}
+                            onKeyDown={e => { if (e.key === "Tab") { e.preventDefault(); viRef.current?.focus(); } }}
+                        />
+                    </div>
+                    <div style={{ width: 1, background: "rgba(237,137,54,0.1)", flexShrink: 0 }} />
+                    <div style={{ flex: "1 1 0", minWidth: 0, display: "flex", position: "relative" }}>
+                        <input ref={viRef} value={vi} onChange={e => setVi(e.target.value)}
+                            placeholder="Nghĩa tiếng Việt..."
+                            style={{ ...inp, fontWeight: 700, color: "#9B2C2C", width: "100%", paddingRight: 40 }}
+                            onKeyDown={e => {
+                                if (e.key === "Enter") { e.preventDefault(); commit(); }
+                                if (e.key === "Tab" && e.shiftKey) { e.preventDefault(); enRef.current?.focus(); }
+                            }}
+                        />
+                        <button
+                            onClick={commit}
+                            style={{
+                                position: "absolute", right: 6, top: "50%", transform: "translateY(-50%)",
+                                background: (en.trim() || vi.trim()) ? "#ED8936" : "#CBD5E0",
+                                color: "#fff", width: 28, height: 28, borderRadius: "50%",
+                                display: "flex", alignItems: "center", justifyContent: "center",
+                                border: "none", cursor: (en.trim() || vi.trim()) ? "pointer" : "default",
+                                transition: "all 0.2s", fontWeight: "bold", fontSize: 16
+                            }}
+                        >
+                            +
+                        </button>
+                    </div>
                 </div>
 
                 <div style={{ flex: 1, overflowY: "auto", borderRadius: 8, background: "#fff", border: "1px solid #E2E8F0" }}>
@@ -252,9 +270,24 @@ const NoteTable = ({ notes, setNotes }) => {
                     )}
                     {notes.map((r, i) => (
                         <div key={r.id} style={{ display: "flex", borderBottom: "1px solid #E2E8F0", background: i % 2 === 0 ? "#FAFAFA" : "#fff", transition: "all 0.2s" }} onMouseEnter={e => e.currentTarget.style.background = "rgba(237,137,54,0.05)"} onMouseLeave={e => e.currentTarget.style.background = i % 2 === 0 ? "#FAFAFA" : "#fff"}>
-                            <div style={{ flex: 1, padding: "10px 12px", fontSize: 14, fontWeight: 600, color: "#2D3748" }}>{r.en}</div>
+                            <div style={{ flex: "1 1 0", minWidth: 0, wordBreak: "break-all", padding: "10px 12px", fontSize: 14, fontWeight: 600, color: "#2D3748" }}>{r.en}</div>
                             <div style={{ width: 1, background: "#E2E8F0", flexShrink: 0 }} />
-                            <div style={{ flex: 1, padding: "10px 12px", fontSize: 14, color: "#4A5568" }}>{r.vi}</div>
+                            <div style={{ flex: "1 1 0", minWidth: 0, wordBreak: "break-all", padding: "10px 12px", fontSize: 14, color: "#4A5568", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+                                <span>{r.vi}</span>
+                                <button
+                                    onClick={() => setNotes(p => p.filter(n => n.id !== r.id))}
+                                    style={{
+                                        width: 24, height: 24, borderRadius: "50%", border: "none",
+                                        background: "rgba(229,62,62,0.1)", color: "#E53E3E",
+                                        display: "flex", alignItems: "center", justifyContent: "center",
+                                        cursor: "pointer", fontSize: 12, fontWeight: "bold",
+                                        flexShrink: 0
+                                    }}
+                                    title="Xóa"
+                                >
+                                    ✕
+                                </button>
+                            </div>
                         </div>
                     ))}
                 </div>
