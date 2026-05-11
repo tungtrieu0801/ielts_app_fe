@@ -24,9 +24,23 @@ function App() {
     React.useEffect(() => {
         if (socket) {
             initListeners(socket);
-            // Notify server this user is online
-            if (user?._id) socket.emit("user_online", user._id);
-            return () => clearListeners();
+            
+            const handleConnect = () => {
+                if (user?._id) socket.emit("user_online", user._id);
+            };
+
+            // Emit immediately if already connected
+            if (socket.connected) {
+                handleConnect();
+            }
+
+            // Re-emit when socket auto-reconnects
+            socket.on("connect", handleConnect);
+
+            return () => {
+                socket.off("connect", handleConnect);
+                clearListeners();
+            };
         }
     }, [socket, initListeners, clearListeners, user?._id]);
 
