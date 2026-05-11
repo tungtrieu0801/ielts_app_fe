@@ -158,13 +158,47 @@ const NoteTable = ({ notes, setNotes }) => {
         setTimeout(() => enRef.current?.focus(), 30);
     }, [en, vi, setNotes]);
 
-    const exportCSV = () => {
-        const csv = "English,Vietnamese\n" + notes.map(r =>
-            `"${r.en.replace(/"/g, '""')}","${r.vi.replace(/"/g, '""')}"`
-        ).join("\n");
+    const exportCSV = async () => {
+        const ExcelJS = (await import('exceljs')).default;
+        const wb = new ExcelJS.Workbook();
+        const ws = wb.addWorksheet('Vocabulary');
+
+        ws.columns = [
+            { header: 'English', key: 'english', width: 20 },
+            { header: 'Vietnamese', key: 'vietnamese', width: 25 },
+            { header: 'Level', key: 'level', width: 10 },
+            { header: 'Phiên âm', key: 'pronunciation', width: 20 },
+            { header: 'Từ loại', key: 'pos', width: 15 },
+            { header: 'Example', key: 'example', width: 40 },
+            { header: 'Nghĩa ví dụ', key: 'example_vi', width: 40 },
+            { header: 'Synonyms', key: 'synonyms', width: 25 },
+            { header: 'Antonyms', key: 'antonyms', width: 25 }
+        ];
+
+        const headerRow = ws.getRow(1);
+        headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        headerRow.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FF4F81BD' } // blue background
+        };
+        headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
+
+        notes.forEach(note => {
+            ws.addRow({
+                english: note.en,
+                vietnamese: note.vi
+            });
+        });
+
+        const buffer = await wb.xlsx.writeBuffer();
+        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
-        a.href = URL.createObjectURL(new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" }));
-        a.download = "notes.csv"; a.click();
+        a.href = url;
+        a.download = "dictation_notes.xlsx";
+        a.click();
+        URL.revokeObjectURL(url);
     };
 
     const inp = {
@@ -181,7 +215,7 @@ const NoteTable = ({ notes, setNotes }) => {
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                     <span style={{ fontSize: 11, color: "#C05621", fontWeight: 700, background: "rgba(221,107,32,0.1)", padding: "4px 10px", borderRadius: 12 }}>Tab = Chuyển cột · Enter = Thêm</span>
-                    <button onClick={exportCSV} style={{ ...S.buttonPrimary, background: "linear-gradient(135deg, #DD6B20 0%, #ED8936 100%)", boxShadow: "0 4px 10px rgba(221,107,32,0.3)", padding: "6px 14px", fontSize: 12 }}>↓ CSV</button>
+                    <button onClick={exportCSV} style={{ ...S.buttonPrimary, background: "linear-gradient(135deg, #DD6B20 0%, #ED8936 100%)", boxShadow: "0 4px 10px rgba(221,107,32,0.3)", padding: "6px 14px", fontSize: 12 }}>↓ Excel</button>
                 </div>
             </div>
 
