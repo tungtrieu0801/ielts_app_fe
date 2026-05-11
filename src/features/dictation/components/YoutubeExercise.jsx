@@ -273,6 +273,7 @@ const YoutubeExercise = ({ data, onReset }) => {
     const [revealedWords, setRevealedWords] = useState(new Set());
     const [shake, setShake] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+    const [mobileTab, setMobileTab] = useState("dictation");
 
     const playerRef = useRef(null);
     const taRef = useRef(null);
@@ -467,45 +468,56 @@ const YoutubeExercise = ({ data, onReset }) => {
     return (
         <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
             {/* Top Bar included directly in YoutubeExercise */}
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 16px", height: 56, borderBottom: "1px solid #E2E8F0", background: "#fff", flexShrink: 0, boxShadow: "0 2px 4px rgba(0,0,0,0.02)" }}>
+            <div className="header-bar" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 16px", height: 56, borderBottom: "1px solid #E2E8F0", background: "#fff", flexShrink: 0, boxShadow: "0 2px 4px rgba(0,0,0,0.02)" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                     <button
                         onClick={handleQuit}
+                        className="header-back-btn"
                         style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 8, border: "1px solid #E2E8F0", background: "transparent", cursor: "pointer", color: "#4A5568", fontSize: 13, fontWeight: 600, transition: "all 0.2s" }}
                         onMouseEnter={e => e.currentTarget.style.background = "#F7FAFC"}
                         onMouseLeave={e => e.currentTarget.style.background = "transparent"}
                     >
-                        ← Quay lại
+                        ← <span className="header-back-text">Quay lại</span>
                     </button>
-                    <span style={{ fontSize: 12, padding: "2px 10px", borderRadius: 20, background: "rgba(229,62,62,0.1)", color: "#E53E3E", fontWeight: 700 }}>
+                    <span className="header-tag" style={{ fontSize: 12, padding: "2px 10px", borderRadius: 20, background: "rgba(229,62,62,0.1)", color: "#E53E3E", fontWeight: 700 }}>
                         ▶️ YouTube
                     </span>
-                    <span style={{ fontSize: 13, color: "#718096", fontWeight: 600 }}>
+                    <span className="header-title" style={{ fontSize: 13, color: "#718096", fontWeight: 600, maxWidth: 200, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                         {title}
                     </span>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                    <span style={{ fontSize: 13, color: "#4A5568", fontWeight: 600 }}>
+                    <span className="header-progress" style={{ fontSize: 13, color: "#4A5568", fontWeight: 600 }}>
                         {idx} / {exercises.length} câu
                     </span>
                     <button
                         onClick={() => handleSaveProgress(false)}
                         disabled={isSaving}
+                        className="header-save-btn"
                         style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 16px", borderRadius: 8, border: "none", background: "#3182CE", cursor: isSaving ? "wait" : "pointer", color: "#fff", fontSize: 13, fontWeight: 600, transition: "all 0.2s" }}
                         onMouseEnter={e => e.currentTarget.style.background = "#2B6CB0"}
                         onMouseLeave={e => e.currentTarget.style.background = "#3182CE"}
                     >
-                        {isSaving ? "⏳ Đang lưu..." : "💾 Lưu tiến trình"}
+                        {isSaving ? "⏳" : "💾"} <span className="header-save-text">{isSaving ? "Đang lưu..." : "Lưu tiến trình"}</span>
                     </button>
                 </div>
             </div>
 
-            <div style={{ display: "flex", height: "calc(100% - 56px)", overflow: "hidden", gap: 16, padding: 16, background: "#CBD5E0", boxSizing: "border-box" }}>
+            <div className="mobile-tabs">
+                <div className={`mobile-tab ${mobileTab === 'dictation' ? 'active' : ''}`} onClick={() => setMobileTab('dictation')}>
+                    ✍️ Dictation
+                </div>
+                <div className={`mobile-tab ${mobileTab === 'transcript' ? 'active' : ''}`} onClick={() => setMobileTab('transcript')}>
+                    📜 Transcript ({done.length}/{exercises.length})
+                </div>
+            </div>
+
+            <div className="layout-container" data-tab={mobileTab} style={{ height: "calc(100% - 56px)", background: "#CBD5E0", boxSizing: "border-box" }}>
 
                 {/* ═══ LEFT COLUMN (55%) — Video + NoteTable ═══ */}
-                <div style={{ flex: "0 0 45%", display: "flex", flexDirection: "column", gap: 16, overflow: "hidden" }}>
+                <div className="left-col" style={{ flex: "0 0 45%", display: "flex", flexDirection: "column", gap: 16, overflow: "hidden" }}>
 
-                    <div style={{ ...S.panel, flexShrink: 0, position: "relative" }}>
+                    <div className="panel-video" style={{ ...S.panel, flexShrink: 0, position: "relative" }}>
                         <div style={{ width: "100%", aspectRatio: "16/9", background: "#000", maxHeight: "48vh", display: "flex", justifyContent: "center", alignItems: "center" }}>
                             <div ref={playerRef} style={{ width: "100%", height: "100%", maxWidth: "calc(48vh * 16 / 9)" }} />
                         </div>
@@ -514,13 +526,15 @@ const YoutubeExercise = ({ data, onReset }) => {
                         </div>
                     </div>
 
-                    <NoteTable notes={notes} setNotes={setNotes} />
+                    <div className="panel-note" style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}>
+                        <NoteTable notes={notes} setNotes={setNotes} />
+                    </div>
                 </div>
 
                 {/* ═══ RIGHT COLUMN (45%) — Input + Transcript ═══ */}
-                <div style={{ flex: "0 0 55%", display: "flex", flexDirection: "column", gap: 16, overflow: "hidden" }}>
+                <div className="right-col" style={{ flex: "0 0 55%", display: "flex", flexDirection: "column", gap: 16, overflow: "hidden" }}>
 
-                    <div style={{ ...S.panel, flex: 1, minHeight: 0 }}>
+                    <div className="panel-dictation" style={{ ...S.panel, flex: 1, minHeight: 0 }}>
                         {/* <div style={S.header}> */}
                         {/* <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                             <span style={{ fontSize: 16 }}>⌨️</span>
@@ -679,7 +693,7 @@ const YoutubeExercise = ({ data, onReset }) => {
                         </div>
                     </div>
 
-                    <div style={{ ...S.panel, flex: "0 0 40%" }}>
+                    <div className="panel-transcript" style={{ ...S.panel, flex: "0 0 40%", minHeight: 0 }}>
                         <div style={S.header}>
                             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                                 <span style={{ fontSize: 16 }}>📜</span>
@@ -734,6 +748,88 @@ const YoutubeExercise = ({ data, onReset }) => {
                 </div>
 
                 <style>{`
+                .layout-container {
+                    display: flex;
+                    flex-direction: row;
+                    padding: 16px;
+                    gap: 16px;
+                    overflow: hidden;
+                }
+                .mobile-tabs {
+                    display: none;
+                }
+                @media (max-width: 992px) {
+                    .layout-container {
+                        flex-direction: column;
+                        padding: 0;
+                        gap: 0;
+                        overflow-y: auto;
+                        height: calc(100% - 104px) !important; /* 56px header + 48px tabs */
+                    }
+                    .mobile-tabs {
+                        display: flex;
+                        background: #fff;
+                        border-bottom: 1px solid #E2E8F0;
+                        flex-shrink: 0;
+                    }
+                    .mobile-tab {
+                        flex: 1;
+                        text-align: center;
+                        padding: 14px 0;
+                        font-weight: 800;
+                        font-size: 14px;
+                        color: #A0AEC0;
+                        border-bottom: 3px solid transparent;
+                        cursor: pointer;
+                        transition: all 0.2s;
+                    }
+                    .mobile-tab.active {
+                        color: #3182CE;
+                        border-bottom: 3px solid #3182CE;
+                    }
+                    .left-col, .right-col {
+                        display: contents !important;
+                    }
+                    .panel-video { 
+                        order: 1; 
+                        border-radius: 0 !important;
+                        border: none !important;
+                        box-shadow: none !important;
+                    }
+                    .panel-dictation { 
+                        order: 2; 
+                        margin: 16px 12px 0 12px; 
+                        flex: none !important; 
+                        min-height: 400px !important;
+                    }
+                    .panel-note { 
+                        order: 3; 
+                        margin: 16px 12px 16px 12px; 
+                        flex: none !important; 
+                        height: 500px !important;
+                    }
+                    .panel-transcript { 
+                        order: 2; 
+                        margin: 16px 12px 16px 12px; 
+                        flex: none !important; 
+                        height: 600px !important;
+                    }
+
+                    /* Hide based on tabs */
+                    .layout-container[data-tab="dictation"] .panel-transcript { display: none !important; }
+                    .layout-container[data-tab="transcript"] .panel-dictation { display: none !important; }
+                    .layout-container[data-tab="transcript"] .panel-note { display: none !important; }
+                    
+                    /* Adjust Top bar */
+                    .header-tag, .header-title { display: none !important; }
+                    .header-bar { padding: 0 12px !important; }
+                    .header-back-text { display: none; }
+                    .header-save-text { display: none; }
+                    .header-back-btn { padding: 6px 8px !important; }
+                    .header-save-btn { padding: 6px 12px !important; }
+                    .header-progress { font-size: 12px !important; }
+                }
+
                 @keyframes pulse {
                     0% { opacity: 1; transform: scale(1); }
                     50% { opacity: 0.6; transform: scale(1.1); }
