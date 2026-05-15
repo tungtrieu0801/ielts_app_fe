@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { saveDictationProgress } from "../../../services/dictationApi.js";
 
 // ── YouTube IFrame API ────────────────────────────────────────────────────
 let ytApiPromise = null;
@@ -141,7 +142,7 @@ const S = {
     }
 };
 
-import { saveDictationProgress } from "../../../services/dictationApi.js";
+// import { saveDictationProgress } from "../../../services/dictationApi.js";
 import { toaster } from "../../../components/ui/toaster.jsx";
 
 // ── Note Table ────────────────────────────────────────────────────────────
@@ -297,11 +298,62 @@ const NoteTable = ({ notes, setNotes }) => {
 };
 
 // ── Finished Screen ───────────────────────────────────────────────────────
-const FinishedScreen = ({ total, correct, wrong, onReset, exercises, savedDone, title }) => {
+const FinishedScreen = ({ total, correct, wrong, onReset, exercises, savedDone, title, onRestartVideo, videoId }) => {
     const pct = total ? Math.round((correct / total) * 100) : 0;
     const transcriptRef = React.useRef(null);
-    const [seekFn, setSeekFn] = React.useState(null);
     const playerRef = React.useRef(null);
+    const divRef = React.useRef(null);
+    const [currentTime, setCurrentTime] = React.useState(0);
+    const timeInterval = React.useRef(null);
+
+    React.useEffect(() => {
+        if (!divRef.current || !videoId) return;
+        let dead = false;
+        loadYouTubeIframeAPI().then((YT) => {
+            if (dead) return;
+            playerRef.current = new YT.Player(divRef.current, {
+                videoId,
+                playerVars: { rel: 0, modestbranding: 1, playsinline: 1 },
+                events: {
+                    onStateChange: (event) => {
+                        if (event.data === YT.PlayerState.PLAYING) {
+                            timeInterval.current = setInterval(() => {
+                                if (playerRef.current?.getCurrentTime) {
+                                    setCurrentTime(playerRef.current.getCurrentTime());
+                                }
+                            }, 300);
+                        } else {
+                            clearInterval(timeInterval.current);
+                        }
+                    }
+                }
+            });
+        });
+        return () => {
+            dead = true;
+            clearInterval(timeInterval.current);
+            try { playerRef.current?.destroy(); } catch (_) { }
+            playerRef.current = null;
+        };
+    }, [videoId]);
+
+    // Ctrl to Play/Pause
+    React.useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (e.key === "Control") {
+                if (playerRef.current && playerRef.current.getPlayerState) {
+                    const state = playerRef.current.getPlayerState();
+                    if (state === 1) { // 1 = PLAYING
+                        playerRef.current.pauseVideo();
+                    } else {
+                        playerRef.current.playVideo();
+                    }
+                }
+            }
+        };
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, []);
 
     // Build full transcript: merge savedDone (by idx) with exercises for any missing entries
     const fullTranscript = React.useMemo(() => {
@@ -317,6 +369,35 @@ const FinishedScreen = ({ total, correct, wrong, onReset, exercises, savedDone, 
             ok: true,
         });
     }, [exercises, savedDone]);
+
+    // Compute active index based on currentTime
+    const activeIndex = React.useMemo(() => {
+        if (!fullTranscript || !fullTranscript.length) return -1;
+        for (let i = fullTranscript.length - 1; i >= 0; i--) {
+            if (currentTime >= fullTranscript[i].start - 0.2) {
+                return i;
+            }
+        }
+        return -1;
+    }, [currentTime, fullTranscript]);
+
+    // Auto-scroll transcript
+    React.useEffect(() => {
+        if (activeIndex >= 0 && transcriptRef.current) {
+            // Children[0] is the header, so index is activeIndex + 1
+            const activeEl = transcriptRef.current.children[activeIndex + 1];
+            if (activeEl) {
+                activeEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+    }, [activeIndex]);
+
+    const playSentence = (start) => {
+        if (playerRef.current?.seekTo) {
+            playerRef.current.seekTo(start, true);
+            playerRef.current.playVideo();
+        }
+    };
 
     return (
         <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden", background: "#F7FAFC" }}>
@@ -341,63 +422,112 @@ const FinishedScreen = ({ total, correct, wrong, onReset, exercises, savedDone, 
                 </div>
             </div>
 
-            {/* Stats banner */}
-            <div style={{ padding: "24px 24px 16px", background: "linear-gradient(135deg, #3182CE, #805AD5)", color: "#fff", flexShrink: 0 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
-                    <div style={{ fontSize: 48 }}>{pct >= 90 ? "🏆" : pct >= 70 ? "🎉" : pct >= 50 ? "👏" : "💪"}</div>
-                    <div style={{ flex: 1 }}>
-                        <h2 style={{ fontSize: 22, fontWeight: 900, margin: "0 0 4px" }}>Tuyệt vời! Bạn đã hoàn thành bài này.</h2>
-                        <p style={{ margin: 0, opacity: 0.85, fontSize: 14 }}>Bên dưới là toàn bộ script của video. Nhấn vào câu bất kỳ để nghe lại.</p>
+            <div className="layout-container" style={{ display: "flex", flex: 1, overflow: "hidden", padding: 16, gap: 16 }}>
+                
+                {/* Left Col: Video + Stats */}
+                <div className="left-col" style={{ flex: "0 0 50%", display: "flex", flexDirection: "column", gap: 16, overflowY: "auto" }}>
+                    {/* Video Player */}
+                    <div style={{ width: "100%", aspectRatio: "16/9", background: "#000", borderRadius: 16, overflow: "hidden", boxShadow: "0 4px 12px rgba(0,0,0,0.05)" }}>
+                        <div ref={divRef} style={{ width: "100%", height: "100%" }} />
                     </div>
-                    <div style={{ display: "flex", gap: 12 }}>
-                        {[
-                            ["Đúng", correct, "#C6F6D5", "#22543D"],
-                            ["Sai", wrong, "#FED7D7", "#822727"],
-                            ["Điểm", `${pct}%`, "#E9D8FD", "#553C9A"]
-                        ].map(([l, v, bg, c]) => (
-                            <div key={l} style={{ padding: "10px 18px", background: "rgba(255,255,255,0.15)", borderRadius: 12, textAlign: "center", minWidth: 70 }}>
-                                <div style={{ fontSize: 22, fontWeight: 900 }}>{v}</div>
-                                <div style={{ fontSize: 11, opacity: 0.85, textTransform: "uppercase", fontWeight: 700 }}>{l}</div>
+
+                    {/* Stats banner */}
+                    <div style={{ padding: "24px", background: "linear-gradient(135deg, #3182CE, #805AD5)", color: "#fff", borderRadius: 16, boxShadow: "0 4px 12px rgba(0,0,0,0.05)" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+                            <div style={{ fontSize: 48 }}>{pct >= 90 ? "🏆" : pct >= 70 ? "🎉" : pct >= 50 ? "👏" : "💪"}</div>
+                            <div style={{ flex: 1 }}>
+                                <h2 style={{ fontSize: 20, fontWeight: 900, margin: "0 0 4px" }}>Tuyệt vời! Bạn đã hoàn thành.</h2>
+                                <p style={{ margin: 0, opacity: 0.85, fontSize: 13 }}>Nhấn vào câu bất kỳ trong transcript để nghe lại đoạn đó.</p>
+                            </div>
+                            <div style={{ display: "flex", gap: 12 }}>
+                                {[
+                                    ["Đúng", correct, "#C6F6D5", "#22543D"],
+                                    ["Sai", wrong, "#FED7D7", "#822727"],
+                                    ["Điểm", `${pct}%`, "#E9D8FD", "#553C9A"]
+                                ].map(([l, v, bg, c]) => (
+                                    <div key={l} style={{ padding: "8px 16px", background: "rgba(255,255,255,0.15)", borderRadius: 12, textAlign: "center", minWidth: 60 }}>
+                                        <div style={{ fontSize: 20, fontWeight: 900 }}>{v}</div>
+                                        <div style={{ fontSize: 10, opacity: 0.85, textTransform: "uppercase", fontWeight: 700 }}>{l}</div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                        <div style={{ display: "flex", gap: 12, marginTop: 16 }}>
+                            <button onClick={onRestartVideo} style={{ flex: 1, padding: "10px", borderRadius: 10, border: "2px solid #E53E3E", background: "#E53E3E", color: "#fff", fontWeight: 800, fontSize: 14, cursor: "pointer", transition: "all 0.2s" }} onMouseEnter={e => e.currentTarget.style.opacity = "0.8"} onMouseLeave={e => e.currentTarget.style.opacity = "1"}>
+                                ⏪ Học lại từ đầu
+                            </button>
+                            <button onClick={onReset} style={{ flex: 1, padding: "10px", borderRadius: 10, border: "2px solid rgba(255,255,255,0.5)", background: "rgba(255,255,255,0.15)", color: "#fff", fontWeight: 800, fontSize: 14, cursor: "pointer", transition: "all 0.2s" }} onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.25)"} onMouseLeave={e => e.currentTarget.style.background = "rgba(255,255,255,0.15)"}>
+                                🔄 Bài mới
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Instructions banner */}
+                    <div style={{ padding: "16px 20px", background: "rgba(49,130,206,0.08)", borderRadius: 16, color: "#2B6CB0", fontSize: 14, display: "flex", alignItems: "flex-start", gap: 12, border: "2px solid rgba(49,130,206,0.2)" }}>
+                        <span style={{ fontSize: 24, lineHeight: 1 }}>💡</span>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                            <span style={{ fontWeight: 800 }}>Mẹo học lại:</span>
+                            <span style={{ lineHeight: 1.5 }}>Nhấn phím <kbd style={{ background: "#3182CE", color: "#fff", padding: "2px 8px", borderRadius: 6, fontSize: 12, fontWeight: 800, margin: "0 2px", boxShadow: "0 2px 0 #2C5282" }}>Ctrl</kbd> để phát/tạm dừng video nhanh chóng. Chọn câu bất kỳ bên phải để tua tới.</span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Right Col: Full transcript */}
+                <div className="right-col" style={{ flex: 1, background: "#fff", borderRadius: 16, overflow: "hidden", display: "flex", flexDirection: "column", boxShadow: "0 4px 12px rgba(0,0,0,0.05)", border: "1px solid #E2E8F0" }}>
+                    <div style={{ padding: "16px 20px", borderBottom: "1px solid #E2E8F0", background: "#F7FAFC" }}>
+                        <div style={{ fontSize: 13, fontWeight: 800, color: "#4A5568", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                            📜 Toàn bộ transcript ({total} câu)
+                        </div>
+                    </div>
+                    <div ref={transcriptRef} style={{ flex: 1, overflowY: "auto", padding: "16px 20px", display: "flex", flexDirection: "column", gap: 8 }}>
+                        {/* Hidden header item for child index mapping */}
+                        <div style={{ display: 'none' }}></div>
+                        {fullTranscript.map((s, i) => (
+                            <div
+                                key={i}
+                                onClick={() => playSentence(s.start)}
+                                style={{
+                                    padding: "12px 14px", borderRadius: 12, cursor: "pointer",
+                                    border: activeIndex === i ? "2px solid #3182CE" : "1px solid #E2E8F0",
+                                    background: activeIndex === i ? "rgba(49,130,206,0.12)" : "#fff",
+                                    borderLeft: `4px solid ${s.ok ? "#38A169" : "#E53E3E"}`,
+                                    transition: "all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)",
+                                    transform: activeIndex === i ? "scale(1.02)" : "scale(1)",
+                                    boxShadow: activeIndex === i ? "0 8px 24px rgba(49,130,206,0.25)" : "0 2px 8px rgba(0,0,0,0.02)",
+                                    position: "relative",
+                                    zIndex: activeIndex === i ? 10 : 1,
+                                    margin: activeIndex === i ? "6px 0" : "0"
+                                }}
+                            >
+                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8, marginBottom: 4 }}>
+                                    <div style={{ fontSize: 15, fontWeight: 700, lineHeight: 1.5, color: activeIndex === i ? "#2B6CB0" : "#2D3748" }}>
+                                        {s.original}
+                                    </div>
+                                    <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+                                        {activeIndex === i && <span style={{ color: "#3182CE", fontSize: 12, animation: "pulse 1.5s infinite" }}>▶ ĐANG PHÁT</span>}
+                                        <div style={{ fontSize: 10, fontWeight: 800, color: s.ok ? "#2F855A" : "#C53030", background: s.ok ? "rgba(56,161,105,0.15)" : "rgba(229,62,62,0.15)", padding: "4px 8px", borderRadius: 8 }}>
+                                            {s.skipped && "⏭ "}#{(s.idx ?? i) + 1}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div style={{ fontSize: 13, color: activeIndex === i ? "#4299E1" : "#A0AEC0", fontWeight: 600, fontStyle: "italic", marginTop: 4 }}>
+                                    {s.translated || "(Bản dịch đang cập nhật...)"}
+                                </div>
                             </div>
                         ))}
                     </div>
-                    <button onClick={onReset} style={{ padding: "10px 22px", borderRadius: 10, border: "2px solid rgba(255,255,255,0.5)", background: "rgba(255,255,255,0.15)", color: "#fff", fontWeight: 800, fontSize: 14, cursor: "pointer" }}>
-                        🔄 Bài mới
-                    </button>
                 </div>
             </div>
-
-            {/* Full transcript */}
-            <div ref={transcriptRef} style={{ flex: 1, overflowY: "auto", padding: "16px 20px", display: "flex", flexDirection: "column", gap: 8 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: "#718096", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>
-                    📜 Toàn bộ transcript ({total} câu)
-                </div>
-                {fullTranscript.map((s, i) => (
-                    <div
-                        key={i}
-                        style={{
-                            padding: "12px 14px", borderRadius: 12,
-                            border: "1px solid #E2E8F0",
-                            background: "#fff",
-                            borderLeft: `4px solid ${s.ok ? "#38A169" : "#E53E3E"}`,
-                            transition: "all 0.2s",
-                            boxShadow: "0 2px 8px rgba(0,0,0,0.02)"
-                        }}
-                    >
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8, marginBottom: 4 }}>
-                            <div style={{ fontSize: 15, fontWeight: 700, lineHeight: 1.5, color: "#2D3748" }}>
-                                {s.original}
-                            </div>
-                            <div style={{ fontSize: 10, fontWeight: 800, color: s.ok ? "#2F855A" : "#C53030", background: s.ok ? "rgba(56,161,105,0.15)" : "rgba(229,62,62,0.15)", padding: "4px 8px", borderRadius: 8, flexShrink: 0 }}>
-                                {s.skipped && "⏭ "}#{(s.idx ?? i) + 1}
-                            </div>
-                        </div>
-                        <div style={{ fontSize: 13, color: "#A0AEC0", fontWeight: 600, fontStyle: "italic", marginTop: 4 }}>
-                            {s.translated || "(Bản dịch đang cập nhật...)"}
-                        </div>
-                    </div>
-                ))}
-            </div>
+            <style>{`
+                .layout-container { flex-direction: row; }
+                @media (max-width: 992px) {
+                    .layout-container { flex-direction: column !important; overflow-y: auto !important; padding: 0 !important; gap: 0 !important; }
+                    .left-col, .right-col { flex: none !important; border-radius: 0 !important; margin: 0 !important; }
+                    .left-col { order: 1; }
+                    .right-col { order: 2; border-top: 1px solid #E2E8F0; }
+                    .left-col > div, .right-col > div { border-radius: 0 !important; box-shadow: none !important; }
+                }
+            `}</style>
         </div>
     );
 };
@@ -437,13 +567,46 @@ const YoutubeExercise = ({ data, onReset }) => {
 
     // Refs for saving
     const saveStateRef = useRef({ idx, done, stats, notes, videoId });
-    saveStateRef.current = { 
+    saveStateRef.current = {
         userId: (() => {
             const raw = localStorage.getItem("auth-storage");
             return raw ? JSON.parse(raw)?.state?.user?._id : null;
         })(),
-        idx: (attemptResult?.allCorrect && idx < exercises.length - 1) ? idx + 1 : idx, 
-        done, stats, notes, videoId 
+        idx: (attemptResult?.allCorrect && idx < exercises.length - 1) ? idx + 1 : idx,
+        done, stats, notes, videoId
+    };
+
+    const handleRestartVideo = async () => {
+        if (!window.confirm("Bạn có chắc chắn muốn xóa toàn bộ tiến trình và học lại video này từ đầu?")) return;
+        try {
+            const userId = saveStateRef.current.userId;
+            if (userId) {
+                await saveDictationProgress({
+                    userId,
+                    videoId,
+                    idx: 0,
+                    done: [],
+                    stats: { correct: 0, wrong: 0 },
+                    notes: []
+                });
+            }
+            setIdx(0);
+            setDone([]);
+            setStats({ correct: 0, wrong: 0 });
+            setNotes([]);
+            setFinished(false);
+            setAttemptResult(null);
+            setAnswer("");
+            setAttempts(0);
+            setRevealedWords(new Set());
+            if (playerRef.current && exercises[0]) {
+                // we have seekRef.current which calls player
+                seekRef.current(exercises[0].start, exercises[0].end);
+            }
+        } catch (e) {
+            console.error("Lỗi khi reset video", e);
+            alert("Không thể reset video lúc này");
+        }
     };
 
     const handleSaveProgress = useCallback(async (isSilent = false) => {
@@ -595,7 +758,7 @@ const YoutubeExercise = ({ data, onReset }) => {
         return () => { window.removeEventListener("keydown", kd); window.removeEventListener("keyup", ku); };
     }, []);
 
-    if (finished) return <FinishedScreen total={exercises.length} correct={stats.correct} wrong={stats.wrong} onReset={onReset} exercises={exercises} savedDone={done} title={title} />;
+    if (finished) return <FinishedScreen total={exercises.length} correct={stats.correct} wrong={stats.wrong} onReset={onReset} exercises={exercises} savedDone={done} title={title} onRestartVideo={handleRestartVideo} videoId={videoId} />;
     if (!cur) return null;
 
     const pct = (idx / exercises.length) * 100;
