@@ -9,5 +9,8 @@ export const prepareYoutube = (data) =>
 export const getSharedLibrary = (userId, page = 1, limit = 10) =>
     axiosClient.get(`/dictation/shared-library?userId=${userId}&page=${page}&limit=${limit}`);
 
+export const getRecentVideos = (userId) =>
+    axiosClient.get(`/dictation/recent-videos?userId=${userId}`);
+
 export const saveDictationProgress = (data) =>
     axiosClient.post("/dictation/progress/save", data);

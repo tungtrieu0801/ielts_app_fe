@@ -5,9 +5,9 @@ import {
 import {
     FiFileText, FiYoutube, FiArrowRight, FiAlertCircle,
     FiCommand, FiCornerDownLeft, FiDelete,
-    FiInfo,
+    FiInfo, FiClock,
 } from "react-icons/fi";
-import { prepareText, prepareYoutube, getSharedLibrary } from "../../../services/dictationApi.js";
+import { prepareText, prepareYoutube, getSharedLibrary, getRecentVideos } from "../../../services/dictationApi.js";
 
 const SHORTCUT_HINTS = [
     { key: "Ctrl", desc: "Nghe lại" },
@@ -22,6 +22,7 @@ const InputStep = ({ onReady }) => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [library, setLibrary] = useState([]);
+    const [recentVideos, setRecentVideos] = useState([]);
     const [page, setPage] = useState(1);
     const [paginationData, setPaginationData] = useState(null);
     const tabs = [
@@ -64,6 +65,13 @@ const InputStep = ({ onReady }) => {
                 setPaginationData(res.data?.pagination || null);
             })
             .catch(() => setLibrary([]));
+
+        // Fetch recent videos (only on first page load)
+        if (page === 1) {
+            getRecentVideos(userId)
+                .then(res => setRecentVideos(res.data?.data || []))
+                .catch(() => setRecentVideos([]));
+        }
     }, [tab, page]);
 
     const handleSubmit = async (urlOverride) => {
@@ -201,6 +209,75 @@ const InputStep = ({ onReady }) => {
                                 </Flex>
                             </>
                         )}
+                        {/* Recent Videos */}
+                        {recentVideos.length > 0 && (
+                            <Box mb={6} mt={6} >
+                                <Flex align="center" gap={2} mb={3}>
+                                    <Box color="orange.400"><FiClock size={14} /></Box>
+                                    <Text fontSize="xs" fontWeight="700" color="fg.muted" textTransform="uppercase" letterSpacing="wider">
+                                        🕘 Video đã học gần đây
+                                    </Text>
+                                </Flex>
+                                <Box mt={6} display="flex" gap={3} overflowX="auto" pb={2} style={{ scrollbarWidth: "thin" }}>
+                                    {recentVideos.map((video) => (
+                                        <Box
+                                            key={video.videoId}
+                                            as="button"
+                                            onClick={() => {
+                                                setYoutubeUrl(video.url);
+                                                handleSubmit(video.url);
+                                            }}
+                                            flexShrink={0}
+                                            w="220px"
+                                            p={3}
+                                            borderRadius="xl"
+                                            borderWidth="1px"
+                                            borderColor={video.isCompleted ? "green.300" : "orange.300"}
+                                            bg={video.isCompleted ? "green.50" : "orange.50"}
+                                            _dark={{ bg: video.isCompleted ? "green.900/20" : "orange.900/20", borderColor: video.isCompleted ? "green.800" : "orange.800" }}
+                                            _hover={{ bg: "bg.panel", borderColor: "brand.text", shadow: "sm" }}
+                                            transition="all 0.18s ease"
+                                            textAlign="left"
+                                            cursor="pointer"
+                                            display="flex"
+                                            flexDirection="column"
+                                            gap={1.5}
+                                        >
+                                            <Box position="relative" borderRadius="lg" overflow="hidden" style={{ aspectRatio: "16/9" }} bg="black" mb={1} flexShrink={0}>
+                                                <img
+                                                    src={`https://img.youtube.com/vi/${video.videoId}/mqdefault.jpg`}
+                                                    alt={video.title}
+                                                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                                                    loading="lazy"
+                                                />
+                                                <Box
+                                                    position="absolute" top={2} right={2}
+                                                    px={2} py={0.5} borderRadius="md"
+                                                    bg={video.isCompleted ? "green.500" : "orange.500"}
+                                                    color="white" fontSize="10px" fontWeight="800"
+                                                    boxShadow="0 2px 4px rgba(0,0,0,0.2)"
+                                                >
+                                                    {video.isCompleted ? "✓ XONG" : "▶ TIẾP"}
+                                                </Box>
+                                            </Box>
+                                            <Text fontSize="12px" fontWeight="600" lineHeight="1.4" noOfLines={2} color="fg">
+                                                {video.title}
+                                            </Text>
+                                            <Text fontSize="11px" color="fg.muted">
+                                                {video.isCompleted ? `${video.total} sentences` : `Câu ${video.idx + 1} / ${video.total}`}
+                                            </Text>
+                                            <Text fontSize="13px" color={video.isCompleted ? "green.600" : "orange.600"} fontWeight="700">
+                                                {video.isCompleted
+                                                    ? "Xem lại transcript"
+                                                    : `${Math.round((video.idx / video.total) * 100)}% completed`
+                                                }
+                                            </Text>
+                                        </Box>
+                                    ))}
+                                </Box>
+                            </Box>
+                        )}
+
                         {!isAdmin() && library.length === 0 && (
                             <Box py={10} textAlign="center">
                                 <Text color="fg.muted" fontSize="sm">
@@ -367,7 +444,7 @@ const InputStep = ({ onReady }) => {
                     ))}
                 </Flex>
             </Box>
-        </Box>
+        </Box >
     );
 };
 

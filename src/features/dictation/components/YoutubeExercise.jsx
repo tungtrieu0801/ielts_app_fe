@@ -297,31 +297,107 @@ const NoteTable = ({ notes, setNotes }) => {
 };
 
 // ── Finished Screen ───────────────────────────────────────────────────────
-const FinishedScreen = ({ total, correct, wrong, onReset }) => {
+const FinishedScreen = ({ total, correct, wrong, onReset, exercises, savedDone, title }) => {
     const pct = total ? Math.round((correct / total) * 100) : 0;
+    const transcriptRef = React.useRef(null);
+    const [seekFn, setSeekFn] = React.useState(null);
+    const playerRef = React.useRef(null);
+
+    // Build full transcript: merge savedDone (by idx) with exercises for any missing entries
+    const fullTranscript = React.useMemo(() => {
+        if (!exercises || !exercises.length) return savedDone || [];
+        const doneMap = {};
+        (savedDone || []).forEach(d => { doneMap[d.idx] = d; });
+        return exercises.map((ex, i) => doneMap[i] || {
+            idx: i,
+            original: ex.original,
+            translated: ex.translated,
+            start: ex.start,
+            end: ex.end,
+            ok: true,
+        });
+    }, [exercises, savedDone]);
+
     return (
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", gap: 24, background: "#EDF2F7", borderRadius: 24 }}>
-            <div style={{ fontSize: 80, textShadow: "0 10px 30px rgba(0,0,0,0.1)" }}>{pct >= 90 ? "🏆" : pct >= 70 ? "🎉" : pct >= 50 ? "👏" : "💪"}</div>
-            <div style={{ textAlign: "center" }}>
-                <h2 style={{ fontSize: 32, fontWeight: 900, margin: "0 0 8px", background: "linear-gradient(135deg, #3182CE, #805AD5)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Tuyệt vời!</h2>
-                <p style={{ color: "#718096", margin: 0, fontSize: 16 }}>Bạn đã hoàn thành {total} câu nghe chép chính tả.</p>
+        <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden", background: "#F7FAFC" }}>
+            {/* Header bar */}
+            <div className="header-bar" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 16px", height: 56, borderBottom: "1px solid #E2E8F0", background: "#fff", flexShrink: 0, boxShadow: "0 2px 4px rgba(0,0,0,0.02)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <button
+                        onClick={onReset}
+                        className="header-back-btn"
+                        style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 8, border: "1px solid #E2E8F0", background: "transparent", cursor: "pointer", color: "#4A5568", fontSize: 13, fontWeight: 600, transition: "all 0.2s" }}
+                        onMouseEnter={e => e.currentTarget.style.background = "#F7FAFC"}
+                        onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                    >
+                        ← <span className="header-back-text">Quay lại</span>
+                    </button>
+                    <span className="header-tag" style={{ fontSize: 12, padding: "2px 10px", borderRadius: 20, background: "rgba(229,62,62,0.1)", color: "#E53E3E", fontWeight: 700 }}>
+                        ▶️ YouTube
+                    </span>
+                    <span className="header-title" style={{ fontSize: 13, color: "#718096", fontWeight: 600, maxWidth: 200, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                        {title}
+                    </span>
+                </div>
             </div>
 
-            <div style={{ display: "flex", gap: 16, marginTop: 10 }}>
-                {[
-                    ["Chính xác", correct, "#38A169", "rgba(56,161,105,0.1)"],
-                    ["Sai sót", wrong, "#E53E3E", "rgba(229,62,62,0.1)"],
-                    ["Điểm số", `${pct}%`, "#3182CE", "rgba(49,130,206,0.1)"]
-                ].map(([l, v, c, bg]) => (
-                    <div key={l} style={{ padding: "20px 30px", background: "#F7FAFC", borderRadius: 20, boxShadow: "0 10px 30px rgba(0,0,0,0.05)", border: `2px solid ${bg}`, textAlign: "center", minWidth: 120 }}>
-                        <div style={{ fontSize: 36, fontWeight: 900, color: c }}>{v}</div>
-                        <div style={{ fontSize: 13, color: "#718096", marginTop: 4, fontWeight: 700, textTransform: "uppercase" }}>{l}</div>
+            {/* Stats banner */}
+            <div style={{ padding: "24px 24px 16px", background: "linear-gradient(135deg, #3182CE, #805AD5)", color: "#fff", flexShrink: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+                    <div style={{ fontSize: 48 }}>{pct >= 90 ? "🏆" : pct >= 70 ? "🎉" : pct >= 50 ? "👏" : "💪"}</div>
+                    <div style={{ flex: 1 }}>
+                        <h2 style={{ fontSize: 22, fontWeight: 900, margin: "0 0 4px" }}>Tuyệt vời! Bạn đã hoàn thành bài này.</h2>
+                        <p style={{ margin: 0, opacity: 0.85, fontSize: 14 }}>Bên dưới là toàn bộ script của video. Nhấn vào câu bất kỳ để nghe lại.</p>
+                    </div>
+                    <div style={{ display: "flex", gap: 12 }}>
+                        {[
+                            ["Đúng", correct, "#C6F6D5", "#22543D"],
+                            ["Sai", wrong, "#FED7D7", "#822727"],
+                            ["Điểm", `${pct}%`, "#E9D8FD", "#553C9A"]
+                        ].map(([l, v, bg, c]) => (
+                            <div key={l} style={{ padding: "10px 18px", background: "rgba(255,255,255,0.15)", borderRadius: 12, textAlign: "center", minWidth: 70 }}>
+                                <div style={{ fontSize: 22, fontWeight: 900 }}>{v}</div>
+                                <div style={{ fontSize: 11, opacity: 0.85, textTransform: "uppercase", fontWeight: 700 }}>{l}</div>
+                            </div>
+                        ))}
+                    </div>
+                    <button onClick={onReset} style={{ padding: "10px 22px", borderRadius: 10, border: "2px solid rgba(255,255,255,0.5)", background: "rgba(255,255,255,0.15)", color: "#fff", fontWeight: 800, fontSize: 14, cursor: "pointer" }}>
+                        🔄 Bài mới
+                    </button>
+                </div>
+            </div>
+
+            {/* Full transcript */}
+            <div ref={transcriptRef} style={{ flex: 1, overflowY: "auto", padding: "16px 20px", display: "flex", flexDirection: "column", gap: 8 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "#718096", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>
+                    📜 Toàn bộ transcript ({total} câu)
+                </div>
+                {fullTranscript.map((s, i) => (
+                    <div
+                        key={i}
+                        style={{
+                            padding: "12px 14px", borderRadius: 12,
+                            border: "1px solid #E2E8F0",
+                            background: "#fff",
+                            borderLeft: `4px solid ${s.ok ? "#38A169" : "#E53E3E"}`,
+                            transition: "all 0.2s",
+                            boxShadow: "0 2px 8px rgba(0,0,0,0.02)"
+                        }}
+                    >
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8, marginBottom: 4 }}>
+                            <div style={{ fontSize: 15, fontWeight: 700, lineHeight: 1.5, color: "#2D3748" }}>
+                                {s.original}
+                            </div>
+                            <div style={{ fontSize: 10, fontWeight: 800, color: s.ok ? "#2F855A" : "#C53030", background: s.ok ? "rgba(56,161,105,0.15)" : "rgba(229,62,62,0.15)", padding: "4px 8px", borderRadius: 8, flexShrink: 0 }}>
+                                {s.skipped && "⏭ "}#{(s.idx ?? i) + 1}
+                            </div>
+                        </div>
+                        <div style={{ fontSize: 13, color: "#A0AEC0", fontWeight: 600, fontStyle: "italic", marginTop: 4 }}>
+                            {s.translated || "(Bản dịch đang cập nhật...)"}
+                        </div>
                     </div>
                 ))}
             </div>
-            <button onClick={onReset} style={{ ...S.buttonPrimary, padding: "14px 40px", fontSize: 16, marginTop: 10, boxShadow: "0 10px 20px rgba(49,130,206,0.3)" }}>
-                🔄 Bắt đầu bài mới
-            </button>
         </div>
     );
 };
@@ -329,12 +405,16 @@ const FinishedScreen = ({ total, correct, wrong, onReset }) => {
 // ── Main Component ────────────────────────────────────────────────────────
 const YoutubeExercise = ({ data, onReset }) => {
     const { exercises, videoId, title, savedProgress } = data;
-    const [idx, setIdx] = useState(savedProgress?.idx || 0);
+
+    // Detect if the video was already completed from a previous session
+    const isAlreadyCompleted = savedProgress?.done?.length >= exercises.length && exercises.length > 0;
+
+    const [idx, setIdx] = useState(isAlreadyCompleted ? exercises.length - 1 : (savedProgress?.idx || 0));
     const [answer, setAnswer] = useState("");
     const [attemptResult, setAttemptResult] = useState(null);
     const [attempts, setAttempts] = useState(0);
     const [stats, setStats] = useState(savedProgress?.stats || { correct: 0, wrong: 0 });
-    const [finished, setFinished] = useState(false);
+    const [finished, setFinished] = useState(isAlreadyCompleted); // start finished if already done
     const [done, setDone] = useState(savedProgress?.done || []);
     const [notes, setNotes] = useState(savedProgress?.notes || []);
     const [revealedWords, setRevealedWords] = useState(new Set());
@@ -515,7 +595,7 @@ const YoutubeExercise = ({ data, onReset }) => {
         return () => { window.removeEventListener("keydown", kd); window.removeEventListener("keyup", ku); };
     }, []);
 
-    if (finished) return <FinishedScreen total={exercises.length} correct={stats.correct} wrong={stats.wrong} onReset={onReset} />;
+    if (finished) return <FinishedScreen total={exercises.length} correct={stats.correct} wrong={stats.wrong} onReset={onReset} exercises={exercises} savedDone={done} title={title} />;
     if (!cur) return null;
 
     const pct = (idx / exercises.length) * 100;
