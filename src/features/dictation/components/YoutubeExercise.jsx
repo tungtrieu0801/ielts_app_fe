@@ -1237,16 +1237,38 @@ const YoutubeExercise = ({ data, onReset }) => {
                                             </div>
                                         )}
                                     </div>
-                                    {dictPopup.audio && (
+                                    <div style={{ display: "flex", gap: 8 }}>
                                         <button 
-                                            onClick={(e) => { e.stopPropagation(); new Audio(dictPopup.audio).play(); }}
-                                            style={{ background: "#EBF8FF", border: "none", width: 32, height: 32, borderRadius: "50%", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#3182CE", transition: "all 0.2s" }}
-                                            onMouseEnter={e => e.currentTarget.style.background = "#BEE3F8"}
-                                            onMouseLeave={e => e.currentTarget.style.background = "#EBF8FF"}
+                                            onClick={(e) => { 
+                                                e.stopPropagation(); 
+                                                setNotes(prev => {
+                                                    const exists = prev.some(n => n.en.toLowerCase() === dictPopup.word.toLowerCase());
+                                                    if (exists) {
+                                                        toaster.create({ title: "Từ này đã có trong ghi chú!", type: "info" });
+                                                        return prev;
+                                                    }
+                                                    toaster.create({ title: "Đã thêm vào ghi chú", type: "success" });
+                                                    return [{ id: Date.now(), en: dictPopup.word, vi: dictPopup.meaning }, ...prev];
+                                                });
+                                            }}
+                                            title="Thêm vào Ghi chú"
+                                            style={{ background: "#C6F6D5", border: "none", width: 32, height: 32, borderRadius: "50%", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#22543D", transition: "all 0.2s" }}
+                                            onMouseEnter={e => e.currentTarget.style.background = "#9AE6B4"}
+                                            onMouseLeave={e => e.currentTarget.style.background = "#C6F6D5"}
                                         >
-                                            🔊
+                                            ➕
                                         </button>
-                                    )}
+                                        {dictPopup.audio && (
+                                            <button 
+                                                onClick={(e) => { e.stopPropagation(); new Audio(dictPopup.audio).play(); }}
+                                                style={{ background: "#EBF8FF", border: "none", width: 32, height: 32, borderRadius: "50%", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#3182CE", transition: "all 0.2s" }}
+                                                onMouseEnter={e => e.currentTarget.style.background = "#BEE3F8"}
+                                                onMouseLeave={e => e.currentTarget.style.background = "#EBF8FF"}
+                                            >
+                                                🔊
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
 
                                 <div style={{ fontSize: 16, color: "#2D3748", fontWeight: 700, paddingBottom: 8, borderBottom: "1px solid #E2E8F0" }}>
