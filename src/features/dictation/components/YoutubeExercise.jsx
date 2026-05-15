@@ -1258,16 +1258,24 @@ const YoutubeExercise = ({ data, onReset }) => {
                                         >
                                             ➕
                                         </button>
-                                        {dictPopup.audio && (
-                                            <button 
-                                                onClick={(e) => { e.stopPropagation(); new Audio(dictPopup.audio).play(); }}
-                                                style={{ background: "#EBF8FF", border: "none", width: 32, height: 32, borderRadius: "50%", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#3182CE", transition: "all 0.2s" }}
-                                                onMouseEnter={e => e.currentTarget.style.background = "#BEE3F8"}
-                                                onMouseLeave={e => e.currentTarget.style.background = "#EBF8FF"}
-                                            >
-                                                🔊
-                                            </button>
-                                        )}
+                                        <button 
+                                            onClick={(e) => { 
+                                                e.stopPropagation(); 
+                                                if (dictPopup.audio) {
+                                                    new Audio(dictPopup.audio).play();
+                                                } else {
+                                                    const utterance = new SpeechSynthesisUtterance(dictPopup.word);
+                                                    utterance.lang = 'en-US';
+                                                    window.speechSynthesis.speak(utterance);
+                                                }
+                                            }}
+                                            style={{ background: "#EBF8FF", border: "none", width: 32, height: 32, borderRadius: "50%", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#3182CE", transition: "all 0.2s" }}
+                                            onMouseEnter={e => e.currentTarget.style.background = "#BEE3F8"}
+                                            onMouseLeave={e => e.currentTarget.style.background = "#EBF8FF"}
+                                            title="Nghe phát âm"
+                                        >
+                                            🔊
+                                        </button>
                                     </div>
                                 </div>
 
