@@ -423,7 +423,7 @@ const FinishedScreen = ({ total, correct, wrong, onReset, exercises, savedDone, 
             </div>
 
             <div className="layout-container" style={{ display: "flex", flex: 1, overflow: "hidden", padding: 16, gap: 16 }}>
-                
+
                 {/* Left Col: Video + Stats */}
                 <div className="left-col" style={{ flex: "0 0 50%", display: "flex", flexDirection: "column", gap: 16, overflowY: "auto" }}>
                     {/* Video Player */}
