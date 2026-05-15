@@ -548,6 +548,42 @@ const YoutubeExercise = ({ data, onReset }) => {
     const [done, setDone] = useState(savedProgress?.done || []);
     const [notes, setNotes] = useState(savedProgress?.notes || []);
     const [revealedWords, setRevealedWords] = useState(new Set());
+    const [dictPopup, setDictPopup] = useState(null);
+
+    const handleWordClick = useCallback(async (word, i, isCorrectWord, isRevealed, e) => {
+        if (!isCorrectWord && !isRevealed) {
+            setRevealedWords(p => { const next = new Set(p); next.add(i); return next; });
+            return;
+        }
+
+        const cleanWord = word.replace(/[^a-zA-Z0-9-']/g, '').toLowerCase();
+        if (!cleanWord) return;
+
+        const rect = e.currentTarget.getBoundingClientRect();
+        setDictPopup({ x: rect.left, y: rect.bottom + 8, word: cleanWord, loading: true, meaning: "" });
+
+        try {
+            const [viRes, enRes] = await Promise.allSettled([
+                fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=vi&dt=t&q=${encodeURIComponent(cleanWord)}`).then(r => r.json()),
+                fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(cleanWord)}`).then(r => r.json())
+            ]);
+
+            const meaningVi = viRes.status === "fulfilled" ? (viRes.value[0]?.[0]?.[0] || "") : "";
+            const enData = enRes.status === "fulfilled" && Array.isArray(enRes.value) ? enRes.value[0] : null;
+
+            setDictPopup(p => p?.word === cleanWord ? { 
+                ...p, 
+                loading: false, 
+                meaning: meaningVi,
+                phonetic: enData?.phonetic || enData?.phonetics?.find(ph => ph.text)?.text || "",
+                audio: enData?.phonetics?.find(ph => ph.audio)?.audio || "",
+                meanings: enData?.meanings || []
+            } : p);
+        } catch (err) {
+            setDictPopup(p => p?.word === cleanWord ? { ...p, loading: false, meaning: "Lỗi kết nối." } : p);
+        }
+    }, [revealedWords]);
+
     const [shake, setShake] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [mobileTab, setMobileTab] = useState("dictation");
@@ -947,7 +983,7 @@ const YoutubeExercise = ({ data, onReset }) => {
                                         return (
                                             <div
                                                 key={i}
-                                                onClick={() => !isCorrectWord && setRevealedWords(p => { const next = new Set(p); next.add(i); return next; })}
+                                                onClick={(e) => handleWordClick(word, i, isCorrectWord, isRevealed, e)}
                                                 className={(!isCorrectWord && shake) ? "shake-anim" : ""}
                                                 style={{
                                                     padding: "8px 14px",
@@ -1164,6 +1200,85 @@ const YoutubeExercise = ({ data, onReset }) => {
                 ::-webkit-scrollbar-thumb { background: #CBD5E0; border-radius: 10px; }
                 ::-webkit-scrollbar-thumb:hover { background: #A0AEC0; }
             `}</style>
+            
+            {dictPopup && (
+                <>
+                    <div 
+                        style={{ position: "fixed", inset: 0, zIndex: 9998 }} 
+                        onClick={() => setDictPopup(null)} 
+                    />
+                    <div style={{
+                        position: "fixed",
+                        left: Math.min(dictPopup.x, window.innerWidth - 300),
+                        top: Math.min(dictPopup.y, window.innerHeight - 350),
+                        background: "#fff",
+                        padding: "16px",
+                        borderRadius: 16,
+                        boxShadow: "0 10px 40px rgba(0,0,0,0.2)",
+                        zIndex: 9999,
+                        border: "1px solid #E2E8F0",
+                        width: 280,
+                        maxHeight: 350,
+                        overflowY: "auto",
+                        animation: "fadeIn 0.2s ease-out"
+                    }}>
+                        {dictPopup.loading ? (
+                            <div style={{ textAlign: "center", color: "#718096", padding: "20px 0", fontSize: 14 }}>⏳ Đang phân tích từ...</div>
+                        ) : (
+                            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                                    <div>
+                                        <div style={{ fontWeight: 900, fontSize: 20, color: "#2B6CB0", textTransform: "capitalize", lineHeight: 1.2 }}>
+                                            {dictPopup.word}
+                                        </div>
+                                        {dictPopup.phonetic && (
+                                            <div style={{ fontSize: 14, color: "#718096", fontFamily: "monospace", marginTop: 2 }}>
+                                                {dictPopup.phonetic}
+                                            </div>
+                                        )}
+                                    </div>
+                                    {dictPopup.audio && (
+                                        <button 
+                                            onClick={(e) => { e.stopPropagation(); new Audio(dictPopup.audio).play(); }}
+                                            style={{ background: "#EBF8FF", border: "none", width: 32, height: 32, borderRadius: "50%", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#3182CE", transition: "all 0.2s" }}
+                                            onMouseEnter={e => e.currentTarget.style.background = "#BEE3F8"}
+                                            onMouseLeave={e => e.currentTarget.style.background = "#EBF8FF"}
+                                        >
+                                            🔊
+                                        </button>
+                                    )}
+                                </div>
+
+                                <div style={{ fontSize: 16, color: "#2D3748", fontWeight: 700, paddingBottom: 8, borderBottom: "1px solid #E2E8F0" }}>
+                                    {dictPopup.meaning}
+                                </div>
+
+                                {dictPopup.meanings && dictPopup.meanings.map((m, idx) => (
+                                    <div key={idx} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                                        <div style={{ fontSize: 12, fontWeight: 800, color: "#805AD5", textTransform: "uppercase" }}>
+                                            {m.partOfSpeech}
+                                        </div>
+                                        <div style={{ fontSize: 13, color: "#4A5568", paddingLeft: 8, borderLeft: "2px solid #E9D8FD" }}>
+                                            {m.definitions[0]?.definition}
+                                        </div>
+                                        {m.synonyms?.length > 0 && (
+                                            <div style={{ fontSize: 12, color: "#38A169", marginTop: 4 }}>
+                                                <b>Đồng nghĩa:</b> {m.synonyms.slice(0, 3).join(", ")}
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                                {(!dictPopup.meanings || dictPopup.meanings.length === 0) && (
+                                    <div style={{ fontSize: 13, color: "#A0AEC0", fontStyle: "italic" }}>
+                                        Không có dữ liệu nâng cao cho từ này.
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                </>
+            )}
+
             </div>
         </div>
     );
