@@ -548,7 +548,9 @@ const YoutubeExercise = ({ data, onReset }) => {
     const [done, setDone] = useState(savedProgress?.done || []);
     const [notes, setNotes] = useState(savedProgress?.notes || []);
     const [revealedWords, setRevealedWords] = useState(new Set());
+    const revealedWordsRef = useRef(revealedWords); revealedWordsRef.current = revealedWords;
     const [dictPopup, setDictPopup] = useState(null);
+    const [showShortcuts, setShowShortcuts] = useState(false);
 
     const handleWordClick = useCallback(async (word, i, isCorrectWord, isRevealed, e) => {
         if (!isCorrectWord && !isRevealed) {
@@ -773,6 +775,35 @@ const YoutubeExercise = ({ data, onReset }) => {
         const kd = (e) => {
             if (e.key === "Control") { ctrl = true; ctrlOther = false; return; }
             if (ctrl) ctrlOther = true;
+            if (e.key === "\\") {
+                const active = document.activeElement;
+                if (active && (active.tagName === "INPUT" || active.tagName === "TEXTAREA") && active !== taRef.current) {
+                    return; // ignore if in NoteTable
+                }
+                e.preventDefault(); // prevent typing \
+                
+                const c = curRef.current;
+                const ans = stateRef.current.answer;
+                if (!c) return;
+
+                const ansWords = ans.trim().split(/\s+/).filter(Boolean);
+                const oWords = c.original.trim().split(/\s+/).filter(Boolean);
+                const cWords = oWords.map(w => norm(w));
+                let oCount = 0;
+                for (let i = 0; i < Math.min(ansWords.length, cWords.length); i++) {
+                    if (norm(ansWords[i]) === cWords[i]) oCount = i + 1;
+                    else break;
+                }
+
+                const currentRevealed = revealedWordsRef.current;
+                for (let i = oCount; i < oWords.length; i++) {
+                    if (!currentRevealed.has(i)) {
+                        setRevealedWords(p => { const next = new Set(p); next.add(i); return next; });
+                        break;
+                    }
+                }
+                return;
+            }
             if (e.key === "Enter" && !e.shiftKey) {
                 const active = document.activeElement;
                 if (active && (active.tagName === "INPUT" || active.tagName === "TEXTAREA") && active !== taRef.current) {
@@ -833,6 +864,15 @@ const YoutubeExercise = ({ data, onReset }) => {
                     </span>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <button
+                        onClick={() => setShowShortcuts(true)}
+                        style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 8, border: "1px solid #CBD5E0", background: "#EDF2F7", cursor: "pointer", color: "#4A5568", fontSize: 13, fontWeight: 600, transition: "all 0.2s" }}
+                        onMouseEnter={e => e.currentTarget.style.background = "#E2E8F0"}
+                        onMouseLeave={e => e.currentTarget.style.background = "#EDF2F7"}
+                        title="Hướng dẫn phím tắt"
+                    >
+                        ⌨️ Hướng dẫn
+                    </button>
                     <span className="header-progress" style={{ fontSize: 13, color: "#4A5568", fontWeight: 600 }}>
                         {idx} / {exercises.length} câu
                     </span>
@@ -1185,6 +1225,10 @@ const YoutubeExercise = ({ data, onReset }) => {
                     from { opacity: 0; transform: translateY(5px); }
                     to { opacity: 1; transform: translateY(0); }
                 }
+                @keyframes fadeInCenter {
+                    from { opacity: 0; transform: translate(-50%, -48%); }
+                    to { opacity: 1; transform: translate(-50%, -50%); }
+                }
                 @keyframes shake {
                     0%, 100% { transform: translateX(0); }
                     20% { transform: translateX(-4px); }
@@ -1305,6 +1349,55 @@ const YoutubeExercise = ({ data, onReset }) => {
                                 )}
                             </div>
                         )}
+                    </div>
+                </>
+            )}
+
+            {showShortcuts && (
+                <>
+                    <div 
+                        style={{ position: "fixed", inset: 0, zIndex: 9998, background: "rgba(0,0,0,0.4)" }} 
+                        onClick={() => setShowShortcuts(false)} 
+                    />
+                    <div style={{
+                        position: "fixed",
+                        left: "50%",
+                        top: "50%",
+                        transform: "translate(-50%, -50%)",
+                        background: "#fff",
+                        padding: "24px",
+                        borderRadius: 16,
+                        boxShadow: "0 10px 40px rgba(0,0,0,0.2)",
+                        zIndex: 9999,
+                        width: 400,
+                        maxWidth: "90%",
+                        animation: "fadeInCenter 0.2s ease-out"
+                    }}>
+                        <h3 style={{ margin: "0 0 16px 0", color: "#2D3748", display: "flex", alignItems: "center", gap: 8 }}>
+                            ⌨️ Hướng dẫn phím tắt
+                        </h3>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #E2E8F0", paddingBottom: 8 }}>
+                                <span style={{ color: "#4A5568" }}>Phát / Tạm dừng video</span>
+                                <kbd style={{ background: "#EDF2F7", padding: "4px 8px", borderRadius: 6, border: "1px solid #CBD5E0", fontWeight: 600 }}>Ctrl</kbd>
+                            </div>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #E2E8F0", paddingBottom: 8 }}>
+                                <span style={{ color: "#4A5568" }}>Kiểm tra / Chuyển câu</span>
+                                <kbd style={{ background: "#EDF2F7", padding: "4px 8px", borderRadius: 6, border: "1px solid #CBD5E0", fontWeight: 600 }}>Enter</kbd>
+                            </div>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #E2E8F0", paddingBottom: 8 }}>
+                                <span style={{ color: "#4A5568" }}>Mở gợi ý (hiện từng từ)</span>
+                                <kbd style={{ background: "#EDF2F7", padding: "4px 8px", borderRadius: 6, border: "1px solid #CBD5E0", fontWeight: 600 }}>\</kbd>
+                            </div>
+                        </div>
+                        <button 
+                            onClick={() => setShowShortcuts(false)}
+                            style={{ width: "100%", padding: "10px", marginTop: 20, background: "#3182CE", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer", transition: "all 0.2s" }}
+                            onMouseEnter={e => e.currentTarget.style.background = "#2B6CB0"}
+                            onMouseLeave={e => e.currentTarget.style.background = "#3182CE"}
+                        >
+                            Đã hiểu
+                        </button>
                     </div>
                 </>
             )}
