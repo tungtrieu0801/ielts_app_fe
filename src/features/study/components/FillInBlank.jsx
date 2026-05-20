@@ -4,6 +4,7 @@ import { FiCheck, FiX } from "react-icons/fi";
 import { speak } from "../../../shared/utils/speech.js";
 import SpeakButton from "../../../shared/components/SpeakButton.jsx";
 import { calcQualityByTime } from "../../../shared/utils/calcQualityByTime.js";
+import { checkAnswer } from "../../../shared/utils/checkAnswer.js";
 import StudyTimer from "./StudyTimer.jsx";
 
 // Tạo câu ví dụ với ô trống thay thế từ cần điền
@@ -57,7 +58,7 @@ const FillInBlank = ({ word, onAnswer, existingAnswer }) => {
 
     const handleSubmit = () => {
         const elapsed = Date.now() - startTimeRef.current;
-        const isCorrect = input.trim().toLowerCase() === word.english.toLowerCase();
+        const isCorrect = checkAnswer(input, word.english);
         const q = calcQualityByTime(isCorrect, elapsed);
         setFinalTimeMs(elapsed);
         setQuality(q);

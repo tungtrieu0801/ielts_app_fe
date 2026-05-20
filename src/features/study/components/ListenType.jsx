@@ -3,6 +3,7 @@ import { Box, Flex, Text, Input, Button, Badge, Icon, VStack } from "@chakra-ui/
 import { FiCheck, FiX, FiHeadphones, FiHelpCircle, FiEye } from "react-icons/fi";
 import { speak } from "../../../shared/utils/speech.js";
 import { calcQualityByTime } from "../../../shared/utils/calcQualityByTime.js";
+import { checkAnswer } from "../../../shared/utils/checkAnswer.js";
 import StudyTimer from "./StudyTimer.jsx";
 
 const ListenType = ({ word, onAnswer }) => {
@@ -42,7 +43,7 @@ const ListenType = ({ word, onAnswer }) => {
     const handleSubmit = () => {
         if (!input.trim() || submitted) return;
         const elapsed = Date.now() - startTimeRef.current;
-        const isCorrect = input.trim().toLowerCase() === word.english.toLowerCase();
+        const isCorrect = checkAnswer(input, word.english);
         let q = calcQualityByTime(isCorrect, elapsed);
         // Dùng hint giới hạn tối đa GOOD
         if (hintLevel > 0 && q === "EASY") q = "GOOD";

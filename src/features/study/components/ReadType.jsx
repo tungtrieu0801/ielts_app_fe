@@ -3,6 +3,7 @@ import { Box, Flex, Text, Input, Button, Badge, Icon, VStack } from "@chakra-ui/
 import { FiCheck, FiX, FiHelpCircle, FiEye, FiVolume2 } from "react-icons/fi";
 import { speak } from "../../../shared/utils/speech.js";
 import { calcQualityByTime } from "../../../shared/utils/calcQualityByTime.js";
+import { checkAnswer, checkOnRightTrack } from "../../../shared/utils/checkAnswer.js";
 import StudyTimer from "./StudyTimer.jsx";
 
 /* ─── SRS Level colours (matches Flashcard.jsx) ─── */
@@ -187,7 +188,7 @@ const ReadType = ({ word, onAnswer }) => {
     const handleSubmit = useCallback(() => {
         if (!input.trim() || submitted) return;
         const elapsed = Date.now() - startTimeRef.current;
-        const isCorrect = input.trim().toLowerCase() === word.english.toLowerCase();
+        const isCorrect = checkAnswer(input, word.english);
         // Time-based quality: sai → AGAIN, đúng nhanh → EASY, chậm → HARD/AGAIN
         // Nếu dùng hint thì giới hạn tối đa GOOD
         let q = calcQualityByTime(isCorrect, elapsed);
@@ -240,7 +241,7 @@ const ReadType = ({ word, onAnswer }) => {
         return null;
     };
 
-    const isOnRightTrack = input.length > 0 && word.english.toLowerCase().startsWith(input.toLowerCase());
+    const isOnRightTrack = checkOnRightTrack(input, word.english);
 
     return (
         <Flex direction="column" align="center" w="full" maxW="600px" mx="auto" gap={6}>
