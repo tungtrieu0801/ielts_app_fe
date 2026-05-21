@@ -55,6 +55,7 @@ const StudyPage = () => {
         submitSession,
         resetSession,
         streakInfo,
+        completedSetCardIds,
     } = useStudyStore();
 
     // Prevent browser refresh/close
@@ -131,6 +132,53 @@ const StudyPage = () => {
 
     // ── No cards ───────────────────────────────────────────────────────────
     if (!loading && queue.length === 0 && !sessionComplete) {
+        const isSetStudy = setId !== "global";
+        const hasStudiedBefore = isSetStudy && completedSetCardIds && completedSetCardIds.length > 0;
+
+        if (hasStudiedBefore) {
+            return (
+                <Flex h="100vh" align="center" justify="center" direction="column" gap={5} p={8}>
+                    <Box
+                        bg="bg.panel" borderRadius="3xl" p={8} maxW="420px" w="full"
+                        shadow="xl" borderWidth="1px" borderColor="border.subtle" textAlign="center"
+                        position="relative" overflow="hidden"
+                    >
+                        <Box
+                            position="absolute" top="-40px" left="50%" transform="translateX(-50%)"
+                            w="160px" h="160px" bg="green.400" opacity={0.12} filter="blur(40px)"
+                            borderRadius="full" pointerEvents="none"
+                        />
+                        <Flex direction="column" align="center" gap={4} position="relative">
+                            <Text fontSize="6xl">🏆</Text>
+                            <Box>
+                                <Text fontSize="xl" fontWeight="900" mb={1}>Chúc mừng!</Text>
+                                <Text color="fg.muted" fontSize="sm">
+                                    Bạn đã học hết toàn bộ các từ trong bộ từ "{currentSet?.title || 'này'}"!
+                                </Text>
+                            </Box>
+
+                            <Flex w="full" gap={3} direction="column" mt={2}>
+                                <Button
+                                    bg="linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)"
+                                    color="white" borderRadius="xl" fontWeight="bold" size="lg"
+                                    onClick={() => startSession(setId, false)}
+                                    _hover={{ opacity: 0.9 }}
+                                >
+                                    Học lại từ đầu
+                                </Button>
+                                <Button
+                                    variant="outline" size="md" borderRadius="xl"
+                                    onClick={() => navigate("/home")}
+                                >
+                                    Về trang chủ
+                                </Button>
+                            </Flex>
+                        </Flex>
+                    </Box>
+                </Flex>
+            );
+        }
+
         const nextDate = nextReviewAt ? new Date(nextReviewAt) : null;
         const diffMs = nextDate ? nextDate - Date.now() : null;
         const diffMin = diffMs ? Math.max(1, Math.round(diffMs / 60000)) : null;
@@ -274,11 +322,12 @@ const StudyPage = () => {
                         setTitle={currentSet?.title}
                         sessionHistory={sessionHistory}
                         onRestart={() => {
-                            resetSession();
+                            if (window.speechSynthesis) window.speechSynthesis.cancel();
                             if (setId === "global") {
+                                resetSession();
                                 startGlobalSession();
                             } else {
-                                startSession(setId);
+                                startSession(setId, true);
                             }
                         }}
                     />

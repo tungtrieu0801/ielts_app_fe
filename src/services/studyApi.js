@@ -1,13 +1,18 @@
 import axiosClient from "../config/axios.js";
 
-export const getStudySession = (setId) =>
-    axiosClient.get(`/study/${setId}/session`).then((r) => r.data);
+export const getStudySession = (setId, excludeIds = []) => {
+    const params = {};
+    if (excludeIds && excludeIds.length > 0) {
+        params.excludeIds = excludeIds.join(",");
+    }
+    return axiosClient.get(`/study/${setId}/session`, { params }).then((r) => r.data);
+};
 
 export const getGlobalStudySession = () =>
     axiosClient.get("/study/global-session").then((r) => r.data);
 
-export const batchSubmit = (answers) =>
-    axiosClient.post("/study/batch-submit", { answers }).then((r) => r.data);
+export const batchSubmit = (answers, isSetStudy = false) =>
+    axiosClient.post("/study/batch-submit", { answers, isSetStudy }).then((r) => r.data);
 
 export const getStudyStats = () =>
     axiosClient.get("/study/stats").then((r) => r.data.data);

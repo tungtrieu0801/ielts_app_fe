@@ -26,6 +26,7 @@ export const useStudyStore = create(
             submitResult: null,  // { reviewed, summary: { AGAIN, HARD, GOOD, EASY } }
             nextReviewAt: null,  // earliest upcoming card's nextReview
             sessionHistory: {},  // detailed answer stats for each card: { cardId -> { english, vietnamese, correct, timeMs, mode } }
+            completedSetCardIds: [], // Track studied cardIds for wordset sessions to avoid duplicates
 
             // ── Per-card answers buffer ───────────────────────────────────────
             // Map of cardId → "AGAIN" | "HARD" | "GOOD" | "EASY"
@@ -37,7 +38,8 @@ export const useStudyStore = create(
 
             // ─── Actions ─────────────────────────────────────────────────────
 
-            startSession: async (setId) => {
+            startSession: async (setId, isContinue = false) => {
+                const nextExcludeIds = isContinue ? (get().completedSetCardIds || []) : [];
                 set({
                     loading: true,
                     sessionComplete: false,
@@ -47,9 +49,10 @@ export const useStudyStore = create(
                     currentIndex: 0,
                     currentSetId: setId,
                     nextReviewAt: null,
+                    completedSetCardIds: nextExcludeIds,
                 });
                 try {
-                    const res = await studyApi.getStudySession(setId);
+                    const res = await studyApi.getStudySession(setId, nextExcludeIds);
                     set({
                         queue: res.data ?? [],
                         nextReviewAt: res.nextReviewAt ?? null,
@@ -71,6 +74,7 @@ export const useStudyStore = create(
                     currentIndex: 0,
                     currentSetId: "global",
                     nextReviewAt: null,
+                    completedSetCardIds: [],
                 });
                 try {
                     const res = await studyApi.getGlobalStudySession();
@@ -123,7 +127,7 @@ export const useStudyStore = create(
 
             /** Submit all buffered answers to the backend in a single request. */
             submitSession: async () => {
-                const { answers } = get();
+                const { answers, currentSetId, completedSetCardIds } = get();
                 const entries = Object.entries(answers).map(([cardId, quality]) => ({
                     cardId,
                     quality,
@@ -133,8 +137,16 @@ export const useStudyStore = create(
 
                 set({ submitting: true });
                 try {
-                    const result = await studyApi.batchSubmit(entries);
+                    const isSetStudy = currentSetId !== "global";
+                    const result = await studyApi.batchSubmit(entries, isSetStudy);
+                    
+                    const cardIds = Object.keys(answers);
+                    const updatedExcludeList = isSetStudy
+                        ? [...(completedSetCardIds || []), ...cardIds]
+                        : [];
+
                     set({
+                        completedSetCardIds: updatedExcludeList,
                         submitting: false,
                         sessionComplete: true,
                         submitResult: result,
@@ -156,6 +168,7 @@ export const useStudyStore = create(
                     answers: {},
                     sessionHistory: {},
                     currentSetId: null,
+                    completedSetCardIds: [],
                 });
             },
 
@@ -181,6 +194,7 @@ export const useStudyStore = create(
                 mode: state.mode,
                 streakInfo: state.streakInfo,
                 stats: state.stats,
+                completedSetCardIds: state.completedSetCardIds,
                 // Don't persist queue/answers — always fresh from API
             }),
         }
