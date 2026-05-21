@@ -25,6 +25,7 @@ export const useStudyStore = create(
             sessionComplete: false,
             submitResult: null,  // { reviewed, summary: { AGAIN, HARD, GOOD, EASY } }
             nextReviewAt: null,  // earliest upcoming card's nextReview
+            sessionHistory: {},  // detailed answer stats for each card: { cardId -> { english, vietnamese, correct, timeMs, mode } }
 
             // ── Per-card answers buffer ───────────────────────────────────────
             // Map of cardId → "AGAIN" | "HARD" | "GOOD" | "EASY"
@@ -42,6 +43,7 @@ export const useStudyStore = create(
                     sessionComplete: false,
                     submitResult: null,
                     answers: {},
+                    sessionHistory: {},
                     currentIndex: 0,
                     currentSetId: setId,
                     nextReviewAt: null,
@@ -65,6 +67,7 @@ export const useStudyStore = create(
                     sessionComplete: false,
                     submitResult: null,
                     answers: {},
+                    sessionHistory: {},
                     currentIndex: 0,
                     currentSetId: "global",
                     nextReviewAt: null,
@@ -83,10 +86,25 @@ export const useStudyStore = create(
             },
 
             /** Record the user's answer for the current card and advance to next. */
-            answerCard: (cardId, quality) => {
-                const { answers, currentIndex, queue } = get();
+            answerCard: (cardId, quality, details = null) => {
+                const { answers, currentIndex, queue, mode, sessionHistory } = get();
+                const card = queue.find(c => c.cardId === cardId) || queue[currentIndex];
+
+                const newHistory = { ...sessionHistory };
+                if (card) {
+                    newHistory[cardId] = {
+                        english: card.english,
+                        vietnamese: card.vietnamese,
+                        mode,
+                        quality,
+                        isCorrect: details?.isCorrect ?? (quality !== "AGAIN"),
+                        timeMs: mode === "flashcard" ? null : (details?.timeMs ?? null),
+                    };
+                }
+
                 set({
                     answers: { ...answers, [cardId]: quality },
+                    sessionHistory: newHistory,
                 });
                 // Auto-advance if not on the last card
                 if (currentIndex < queue.length - 1) {
@@ -136,6 +154,7 @@ export const useStudyStore = create(
                     sessionComplete: false,
                     submitResult: null,
                     answers: {},
+                    sessionHistory: {},
                     currentSetId: null,
                 });
             },

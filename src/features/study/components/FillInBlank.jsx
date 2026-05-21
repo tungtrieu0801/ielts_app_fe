@@ -67,7 +67,7 @@ const FillInBlank = ({ word, onAnswer, existingAnswer }) => {
     };
 
     const handleNext = () => {
-        onAnswer(word.cardId, quality ?? "AGAIN");
+        onAnswer(word.cardId, quality ?? "AGAIN", { isCorrect: correct, timeMs: finalTimeMs });
     };
 
     React.useEffect(() => {

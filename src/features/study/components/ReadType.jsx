@@ -211,8 +211,8 @@ const ReadType = ({ word, onAnswer }) => {
     }, [input, submitted, word, hintLevel]);
 
     const handleNext = useCallback(() => {
-        onAnswer(word.cardId, quality ?? "AGAIN");
-    }, [quality, onAnswer, word]);
+        onAnswer(word.cardId, quality ?? "AGAIN", { isCorrect: correct, timeMs: finalTimeMs });
+    }, [quality, onAnswer, word, correct, finalTimeMs]);
 
     const handleHint = useCallback(() => {
         const maxHint = word.english.length;

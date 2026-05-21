@@ -45,6 +45,7 @@ const StudyPage = () => {
         sessionComplete,
         submitResult,
         answers,
+        sessionHistory,
         nextReviewAt,
         startSession,
         startGlobalSession,
@@ -106,8 +107,8 @@ const StudyPage = () => {
     const allAnswered = totalCards > 0 && answeredCount === totalCards;
     const progress = totalCards > 0 ? Math.round((answeredCount / totalCards) * 100) : 0;
 
-    const handleAnswer = (cardId, quality) => {
-        answerCard(cardId, quality);
+    const handleAnswer = (cardId, quality, details = null) => {
+        answerCard(cardId, quality, details);
     };
 
     const handleSubmit = async () => {
@@ -271,6 +272,7 @@ const StudyPage = () => {
                         submitResult={submitResult}
                         setId={setId}
                         setTitle={currentSet?.title}
+                        sessionHistory={sessionHistory}
                         onRestart={() => {
                             resetSession();
                             if (setId === "global") {
