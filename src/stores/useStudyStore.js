@@ -27,6 +27,7 @@ export const useStudyStore = create(
             nextReviewAt: null,  // earliest upcoming card's nextReview
             sessionHistory: {},  // detailed answer stats for each card: { cardId -> { english, vietnamese, correct, timeMs, mode } }
             completedSetCardIds: [], // Track studied cardIds for wordset sessions to avoid duplicates
+            wordsPerSession: 20, // number of words to learn per session
 
             // ── Per-card answers buffer ───────────────────────────────────────
             // Map of cardId → "AGAIN" | "HARD" | "GOOD" | "EASY"
@@ -52,7 +53,8 @@ export const useStudyStore = create(
                     completedSetCardIds: nextExcludeIds,
                 });
                 try {
-                    const res = await studyApi.getStudySession(setId, nextExcludeIds);
+                    const limit = get().wordsPerSession || 20;
+                    const res = await studyApi.getStudySession(setId, nextExcludeIds, limit);
                     set({
                         queue: res.data ?? [],
                         nextReviewAt: res.nextReviewAt ?? null,
@@ -77,7 +79,8 @@ export const useStudyStore = create(
                     completedSetCardIds: [],
                 });
                 try {
-                    const res = await studyApi.getGlobalStudySession();
+                    const limit = get().wordsPerSession || 20;
+                    const res = await studyApi.getGlobalStudySession(limit);
                     set({
                         queue: res.data ?? [],
                         nextReviewAt: res.nextReviewAt ?? null,
@@ -172,6 +175,8 @@ export const useStudyStore = create(
                 });
             },
 
+            setWordsPerSession: (count) => set({ wordsPerSession: count }),
+
             // ── Stats/streak fetchers ─────────────────────────────────────────
             fetchStreakInfo: async () => {
                 try {
@@ -195,6 +200,7 @@ export const useStudyStore = create(
                 streakInfo: state.streakInfo,
                 stats: state.stats,
                 completedSetCardIds: state.completedSetCardIds,
+                wordsPerSession: state.wordsPerSession,
                 // Don't persist queue/answers — always fresh from API
             }),
         }
