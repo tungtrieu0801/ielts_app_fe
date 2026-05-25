@@ -9,6 +9,7 @@ import { useUIStore } from '../../stores/useUIStore.js';
 const menuItems = [
     { name: 'Trang chủ', icon: FiHome, path: '/home' },
     { name: 'Bộ từ', icon: FiBook, path: '/sets' },
+    { name: 'Speaking', icon: FiMic, path: '/speaking' },
     { name: 'Dictation', icon: FiMic, path: '/dictation' },
     { name: 'Game', icon: FiZap, path: '/game' },
     { name: 'Ranking', icon: FiAward, path: '/ranking' },
@@ -134,6 +135,7 @@ const Sidebar = ({ onNavigate, isCollapsed, onToggle }) => {
                             const isActive = location.pathname === item.path
                                 || (item.path === '/sets' && location.pathname.startsWith('/sets'))
                                 || (item.path === '/dictation' && location.pathname.startsWith('/dictation'))
+                                || (item.path === '/speaking' && location.pathname.startsWith('/speaking'))
                                 || (item.path === '/settings' && location.pathname.startsWith('/settings'))
                                 || (item.path === '/ranking' && location.pathname.startsWith('/ranking'));
                             
