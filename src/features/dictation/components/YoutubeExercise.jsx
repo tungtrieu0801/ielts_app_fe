@@ -298,13 +298,56 @@ const NoteTable = ({ notes, setNotes }) => {
 };
 
 // ── Finished Screen ───────────────────────────────────────────────────────
-const FinishedScreen = ({ total, correct, wrong, onReset, exercises, savedDone, title, onRestartVideo, videoId }) => {
+const FinishedScreen = ({ total, correct, wrong, onReset, exercises, savedDone, title, onRestartVideo, videoId, notes = [] }) => {
     const pct = total ? Math.round((correct / total) * 100) : 0;
     const transcriptRef = React.useRef(null);
     const playerRef = React.useRef(null);
     const divRef = React.useRef(null);
     const [currentTime, setCurrentTime] = React.useState(0);
     const timeInterval = React.useRef(null);
+
+    const exportCSV = async () => {
+        const ExcelJS = (await import('exceljs')).default;
+        const wb = new ExcelJS.Workbook();
+        const ws = wb.addWorksheet('Vocabulary');
+
+        ws.columns = [
+            { header: 'English', key: 'english', width: 20 },
+            { header: 'Vietnamese', key: 'vietnamese', width: 25 },
+            { header: 'Level', key: 'level', width: 10 },
+            { header: 'Phiên âm', key: 'pronunciation', width: 20 },
+            { header: 'Từ loại', key: 'pos', width: 15 },
+            { header: 'Example', key: 'example', width: 40 },
+            { header: 'Nghĩa ví dụ', key: 'example_vi', width: 40 },
+            { header: 'Synonyms', key: 'synonyms', width: 25 },
+            { header: 'Antonyms', key: 'antonyms', width: 25 }
+        ];
+
+        const headerRow = ws.getRow(1);
+        headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        headerRow.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FF4F81BD' } // blue background
+        };
+        headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
+
+        notes.forEach(note => {
+            ws.addRow({
+                english: note.en,
+                vietnamese: note.vi
+            });
+        });
+
+        const buffer = await wb.xlsx.writeBuffer();
+        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "dictation_notes.xlsx";
+        a.click();
+        URL.revokeObjectURL(url);
+    };
 
     React.useEffect(() => {
         if (!divRef.current || !videoId) return;
@@ -460,6 +503,29 @@ const FinishedScreen = ({ total, correct, wrong, onReset, exercises, savedDone, 
                                 🔄 Bài mới
                             </button>
                         </div>
+                        {notes && notes.length > 0 && (
+                            <button
+                                onClick={exportCSV}
+                                style={{
+                                    width: "100%",
+                                    marginTop: 12,
+                                    padding: "12px",
+                                    borderRadius: 10,
+                                    border: "none",
+                                    background: "linear-gradient(135deg, #DD6B20 0%, #ED8936 100%)",
+                                    boxShadow: "0 4px 10px rgba(221,107,32,0.3)",
+                                    color: "#fff",
+                                    fontWeight: 800,
+                                    fontSize: 14,
+                                    cursor: "pointer",
+                                    transition: "all 0.2s"
+                                }}
+                                onMouseEnter={e => e.currentTarget.style.opacity = "0.9"}
+                                onMouseLeave={e => e.currentTarget.style.opacity = "1"}
+                            >
+                                📥 Tải Ghi Chú Từ Vựng ({notes.length} từ) .xlsx
+                            </button>
+                        )}
                     </div>
 
                     {/* Instructions banner */}
@@ -825,7 +891,7 @@ const YoutubeExercise = ({ data, onReset }) => {
         return () => { window.removeEventListener("keydown", kd); window.removeEventListener("keyup", ku); };
     }, []);
 
-    if (finished) return <FinishedScreen total={exercises.length} correct={stats.correct} wrong={stats.wrong} onReset={onReset} exercises={exercises} savedDone={done} title={title} onRestartVideo={handleRestartVideo} videoId={videoId} />;
+    if (finished) return <FinishedScreen total={exercises.length} correct={stats.correct} wrong={stats.wrong} onReset={onReset} exercises={exercises} savedDone={done} title={title} onRestartVideo={handleRestartVideo} videoId={videoId} notes={notes} />;
     if (!cur) return null;
 
     const pct = (idx / exercises.length) * 100;
