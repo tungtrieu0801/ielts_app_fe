@@ -304,6 +304,7 @@ const FinishedScreen = ({ total, correct, wrong, onReset, exercises, savedDone, 
     const playerRef = React.useRef(null);
     const divRef = React.useRef(null);
     const [currentTime, setCurrentTime] = React.useState(0);
+    const [isParagraphMode, setIsParagraphMode] = React.useState(false);
     const timeInterval = React.useRef(null);
 
     const exportCSV = async () => {
@@ -427,8 +428,7 @@ const FinishedScreen = ({ total, correct, wrong, onReset, exercises, savedDone, 
     // Auto-scroll transcript
     React.useEffect(() => {
         if (activeIndex >= 0 && transcriptRef.current) {
-            // Children[0] is the header, so index is activeIndex + 1
-            const activeEl = transcriptRef.current.children[activeIndex + 1];
+            const activeEl = transcriptRef.current.querySelector(`[data-sentence-index="${activeIndex}"]`);
             if (activeEl) {
                 activeEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }
@@ -540,47 +540,140 @@ const FinishedScreen = ({ total, correct, wrong, onReset, exercises, savedDone, 
 
                 {/* Right Col: Full transcript */}
                 <div className="right-col" style={{ flex: 1, background: "#fff", borderRadius: 16, overflow: "hidden", display: "flex", flexDirection: "column", boxShadow: "0 4px 12px rgba(0,0,0,0.05)", border: "1px solid #E2E8F0" }}>
-                    <div style={{ padding: "16px 20px", borderBottom: "1px solid #E2E8F0", background: "#F7FAFC" }}>
+                    <div style={{ padding: "12px 20px", borderBottom: "1px solid #E2E8F0", background: "#F7FAFC", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                         <div style={{ fontSize: 13, fontWeight: 800, color: "#4A5568", textTransform: "uppercase", letterSpacing: "0.05em" }}>
                             📜 Toàn bộ transcript ({total} câu)
                         </div>
+                        <button
+                            onClick={() => setIsParagraphMode(p => !p)}
+                            style={{
+                                padding: "6px 12px",
+                                borderRadius: 8,
+                                border: "1px solid #CBD5E0",
+                                background: isParagraphMode ? "linear-gradient(135deg, #3182CE 0%, #4299E1 100%)" : "#fff",
+                                color: isParagraphMode ? "#fff" : "#4A5568",
+                                cursor: "pointer",
+                                fontSize: 11,
+                                fontWeight: 800,
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 6,
+                                transition: "all 0.2s",
+                                boxShadow: isParagraphMode ? "0 2px 6px rgba(49,130,206,0.3)" : "none"
+                            }}
+                            onMouseEnter={e => {
+                                if (!isParagraphMode) e.currentTarget.style.background = "#EDF2F7";
+                            }}
+                            onMouseLeave={e => {
+                                if (!isParagraphMode) e.currentTarget.style.background = "#fff";
+                            }}
+                        >
+                            {isParagraphMode ? "📄 Xem từng câu" : "📖 Ghép thành đoạn văn"}
+                        </button>
                     </div>
-                    <div ref={transcriptRef} style={{ flex: 1, overflowY: "auto", padding: "16px 20px", display: "flex", flexDirection: "column", gap: 8 }}>
-                        {/* Hidden header item for child index mapping */}
-                        <div style={{ display: 'none' }}></div>
-                        {fullTranscript.map((s, i) => (
-                            <div
-                                key={i}
-                                onClick={() => playSentence(s.start)}
-                                style={{
-                                    padding: "12px 14px", borderRadius: 12, cursor: "pointer",
-                                    border: activeIndex === i ? "2px solid #3182CE" : "1px solid #E2E8F0",
-                                    background: activeIndex === i ? "rgba(49,130,206,0.12)" : "#fff",
-                                    borderLeft: `4px solid ${s.ok ? "#38A169" : "#E53E3E"}`,
-                                    transition: "all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)",
-                                    transform: activeIndex === i ? "scale(1.02)" : "scale(1)",
-                                    boxShadow: activeIndex === i ? "0 8px 24px rgba(49,130,206,0.25)" : "0 2px 8px rgba(0,0,0,0.02)",
-                                    position: "relative",
-                                    zIndex: activeIndex === i ? 10 : 1,
-                                    margin: activeIndex === i ? "6px 0" : "0"
-                                }}
-                            >
-                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8, marginBottom: 4 }}>
-                                    <div style={{ fontSize: 15, fontWeight: 700, lineHeight: 1.5, color: activeIndex === i ? "#2B6CB0" : "#2D3748" }}>
-                                        {s.original}
+                    <div ref={transcriptRef} style={{ flex: 1, overflowY: "auto", padding: "16px 20px", display: "flex", flexDirection: "column", gap: isParagraphMode ? 16 : 8 }}>
+                        {isParagraphMode ? (
+                            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                                <div style={{ background: "#F7FAFC", padding: "16px", borderRadius: 12, border: "1px solid #E2E8F0", boxShadow: "0 2px 8px rgba(0,0,0,0.01)" }}>
+                                    <div style={{ fontSize: 12, fontWeight: 800, color: "#3182CE", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em", display: "flex", alignItems: "center", gap: 6 }}>
+                                        🇬🇧 English Paragraph <span style={{ fontSize: 10, color: "#A0AEC0", textTransform: "none" }}>(Click any sentence to play)</span>
                                     </div>
-                                    <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
-                                        {activeIndex === i && <span style={{ color: "#3182CE", fontSize: 12, animation: "pulse 1.5s infinite" }}>▶ ĐANG PHÁT</span>}
-                                        <div style={{ fontSize: 10, fontWeight: 800, color: s.ok ? "#2F855A" : "#C53030", background: s.ok ? "rgba(56,161,105,0.15)" : "rgba(229,62,62,0.15)", padding: "4px 8px", borderRadius: 8 }}>
-                                            {s.skipped && "⏭ "}#{(s.idx ?? i) + 1}
-                                        </div>
-                                    </div>
+                                    <p style={{ fontSize: 15, lineHeight: 1.8, color: "#2D3748", margin: 0, textAlign: "justify" }}>
+                                        {fullTranscript.map((s, i) => {
+                                            const isActive = activeIndex === i;
+                                            return (
+                                                <span
+                                                    key={i}
+                                                    data-sentence-index={i}
+                                                    onClick={() => playSentence(s.start)}
+                                                    style={{
+                                                        cursor: "pointer",
+                                                        background: isActive ? "rgba(49,130,206,0.18)" : "transparent",
+                                                        padding: "2px 4px",
+                                                        borderRadius: 4,
+                                                        fontWeight: isActive ? 700 : 500,
+                                                        color: isActive ? "#2B6CB0" : "#2D3748",
+                                                        transition: "all 0.2s",
+                                                        textDecoration: isActive ? "underline" : "none",
+                                                        borderBottom: isActive ? "2px solid #3182CE" : "none"
+                                                    }}
+                                                    title={`Câu #${i + 1} - Click để phát`}
+                                                >
+                                                    {s.original}{" "}
+                                                </span>
+                                            );
+                                        })}
+                                    </p>
                                 </div>
-                                <div style={{ fontSize: 13, color: activeIndex === i ? "#4299E1" : "#A0AEC0", fontWeight: 600, fontStyle: "italic", marginTop: 4 }}>
-                                    {s.translated || "(Bản dịch đang cập nhật...)"}
+                                <div style={{ background: "#FFF5F5", padding: "16px", borderRadius: 12, border: "1px solid #FED7D7", boxShadow: "0 2px 8px rgba(0,0,0,0.01)" }}>
+                                    <div style={{ fontSize: 12, fontWeight: 800, color: "#C53030", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em", display: "flex", alignItems: "center", gap: 6 }}>
+                                        🇻🇳 Tiếng Việt
+                                    </div>
+                                    <p style={{ fontSize: 14, lineHeight: 1.8, color: "#4A5568", margin: 0, fontStyle: "italic", textAlign: "justify" }}>
+                                        {fullTranscript.map((s, i) => {
+                                            const isActive = activeIndex === i;
+                                            return (
+                                                <span
+                                                    key={i}
+                                                    onClick={() => playSentence(s.start)}
+                                                    style={{
+                                                        cursor: "pointer",
+                                                        background: isActive ? "rgba(229,62,62,0.08)" : "transparent",
+                                                        padding: "2px 4px",
+                                                        borderRadius: 4,
+                                                        fontWeight: isActive ? 700 : 500,
+                                                        color: isActive ? "#C53030" : "#4A5568",
+                                                        transition: "all 0.2s"
+                                                    }}
+                                                    title={`Câu #${i + 1} - Click để phát`}
+                                                >
+                                                    {s.translated || "(Chưa có bản dịch)"}{" "}
+                                                </span>
+                                            );
+                                        })}
+                                    </p>
                                 </div>
                             </div>
-                        ))}
+                        ) : (
+                            <>
+                                {/* Hidden header item for child index mapping */}
+                                <div style={{ display: 'none' }} data-sentence-index="-1"></div>
+                                {fullTranscript.map((s, i) => (
+                                    <div
+                                        key={i}
+                                        data-sentence-index={i}
+                                        onClick={() => playSentence(s.start)}
+                                        style={{
+                                            padding: "12px 14px", borderRadius: 12, cursor: "pointer",
+                                            border: activeIndex === i ? "2px solid #3182CE" : "1px solid #E2E8F0",
+                                            background: activeIndex === i ? "rgba(49,130,206,0.12)" : "#fff",
+                                            borderLeft: `4px solid ${s.ok ? "#38A169" : "#E53E3E"}`,
+                                            transition: "all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)",
+                                            transform: activeIndex === i ? "scale(1.02)" : "scale(1)",
+                                            boxShadow: activeIndex === i ? "0 8px 24px rgba(49,130,206,0.25)" : "0 2px 8px rgba(0,0,0,0.02)",
+                                            position: "relative",
+                                            zIndex: activeIndex === i ? 10 : 1,
+                                            margin: activeIndex === i ? "6px 0" : "0"
+                                        }}
+                                    >
+                                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8, marginBottom: 4 }}>
+                                            <div style={{ fontSize: 15, fontWeight: 700, lineHeight: 1.5, color: activeIndex === i ? "#2B6CB0" : "#2D3748" }}>
+                                                {s.original}
+                                            </div>
+                                            <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+                                                {activeIndex === i && <span style={{ color: "#3182CE", fontSize: 12, animation: "pulse 1.5s infinite" }}>▶ ĐANG PHÁT</span>}
+                                                <div style={{ fontSize: 10, fontWeight: 800, color: s.ok ? "#2F855A" : "#C53030", background: s.ok ? "rgba(56,161,105,0.15)" : "rgba(229,62,62,0.15)", padding: "4px 8px", borderRadius: 8 }}>
+                                                    {s.skipped && "⏭ "}#{(s.idx ?? i) + 1}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div style={{ fontSize: 13, color: activeIndex === i ? "#4299E1" : "#A0AEC0", fontWeight: 600, fontStyle: "italic", marginTop: 4 }}>
+                                            {s.translated || "(Bản dịch đang cập nhật...)"}
+                                        </div>
+                                    </div>
+                                ))}
+                            </>
+                        )}
                     </div>
                 </div>
             </div>
