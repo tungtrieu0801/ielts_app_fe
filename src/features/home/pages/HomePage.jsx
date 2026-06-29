@@ -1,7 +1,7 @@
-import React, { useEffect } from "react";
-import { Box, Flex, Text, SimpleGrid, Spinner, Button, Badge, VStack } from "@chakra-ui/react";
+import React, { useEffect, useState } from "react";
+import { Box, Flex, Text, SimpleGrid, Spinner, Button, Badge, VStack, Input } from "@chakra-ui/react";
 import { useNavigate } from "react-router-dom";
-import { FiBook, FiClock, FiAward, FiLayers, FiPlay, FiZap, FiActivity } from "react-icons/fi";
+import { FiBook, FiClock, FiAward, FiLayers, FiPlay, FiZap, FiActivity, FiSearch } from "react-icons/fi";
 import BaseLayout from "../../../layouts/BaseLayout.jsx";
 import { useStudyStore } from "../../../stores/useStudyStore.js";
 import { useVocabularyStore } from "../../../stores/useVocabularyStore.js";
@@ -9,6 +9,7 @@ import StudyStreakHeatmap from "../components/StudyStreakHeatmap.jsx";
 import SRSScheduleWidget from "../components/SRSScheduleWidget.jsx";
 import StreakRanking from "../components/StreakRanking.jsx";
 import CommunityChat from "../components/CommunityChat.jsx";
+import { getCardsByLevel } from "../../../services/studyApi.js";
 
 const StatCard = ({ icon: Icon, label, value, color, highlight, onClick }) => (
     <Box
@@ -86,10 +87,208 @@ const TipsWidget = () => (
     </Box>
 );
 
+// ── Modal hiển thị từ vựng theo cấp độ ───────────────────────────────────────
+const WordLevelModal = ({ level, onClose }) => {
+    const [words, setWords] = useState([]);
+    const [total, setTotal] = useState(0);
+    const [page, setPage] = useState(1);
+    const [search, setSearch] = useState("");
+    const [loading, setLoading] = useState(false);
+    const limit = 8; // items per page
+
+    const loadData = async (lvl, p, q) => {
+        setLoading(true);
+        try {
+            const res = await getCardsByLevel(lvl, p, limit, q);
+            setWords(res.data || []);
+            setTotal(res.total || 0);
+        } catch (err) {
+            console.error("Error fetching cards by level:", err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        loadData(level, page, search);
+    }, [level, page]);
+
+    const handleSearchChange = (val) => {
+        setSearch(val);
+        setPage(1);
+        loadData(level, 1, val);
+    };
+
+    const totalPages = Math.ceil(total / limit) || 1;
+
+    return (
+        <Box
+            position="fixed" inset={0} zIndex={500}
+            bg="blackAlpha.600" display="flex" alignItems="center" justifyContent="center"
+            onClick={onClose}
+        >
+            <Box
+                bg="bg.panel" borderRadius="2xl" p={6} w="full" maxW="800px"
+                mx={4} shadow="2xl" onClick={(e) => e.stopPropagation()}
+                maxH="85vh" display="flex" flexDirection="column"
+                borderWidth="1px" borderColor="border.muted"
+            >
+                {/* Header */}
+                <Flex justify="space-between" align="center" mb={4}>
+                    <Box>
+                        <Text fontSize="lg" fontWeight="extrabold" display="flex" alignItems="center" gap={2}>
+                            📌 Danh sách từ Cấp độ {level}
+                            <Badge colorPalette={level === 5 ? "green" : level === 1 ? "red" : "orange"} size="lg" borderRadius="full">
+                                {total} từ
+                            </Badge>
+                        </Text>
+                        <Text fontSize="xs" color="fg.muted">
+                            Các từ vựng đang ở chu kỳ ôn tập Cấp độ {level}
+                        </Text>
+                    </Box>
+                    <Button variant="ghost" size="sm" onClick={onClose} fontWeight="bold" fontSize="lg">
+                        ✕
+                    </Button>
+                </Flex>
+
+                {/* Search Bar */}
+                <Box mb={4} position="relative">
+                    <Flex align="center" bg="bg.input" borderWidth="1px" borderColor="border.muted" borderRadius="xl" px={3} py={1.5}>
+                        <FiSearch size={16} style={{ marginRight: "8px", opacity: 0.5 }} />
+                        <Input
+                            variant="unstyled"
+                            placeholder="Tìm kiếm từ tiếng Anh hoặc nghĩa tiếng Việt..."
+                            value={search}
+                            onChange={(e) => handleSearchChange(e.target.value)}
+                            fontSize="sm"
+                            bg="transparent"
+                            border="none"
+                            outline="none"
+                            w="full"
+                        />
+                    </Flex>
+                </Box>
+
+                {/* Table Content */}
+                <Box flex="1" overflowY="auto" minH="250px" mb={4} borderWidth="1px" borderColor="border.muted" borderRadius="xl">
+                    {loading ? (
+                        <Flex justify="center" align="center" h="250px">
+                            <Spinner size="lg" colorPalette="blue" />
+                        </Flex>
+                    ) : words.length === 0 ? (
+                        <Flex justify="center" align="center" direction="column" h="250px" gap={2} opacity={0.6}>
+                            <Text fontSize="4xl">🔍</Text>
+                            <Text fontWeight="semibold">Không tìm thấy từ vựng nào</Text>
+                            <Text fontSize="xs" color="fg.muted">Thử nhập từ khóa tìm kiếm khác</Text>
+                        </Flex>
+                    ) : (
+                        <Box overflowX="auto">
+                            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                                <thead>
+                                    <tr>
+                                        {["Tiếng Anh", "Phiên âm", "Từ loại", "Nghĩa tiếng Việt", "Ví dụ & Dịch ví dụ"].map((h) => (
+                                            <th
+                                                key={h}
+                                                style={{
+                                                    padding: "10px 12px",
+                                                    textAlign: "left",
+                                                    fontSize: "12px",
+                                                    fontWeight: "600",
+                                                    background: "var(--chakra-colors-bg-subtle)",
+                                                    borderBottom: "1px solid var(--chakra-colors-border-muted)",
+                                                    position: "sticky",
+                                                    top: 0,
+                                                    zIndex: 10,
+                                                    color: "var(--chakra-colors-fg-muted)",
+                                                    whiteSpace: "nowrap",
+                                                }}
+                                            >
+                                                {h}
+                                            </th>
+                                        ))}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {words.map((w, idx) => (
+                                        <tr
+                                            key={w._id || idx}
+                                            style={{
+                                                background: idx % 2 === 0 ? "transparent" : "var(--chakra-colors-bg-subtle)",
+                                                borderBottom: "1px solid var(--chakra-colors-border-muted)",
+                                            }}
+                                        >
+                                            <td style={{ padding: "10px 12px", fontWeight: 700, color: "var(--chakra-colors-blue-600)", fontSize: "14px" }}>
+                                                {w.english}
+                                            </td>
+                                            <td style={{ padding: "10px 12px", color: "var(--chakra-colors-fg-muted)", fontSize: "13px" }}>
+                                                {w.pronunciation || "—"}
+                                            </td>
+                                            <td style={{ padding: "10px 12px" }}>
+                                                {w.partOfSpeech ? (
+                                                    <Badge colorPalette="blue" size="sm" variant="subtle">
+                                                        {w.partOfSpeech}
+                                                    </Badge>
+                                                ) : "—"}
+                                            </td>
+                                            <td style={{ padding: "10px 12px", fontWeight: 600, fontSize: "13px" }}>
+                                                {w.vietnamese}
+                                            </td>
+                                            <td style={{ padding: "10px 12px", fontSize: "13px", maxW: "250px", whiteSpace: "normal" }}>
+                                                {w.example ? (
+                                                    <Box>
+                                                        <Text fontSize="xs" fontWeight="medium">{w.example}</Text>
+                                                        {w.exampleTranslation && (
+                                                            <Text fontSize="10px" color="fg.muted" fontStyle="italic">
+                                                                {w.exampleTranslation}
+                                                            </Text>
+                                                        )}
+                                                    </Box>
+                                                ) : "—"}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </Box>
+                    )}
+                </Box>
+
+                {/* Footer / Pagination */}
+                {totalPages > 1 && (
+                    <Flex justify="space-between" align="center" pt={4} borderTopWidth="1px" borderColor="border.subtle">
+                        <Text fontSize="xs" color="fg.muted">
+                            Trang {page} / {totalPages} (Hiển thị {words.length} / {total} từ)
+                        </Text>
+                        <Flex gap={2}>
+                            <Button
+                                size="xs"
+                                variant="outline"
+                                onClick={() => setPage(p => Math.max(1, p - 1))}
+                                disabled={page === 1}
+                            >
+                                Trước
+                            </Button>
+                            <Button
+                                size="xs"
+                                variant="outline"
+                                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                                disabled={page === totalPages}
+                            >
+                                Sau
+                            </Button>
+                        </Flex>
+                    </Flex>
+                )}
+            </Box>
+        </Box>
+    );
+};
+
 const HomePage = () => {
     const { stats, fetchStats, fetchStreakInfo } = useStudyStore();
     const { wordSets, fetchWordSets, loading } = useVocabularyStore();
     const navigate = useNavigate();
+    const [selectedLevel, setSelectedLevel] = useState(null);
 
     useEffect(() => {
         fetchStats();
@@ -126,14 +325,14 @@ const HomePage = () => {
                                 />
                                 <StatCard icon={FiLayers} label="Tổng từ vựng" value={stats?.totalWords} color="purple" />
                                 <StatCard icon={FiBook} label="Đã học hôm nay" value={stats?.reviewedToday} color="green" />
-                                <StatCard icon={FiAward} label="Từ đã thuộc (Lv5)" value={stats?.masteredCards} color="orange" />
+                                <StatCard icon={FiAward} label="Từ đã thuộc (Lv5)" value={stats?.masteredCards} color="orange" onClick={() => setSelectedLevel(5)} />
                             </SimpleGrid>
 
                             <SimpleGrid columns={{ base: 2, md: 4 }} gap={4}>
-                                <StatCard icon={FiActivity} label="Cấp độ 1" value={stats?.level1Count ?? 0} color="red" />
-                                <StatCard icon={FiActivity} label="Cấp độ 2" value={stats?.level2Count ?? 0} color="orange" />
-                                <StatCard icon={FiActivity} label="Cấp độ 3" value={stats?.level3Count ?? 0} color="cyan" />
-                                <StatCard icon={FiActivity} label="Cấp độ 4" value={stats?.level4Count ?? 0} color="teal" />
+                                <StatCard icon={FiActivity} label="Cấp độ 1" value={stats?.level1Count ?? 0} color="red" onClick={() => setSelectedLevel(1)} />
+                                <StatCard icon={FiActivity} label="Cấp độ 2" value={stats?.level2Count ?? 0} color="orange" onClick={() => setSelectedLevel(2)} />
+                                <StatCard icon={FiActivity} label="Cấp độ 3" value={stats?.level3Count ?? 0} color="cyan" onClick={() => setSelectedLevel(3)} />
+                                <StatCard icon={FiActivity} label="Cấp độ 4" value={stats?.level4Count ?? 0} color="teal" onClick={() => setSelectedLevel(4)} />
                             </SimpleGrid>
                         </VStack>
 
@@ -255,6 +454,12 @@ const HomePage = () => {
                     </Box>
                 </Flex>
             </Box>
+            {selectedLevel !== null && (
+                <WordLevelModal
+                    level={selectedLevel}
+                    onClose={() => setSelectedLevel(null)}
+                />
+            )}
         </BaseLayout>
     );
 };

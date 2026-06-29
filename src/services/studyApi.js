@@ -31,3 +31,6 @@ export const getRanking = () =>
 
 export const getSetStats = (setId) =>
     axiosClient.get(`/study/${setId}/stats`).then((r) => r.data.data);
+
+export const getCardsByLevel = (level, page = 1, limit = 10, search = "") =>
+    axiosClient.get("/study/cards", { params: { level, page, limit, search } }).then((r) => r.data);
