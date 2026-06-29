@@ -929,6 +929,38 @@ const YoutubeExercise = ({ data, onReset }) => {
     }, []);
     const handleGoNextRef = useRef(handleGoNext); handleGoNextRef.current = handleGoNext;
 
+    const handleTextareaChange = useCallback((e) => {
+        if (stateRef.current.attemptResult?.allCorrect) return;
+        const val = e.target.value;
+
+        // Detect if Enter was pressed (indicated by a newline character)
+        if (val.includes("\n")) {
+            const cleanVal = val.replace(/\n/g, "");
+            setAnswer(cleanVal);
+
+            // Trigger check/next logic
+            if (stateRef.current.attemptResult?.allCorrect) {
+                goNextRef.current(false);
+            } else if (cleanVal.trim()) {
+                submitRef.current();
+            }
+            return;
+        }
+
+        setAnswer(val);
+    }, []);
+
+    const handleTextareaKeyDown = useCallback((e) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            if (stateRef.current.attemptResult?.allCorrect) {
+                goNextRef.current(false);
+            } else if (stateRef.current.answer.trim()) {
+                submitRef.current();
+            }
+        }
+    }, []);
+
     useEffect(() => {
         let ctrl = false, ctrlOther = false;
         const kd = (e) => {
@@ -1115,7 +1147,8 @@ const YoutubeExercise = ({ data, onReset }) => {
                             <textarea
                                 ref={taRef}
                                 value={answer}
-                                onChange={e => !isCorrect && setAnswer(e.target.value)}
+                                onChange={handleTextareaChange}
+                                onKeyDown={handleTextareaKeyDown}
                                 placeholder="Type the sentence here... (Enter to check)"
                                 disabled={isCorrect}
                                 style={{
