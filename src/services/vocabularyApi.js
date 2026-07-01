@@ -40,3 +40,6 @@ export const updateWord = (setId, wordId, data) =>
 
 export const deleteWord = (setId, wordId) =>
     axiosClient.delete(`/wordsets/${setId}/words/${wordId}`).then((r) => r.data);
+
+export const getAllWords = (page = 1, limit = 20, search = "") =>
+    axiosClient.get("/words", { params: { page, limit, search } }).then((r) => r.data);
