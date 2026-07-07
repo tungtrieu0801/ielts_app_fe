@@ -10,6 +10,7 @@ import StudyPage from "../features/study/pages/StudyPage.jsx";
 import DictationPage from "../features/dictation/pages/DictationPage.jsx";
 import GameLobbyPage from "../features/game/pages/GameLobbyPage.jsx";
 import GamePlayPage from "../features/game/pages/GamePlayPage.jsx";
+import SurvivalPlayPage from "../features/game/pages/SurvivalPlayPage.jsx";
 import SettingsPage from "../features/settings/pages/SettingsPage.jsx";
 import PremiumPage from "../features/premium/pages/PremiumPage.jsx";
 import RankingPage from "../features/ranking/pages/RankingPage.jsx";
@@ -31,6 +32,7 @@ export default function AppRoutes() {
             <Route path="/study/:setId" element={<PrivateRoute><StudyPage /></PrivateRoute>} />
             <Route path="/dictation" element={<PrivateRoute><DictationPage /></PrivateRoute>} />
             <Route path="/game" element={<PrivateRoute><GameLobbyPage /></PrivateRoute>} />
+            <Route path="/game/survival/play" element={<PrivateRoute><SurvivalPlayPage /></PrivateRoute>} />
             <Route path="/game/:roomId" element={<PrivateRoute><GamePlayPage /></PrivateRoute>} />
             <Route path="/settings" element={<PrivateRoute><SettingsPage /></PrivateRoute>} />
             <Route path="/premium" element={<PrivateRoute><PremiumPage /></PrivateRoute>} />
