@@ -198,9 +198,9 @@ const InputStep = ({ onReady }) => {
                                 />
                                 <Flex
                                     align="flex-start" gap={2} mt={3} p={3}
-                                    bg="blue.50" _dark={{ bg: "blue.900/20" }}
+                                    bg="blue.50"
                                     borderRadius="lg" borderWidth="1px"
-                                    borderColor="blue.200" _dark={{ borderColor: "blue.800" }}
+                                    borderColor="blue.200" _dark={{ bg: "blue.900/20", borderColor: "blue.800" }}
                                 >
                                     <Box color="blue.500" mt={0.5}><FiInfo size={14} /></Box>
                                     <Text fontSize="xs" color="blue.700" _dark={{ color: "blue.200" }} lineHeight="tall">

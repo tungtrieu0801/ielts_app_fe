@@ -1,16 +1,12 @@
-import React, { useEffect, useState, useRef, useCallback } from "react";
-import { Box, Flex, Text, Button, Spinner, SimpleGrid, Badge, Progress, Heading, VStack } from "@chakra-ui/react";
+import React, { useEffect, useState, useRef } from "react";
+import { Box, Flex, Text, Button, Spinner, SimpleGrid, Badge, Heading } from "@chakra-ui/react";
 import { useNavigate } from "react-router-dom";
-import { FiArrowLeft, FiHeart, FiZap, FiAward, FiStar, FiRotateCcw, FiActivity, FiVolume2 } from "react-icons/fi";
+import { FiArrowLeft, FiHeart, FiRotateCcw, FiVolume2 } from "react-icons/fi";
 import BaseLayout from "../../../layouts/BaseLayout.jsx";
 import { getSurvivalQuestions, submitSurvivalScore, getSurvivalLeaderboard } from "../../../services/gameApi.js";
 import { speak } from "../../../shared/utils/speech.js";
 
 const GAME_CSS = `
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Rajdhani:wght@600;700&display=swap');
-.font-orbitron { font-family: 'Orbitron', sans-serif; }
-.font-rajdhani { font-family: 'Rajdhani', sans-serif; }
-
 @keyframes heartBeat {
     0%, 100% { transform: scale(1); }
     50% { transform: scale(1.15); }
@@ -68,7 +64,9 @@ const SurvivalPlayPage = () => {
         gameResultsRef.current = [];
 
         try {
-            const res = await getSurvivalQuestions(15);
+            const queryParams = new URLSearchParams(window.location.search);
+            const levels = queryParams.get("levels") || "";
+            const res = await getSurvivalQuestions(15, levels);
             setQuestions(res.data || []);
             setTimerActive(true);
         } catch (e) {
@@ -81,10 +79,9 @@ const SurvivalPlayPage = () => {
     // Load questions on mount
     useEffect(() => {
         initGame();
-        // Load personal high score from leaderboard
+        // Load personal high score
         getSurvivalLeaderboard().then(data => {
-            // Find current user high score
-            // Normally user object is in useAuthStore
+            // Highscore is managed by save
         }).catch(() => {});
         return () => {
             if (timerRef.current) clearInterval(timerRef.current);
@@ -94,7 +91,9 @@ const SurvivalPlayPage = () => {
     // Prefetch next questions in the background when close to end
     const prefetchQuestions = async () => {
         try {
-            const res = await getSurvivalQuestions(15);
+            const queryParams = new URLSearchParams(window.location.search);
+            const levels = queryParams.get("levels") || "";
+            const res = await getSurvivalQuestions(15, levels);
             setQuestions(prev => [...prev, ...res.data]);
         } catch (e) {
             console.error("Failed to prefetch questions:", e);
@@ -150,7 +149,6 @@ const SurvivalPlayPage = () => {
         });
 
         if (isCorrect) {
-            // Combo score calculations
             const comboBonus = Math.floor(combo / 5) * 5;
             const pointsGained = 10 + comboBonus;
             setScore(prev => prev + pointsGained);
@@ -161,18 +159,15 @@ const SurvivalPlayPage = () => {
                 nextQuestion();
             }, 1000);
         } else {
-            // Lose 1 life
             const newLives = lives - 1;
             setLives(newLives);
             setCombo(0);
 
             if (newLives <= 0) {
-                // Game Over!
                 setTimeout(async () => {
                     await handleGameOver();
                 }, 2500);
             } else {
-                // Show explanations, move next after longer delay
                 setTimeout(() => {
                     nextQuestion();
                 }, 2500);
@@ -194,7 +189,6 @@ const SurvivalPlayPage = () => {
         setSavingScore(true);
 
         try {
-            // Save score to database
             const res = await submitSurvivalScore(score, gameResultsRef.current);
             if (res) {
                 setHighScore(res.highScore);
@@ -215,7 +209,7 @@ const SurvivalPlayPage = () => {
                 <style>{GAME_CSS}</style>
                 <Flex justify="center" align="center" minH="70vh" direction="column" gap={4}>
                     <Spinner size="xl" colorPalette="blue" />
-                    <Text className="font-rajdhani" fontSize="lg" fontWeight="700">Đang chuẩn bị đấu trường sinh tồn...</Text>
+                    <Text fontSize="lg" fontWeight="700">Đang chuẩn bị đấu trường sinh tồn...</Text>
                 </Flex>
             </BaseLayout>
         );
@@ -228,7 +222,7 @@ const SurvivalPlayPage = () => {
 
                 {/* Back button */}
                 <Flex align="center" gap={3} mb={6}>
-                    <Button variant="ghost" size="sm" onClick={() => navigate("/game")} gap={2} className="font-rajdhani" fontWeight="700">
+                    <Button variant="ghost" size="sm" onClick={() => navigate("/game")} gap={2} fontWeight="700">
                         <FiArrowLeft /> RỜI GAME LOBBY
                     </Button>
                 </Flex>
@@ -238,7 +232,7 @@ const SurvivalPlayPage = () => {
                         {/* Game Status Banner */}
                         <Flex justify="space-between" align="center" bg="bg.panel" p={4} borderRadius="2xl" shadow="sm" mb={6} borderWidth="1px" borderColor="border.muted">
                             <Flex align="center" gap={2}>
-                                <Text fontSize="xs" fontWeight="800" color="fg.muted" className="font-rajdhani">LIVES:</Text>
+                                <Text fontSize="xs" fontWeight="800" color="fg.muted">LIVES:</Text>
                                 <Flex gap={1}>
                                     {[1, 2, 3].map((heart) => (
                                         <Box
@@ -255,14 +249,14 @@ const SurvivalPlayPage = () => {
 
                             {/* Combo Badge */}
                             {combo >= 3 && (
-                                <Badge colorPalette="orange" size="lg" className="font-orbitron lobby-float" variant="solid" borderRadius="full">
+                                <Badge colorPalette="orange" size="lg" variant="solid" borderRadius="full">
                                     🔥 STREAK: {combo}
                                 </Badge>
                             )}
 
                             <Box textAlign="right">
-                                <Text fontSize="xs" fontWeight="700" color="fg.muted" className="font-rajdhani" lineHeight="1">SCORE</Text>
-                                <Text fontSize="2xl" fontWeight="900" color="blue.500" className="font-orbitron score-pop" key={score}>
+                                <Text fontSize="xs" fontWeight="700" color="fg.muted" lineHeight="1">SCORE</Text>
+                                <Text fontSize="2xl" fontWeight="900" color="blue.500" className="score-pop" key={score}>
                                     {score}
                                 </Text>
                             </Box>
@@ -270,17 +264,19 @@ const SurvivalPlayPage = () => {
 
                         {/* Question Timer */}
                         <Box mb={6}>
-                            <Flex justify="space-between" mb={1} fontSize="xs" fontWeight="700" className="font-rajdhani">
+                            <Flex justify="space-between" mb={1} fontSize="xs" fontWeight="700">
                                 <Text color="fg.muted">THỜI GIAN CÒN LẠI</Text>
                                 <Text color={timeLeft <= 4 ? "red.500" : "blue.500"}>{timeLeft}s</Text>
                             </Flex>
-                            <Progress
-                                value={(timeLeft / 15) * 100}
-                                size="xs"
-                                colorPalette={timeLeft <= 4 ? "red" : "blue"}
-                                borderRadius="full"
-                                transition="all 1s linear"
-                            />
+                            <Box h="6px" bg="bg.subtle" borderRadius="full" overflow="hidden">
+                                <Box
+                                    h="full"
+                                    w={`${(timeLeft / 15) * 100}%`}
+                                    bg={timeLeft <= 4 ? "red.500" : "blue.500"}
+                                    borderRadius="full"
+                                    transition="width 1s linear"
+                                />
+                            </Box>
                         </Box>
 
                         {/* Target English Word Card */}
@@ -289,9 +285,9 @@ const SurvivalPlayPage = () => {
                                 <Badge colorPalette="purple" size="md">
                                     {currentQuestion.partOfSpeech || "Vocabulary"}
                                 </Badge>
-                                <IconButton size="xs" variant="ghost" onClick={(e) => handleSpeak(e, currentQuestion.english)}>
-                                    <FiVolume2 />
-                                </IconButton>
+                                <Button size="xs" variant="ghost" borderRadius="full" p={0} minW="24px" h="24px" onClick={(e) => handleSpeak(e, currentQuestion.english)}>
+                                    <FiVolume2 size={14} />
+                                </Button>
                             </Flex>
                             <Heading fontSize={{ base: "3xl", md: "4xl" }} fontWeight="900" mb={2} color="fg">
                                 {currentQuestion.english}
@@ -378,28 +374,28 @@ const SurvivalPlayPage = () => {
                     // Game Over Screen
                     <Box bg="bg.panel" p={8} borderRadius="3xl" shadow="xl" border="1px solid" borderColor="border.muted" textAlign="center">
                         <Text fontSize="5xl" mb={4} className="lobby-float">🏆</Text>
-                        <Heading fontSize="3xl" fontWeight="900" mb={2} color="fg" className="font-orbitron">
+                        <Heading fontSize="3xl" fontWeight="900" mb={2} color="fg">
                             GAME OVER
                         </Heading>
-                        <Text fontSize="md" color="fg.muted" mb={6} className="font-rajdhani" fontWeight="600">
+                        <Text fontSize="md" color="fg.muted" mb={6} fontWeight="600">
                             Chiến dịch sinh tồn kết thúc! Bạn đã xuất sắc vượt qua các thử thách từ vựng.
                         </Text>
 
                         {/* Celebratory Banner */}
                         {newHighScoreCelebration && (
                             <Box bg="linear-gradient(135deg, #ECC94B, #D69E2E)" color="white" py={3} px={6} borderRadius="2xl" mb={6} shadow="lg" className="lobby-float">
-                                <Text fontWeight="900" fontSize="lg" className="font-orbitron">✨ KỶ LỤC MỚI ĐÃ THIẾT LẬP! ✨</Text>
+                                <Text fontWeight="900" fontSize="lg">✨ KỶ LỤC MỚI ĐÃ THIẾT LẬP! ✨</Text>
                             </Box>
                         )}
 
                         <SimpleGrid columns={2} gap={4} maxW="400px" mx="auto" mb={8}>
                             <Box bg="bg.subtle" p={4} borderRadius="2xl" borderWidth="1px" borderColor="border.muted">
-                                <Text fontSize="xs" fontWeight="700" color="fg.muted" className="font-rajdhani">ĐIỂM ĐẠT ĐƯỢC</Text>
-                                <Text fontSize="3xl" fontWeight="900" color="blue.500" className="font-orbitron">{score}</Text>
+                                <Text fontSize="xs" fontWeight="700" color="fg.muted">ĐIỂM ĐẠT ĐƯỢC</Text>
+                                <Text fontSize="3xl" fontWeight="900" color="blue.500">{score}</Text>
                             </Box>
                             <Box bg="bg.subtle" p={4} borderRadius="2xl" borderWidth="1px" borderColor="border.muted">
-                                <Text fontSize="xs" fontWeight="700" color="fg.muted" className="font-rajdhani">KỶ LỤC CÁ NHÂN</Text>
-                                <Text fontSize="3xl" fontWeight="900" color="orange.500" className="font-orbitron">
+                                <Text fontSize="xs" fontWeight="700" color="fg.muted">KỶ LỤC CÁ NHÂN</Text>
+                                <Text fontSize="3xl" fontWeight="900" color="orange.500">
                                     {savingScore ? "..." : highScore || score}
                                 </Text>
                             </Box>
@@ -413,7 +409,6 @@ const SurvivalPlayPage = () => {
                                 borderRadius="15px"
                                 onClick={initGame}
                                 gap={2}
-                                className="font-rajdhani"
                                 fontWeight="700"
                                 shadow="md"
                                 _hover={{ transform: "translateY(-2px)" }}
@@ -426,7 +421,6 @@ const SurvivalPlayPage = () => {
                                 h="54px"
                                 borderRadius="15px"
                                 onClick={() => navigate("/game")}
-                                className="font-rajdhani"
                                 fontWeight="700"
                             >
                                 QUAY LẠI LOBBY

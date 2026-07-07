@@ -1,7 +1,7 @@
 import axiosClient from "../config/axios.js";
 
-export const getSurvivalQuestions = (limit = 10) =>
-    axiosClient.get("/game/api/survival/questions", { params: { limit } }).then((r) => r.data);
+export const getSurvivalQuestions = (limit = 10, levels = "") =>
+    axiosClient.get("/game/api/survival/questions", { params: { limit, levels } }).then((r) => r.data);
 
 export const submitSurvivalScore = (score, results) =>
     axiosClient.post("/game/api/survival/score", { score, results }).then((r) => r.data);

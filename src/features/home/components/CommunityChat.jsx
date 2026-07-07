@@ -104,7 +104,7 @@ const CommunityChat = () => {
             shadow="sm"
             overflow="hidden"
         >
-            <Box bg="blue.50" _dark={{ bg: "blue.900/30" }} p={4} borderBottomWidth="1px" borderColor="blue.100" _dark={{ borderColor: "blue.800/30" }}>
+            <Box bg="blue.50" p={4} borderBottomWidth="1px" borderColor="blue.100" _dark={{ bg: "blue.900/30", borderColor: "blue.800/30" }}>
                 <Flex align="center" gap={2}>
                     <Icon as={FiMessageSquare} color="blue.500" />
                     <Text fontSize="md" fontWeight="bold" color="blue.700" _dark={{ color: "blue.300" }}>

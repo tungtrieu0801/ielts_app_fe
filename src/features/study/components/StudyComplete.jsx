@@ -261,11 +261,10 @@ const StudyComplete = ({ submitResult, setId, setTitle, onRestart, sessionHistor
                                             key={idx}
                                             p={4}
                                             bg="bg.panel"
-                                            _dark={{ bg: "bg.subtle" }}
                                             borderRadius="2xl"
                                             borderWidth="1px"
                                             borderColor={themeColors.cardBorder}
-                                            _dark={{ borderColor: `${chakraColor}.900/40` }}
+                                            _dark={{ bg: "bg.subtle", borderColor: `${chakraColor}.900/40` }}
                                             shadow="xs"
                                             cursor="pointer"
                                             onClick={() => speakWord(item.english)}

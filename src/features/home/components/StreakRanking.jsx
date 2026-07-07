@@ -82,7 +82,7 @@ const StreakRanking = () => {
             overflow="hidden"
             shadow="sm"
         >
-            <Box bg="orange.50" _dark={{ bg: "orange.900/30" }} p={4} borderBottomWidth="1px" borderColor="orange.100" _dark={{ borderColor: "orange.800/30" }}>
+            <Box bg="orange.50" p={4} borderBottomWidth="1px" borderColor="orange.100" _dark={{ bg: "orange.900/30", borderColor: "orange.800/30" }}>
                 <Flex align="center" gap={2}>
                     <Icon as={FiTrendingUp} color="orange.500" />
                     <Text fontSize="md" fontWeight="bold" color="orange.700" _dark={{ color: "orange.300" }}>

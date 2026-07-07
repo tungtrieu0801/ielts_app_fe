@@ -270,11 +270,6 @@ const TextExercise = ({ data, onReset }) => {
                                     : wrong ? "red.100"
                                     : "blue.100"
                                 }
-                                _dark={{
-                                    bg: correct ? "green.800/40"
-                                        : wrong ? "red.800/40"
-                                        : "blue.800/40",
-                                }}
                                 borderColor={
                                     correct ? "green.400"
                                     : wrong ? "red.400"
@@ -286,6 +281,9 @@ const TextExercise = ({ data, onReset }) => {
                                     : "blue.700"
                                 }
                                 _dark={{
+                                    bg: correct ? "green.800/40"
+                                        : wrong ? "red.800/40"
+                                        : "blue.800/40",
                                     color: correct ? "green.300"
                                         : wrong ? "red.300"
                                         : "blue.300",
