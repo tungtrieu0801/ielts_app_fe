@@ -7,7 +7,11 @@ export const getWordSets = (folderId = null) =>
 export const getPublicSets = (params = {}) =>
     axiosClient.get("/wordsets/public", { params }).then((r) => r.data);
 
+export const getCEFRTemplates = () =>
+    axiosClient.get("/wordsets/cefr-templates").then((r) => r.data.data);
+
 export const createWordSet = (data) =>
+
     axiosClient.post("/wordsets", data).then((r) => r.data.data);
 
 export const updateWordSet = (id, data) =>
