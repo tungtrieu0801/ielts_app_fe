@@ -237,7 +237,8 @@ const PdfReaderPage = () => {
                     overflow="auto"
                 >
                     <Document
-                        file={`http://localhost:5000${book.fileUrl}`}
+                        // file={`http://localhost:5000${book.fileUrl}`}
+                        file={book.fileUrl}
                         onLoadSuccess={onDocumentLoadSuccess}
                         loading={<Flex h="50vh" align="center" justify="center"><Spinner size="xl" /></Flex>}
                     >
