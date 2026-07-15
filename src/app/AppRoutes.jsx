@@ -14,6 +14,8 @@ import SurvivalPlayPage from "../features/game/pages/SurvivalPlayPage.jsx";
 import SettingsPage from "../features/settings/pages/SettingsPage.jsx";
 import PremiumPage from "../features/premium/pages/PremiumPage.jsx";
 import RankingPage from "../features/ranking/pages/RankingPage.jsx";
+import LibraryPage from "../features/reading/LibraryPage.jsx";
+import PdfReaderPage from "../features/reading/PdfReaderPage.jsx";
 import PrivateRoute from "../shared/components/PrivateRoute.jsx";
 
 export default function AppRoutes() {
@@ -37,6 +39,8 @@ export default function AppRoutes() {
             <Route path="/settings" element={<PrivateRoute><SettingsPage /></PrivateRoute>} />
             <Route path="/premium" element={<PrivateRoute><PremiumPage /></PrivateRoute>} />
             <Route path="/ranking" element={<PrivateRoute><RankingPage /></PrivateRoute>} />
+            <Route path="/library" element={<PrivateRoute><LibraryPage /></PrivateRoute>} />
+            <Route path="/read/:id" element={<PrivateRoute><PdfReaderPage /></PrivateRoute>} />
         </Routes>
     );
 }

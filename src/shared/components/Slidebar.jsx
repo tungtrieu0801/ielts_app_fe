@@ -13,6 +13,7 @@ const menuItems = [
     { name: 'Dictation', icon: FiMic, path: '/dictation' },
     { name: 'Game', icon: FiZap, path: '/game' },
     { name: 'Ranking', icon: FiAward, path: '/ranking' },
+    { name: 'Thư viện', icon: FiBookOpen, path: '/library' },
     { name: 'Cài đặt', icon: FiSettings, path: '/settings' },
     { name: 'Premium', icon: FiStar, path: '/premium', isPremium: true },
 ];
@@ -136,6 +137,7 @@ const Sidebar = ({ onNavigate, isCollapsed, onToggle }) => {
                                 || (item.path === '/sets' && location.pathname.startsWith('/sets'))
                                 || (item.path === '/vocabulary' && location.pathname.startsWith('/vocabulary'))
                                 || (item.path === '/dictation' && location.pathname.startsWith('/dictation'))
+                                || (item.path === '/library' && location.pathname.startsWith('/library'))
                                 || (item.path === '/settings' && location.pathname.startsWith('/settings'))
                                 || (item.path === '/ranking' && location.pathname.startsWith('/ranking'));
                             
