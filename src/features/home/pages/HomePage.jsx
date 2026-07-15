@@ -10,6 +10,8 @@ import SRSScheduleWidget from "../components/SRSScheduleWidget.jsx";
 import StreakRanking from "../components/StreakRanking.jsx";
 import CommunityChat from "../components/CommunityChat.jsx";
 import { getCardsByLevel } from "../../../services/studyApi.js";
+import { getCEFRTemplates, getWordSets, forkWordSet } from "../../../services/vocabularyApi.js";
+
 
 const StatCard = ({ icon: Icon, label, value, color, highlight, onClick }) => (
     <Box
@@ -284,175 +286,331 @@ const WordLevelModal = ({ level, onClose }) => {
     );
 };
 
+const CEFRSuggestCard = ({ set, onForkAndStudy, onForkAndManage, isForking }) => {
+    let palette = "blue";
+    if (set.title.includes("A1")) palette = "green";
+    else if (set.title.includes("A2")) palette = "teal";
+    else if (set.title.includes("B1")) palette = "blue";
+    else if (set.title.includes("B2")) palette = "orange";
+    else if (set.title.includes("C1")) palette = "red";
+
+    return (
+        <Box
+            bg="bg.panel"
+            borderRadius="2xl"
+            p={5}
+            borderWidth="2px"
+            borderColor={`${palette}.200`}
+            _dark={{ borderColor: `${palette}.800/60` }}
+            shadow="md"
+            position="relative"
+            display="flex"
+            flexDirection="column"
+            justifyContent="space-between"
+            height="100%"
+            transition="all 0.2s ease"
+            _hover={{ transform: "translateY(-4px)", shadow: "xl", borderColor: `${palette}.400` }}
+        >
+            <Box>
+                <Flex align="center" gap={3} mb={3}>
+                    <Box
+                        w="44px"
+                        h="44px"
+                        borderRadius="xl"
+                        bg={`${palette}.50`}
+                        _dark={{ bg: `${palette}.950/30`, borderColor: `${palette}.900/30` }}
+                        display="flex"
+                        alignItems="center"
+                        justifyContent="center"
+                        fontSize="2xl"
+                        borderWidth="1px"
+                        borderColor={`${palette}.100`}
+                    >
+                        📖
+                    </Box>
+                    <Box>
+                        <Flex align="center" gap={1.5}>
+                            <Text fontWeight="900" fontSize="lg" color="fg">
+                                {set.title}
+                            </Text>
+                            <Text fontSize="xs" opacity={0.6} title="Bộ từ hệ thống">🔒</Text>
+                        </Flex>
+                        <Badge colorPalette={palette} variant="subtle" size="sm" mt={0.5} borderRadius="md" fontWeight="bold">
+                            {set.wordCount || 1000} TỪ VỰNG
+                        </Badge>
+                    </Box>
+                </Flex>
+
+                <Text color="fg.muted" fontSize="sm" mb={6} noOfLines={3} lineHeight="relaxed">
+                    {set.description || `Trọn bộ từ vựng Oxford cấp độ ${set.title} theo khung chuẩn châu Âu.`}
+                </Text>
+            </Box>
+
+            <Flex gap={3} mt="auto">
+                <Button
+                    flex="1"
+                    variant="outline"
+                    colorPalette={palette}
+                    size="sm"
+                    borderRadius="xl"
+                    fontWeight="bold"
+                    disabled={isForking}
+                    onClick={() => onForkAndManage(set._id)}
+                    _hover={{ bg: `${palette}.50`, _dark: { bg: `${palette}.950/20` } }}
+                >
+                    Quản lý
+                </Button>
+                <Button
+                    flex="1.2"
+                    bg={isForking ? "bg.muted" : `${palette}.500`}
+                    _dark={{ bg: `${palette}.600` }}
+                    color="white"
+                    size="sm"
+                    borderRadius="xl"
+                    fontWeight="bold"
+                    gap={1.5}
+                    disabled={isForking}
+                    onClick={() => onForkAndStudy(set._id)}
+                    _hover={{ opacity: 0.9 }}
+                >
+                    <FiPlay size={10} /> {isForking ? "Đang tạo..." : "Học ngay"}
+                </Button>
+            </Flex>
+        </Box>
+    );
+};
+
 const HomePage = () => {
     const { stats, fetchStats, fetchStreakInfo } = useStudyStore();
-    const { wordSets, fetchWordSets, loading } = useVocabularyStore();
     const navigate = useNavigate();
     const [selectedLevel, setSelectedLevel] = useState(null);
 
+    // States for checking if user has any sets, and fetching CEFR templates
+    const [allUserSets, setAllUserSets] = useState([]);
+    const [checkingSets, setCheckingSets] = useState(true);
+    const [templates, setTemplates] = useState([]);
+    const [templatesLoading, setTemplatesLoading] = useState(false);
+    const [forkingSetId, setForkingSetId] = useState(null);
+
+    const checkUserSetsAndLoadTemplates = async () => {
+        setCheckingSets(true);
+        try {
+            const userSets = await getWordSets("all");
+            setAllUserSets(userSets || []);
+            if (!userSets || userSets.length === 0) {
+                // If user has no sets, load CEFR templates
+                setTemplatesLoading(true);
+                try {
+                    const cefr = await getCEFRTemplates();
+                    // Sort CEFR sets by level order (A1, A2, B1, B2, C1)
+                    const order = ["A1", "A2", "B1", "B2", "C1"];
+                    const sortedCefr = (cefr || []).sort((a, b) => {
+                        const idxA = order.findIndex(o => a.title.includes(o));
+                        const idxB = order.findIndex(o => b.title.includes(o));
+                        return idxA - idxB;
+                    });
+                    setTemplates(sortedCefr);
+                } catch (err) {
+                    console.error("Failed to load CEFR templates:", err);
+                } finally {
+                    setTemplatesLoading(false);
+                }
+            }
+        } catch (err) {
+            console.error("Failed to fetch user wordsets:", err);
+        } finally {
+            setCheckingSets(false);
+        }
+    };
+
     useEffect(() => {
         fetchStats();
-        fetchWordSets();
         fetchStreakInfo();
+        checkUserSetsAndLoadTemplates();
     }, []);
+
+    const handleForkAndStudy = async (setId) => {
+        setForkingSetId(setId);
+        try {
+            const res = await forkWordSet(setId);
+            if (res.data && res.data._id) {
+                navigate(`/study/${res.data._id}`);
+            }
+        } catch (err) {
+            console.error("Fork set error:", err);
+        } finally {
+            setForkingSetId(null);
+        }
+    };
+
+    const handleForkAndManage = async (setId) => {
+        setForkingSetId(setId);
+        try {
+            const res = await forkWordSet(setId);
+            if (res.data && res.data._id) {
+                navigate(`/sets/${res.data._id}`);
+            }
+        } catch (err) {
+            console.error("Fork set error:", err);
+        } finally {
+            setForkingSetId(null);
+        }
+    };
+
+    const renderNewUserDashboard = () => (
+        <Box w="full" py={2}>
+            {/* Lời kêu gọi hành động nổi bật */}
+            <Box
+                bg="linear-gradient(135deg, var(--chakra-colors-blue-500) 0%, var(--chakra-colors-purple-600) 100%)"
+                borderRadius="3xl"
+                p={{ base: 6, md: 8 }}
+                color="white"
+                mb={8}
+                position="relative"
+                overflow="hidden"
+                shadow="xl"
+            >
+                <Box
+                    position="absolute" top="-20px" right="-20px"
+                    w="150px" h="150px" bg="white/10" borderRadius="full" blur="xl"
+                />
+                <Box
+                    position="absolute" bottom="-40px" left="-10px"
+                    w="100px" h="100px" bg="white/10" borderRadius="full" blur="md"
+                />
+                
+                <Flex direction="column" gap={3} maxW="650px" position="relative" zIndex={1}>
+                    <Badge alignSelf="flex-start" bg="white/20" color="white" px={3} py={1} borderRadius="full" fontSize="xs" fontWeight="bold">
+                        👋 CHÀO MỪNG BẠN MỚI
+                    </Badge>
+                    <Text fontSize={{ base: "2xl", md: "3xl" }} fontWeight="900" lineHeight="1.2">
+                        Bắt đầu hành trình chinh phục IELTS ngay hôm nay!
+                    </Text>
+                    <Text fontSize={{ base: "sm", md: "md" }} color="white/85" lineHeight="relaxed">
+                        Học từ vựng siêu tốc và ghi nhớ trọn đời với phương pháp Spaced Repetition (Lặp lại ngắt quãng). Hãy chọn một trong các bộ từ chuẩn CEFR dưới đây để bắt đầu bài học đầu tiên!
+                    </Text>
+                </Flex>
+            </Box>
+
+            {/* Tiêu đề phần gợi ý */}
+            <Flex align="center" gap={2} mb={6}>
+                <Text fontSize="2xl" fontWeight="900" color="fg">
+                    📚 Bộ từ vựng gợi ý cho bạn
+                </Text>
+            </Flex>
+
+            {templatesLoading ? (
+                <Flex justify="center" py={12}>
+                    <Spinner size="lg" colorPalette="blue" />
+                </Flex>
+            ) : (
+                <SimpleGrid columns={{ base: 1, md: 2, xl: 3 }} gap={6}>
+                    {templates.map((set) => (
+                        <CEFRSuggestCard
+                            key={set._id}
+                            set={set}
+                            isForking={forkingSetId === set._id}
+                            onForkAndStudy={handleForkAndStudy}
+                            onForkAndManage={handleForkAndManage}
+                        />
+                    ))}
+                </SimpleGrid>
+            )}
+        </Box>
+    );
 
     return (
         <BaseLayout>
             <Box maxW="1400px" mx="auto" px={{ base: 4, md: 8 }} py={{ base: 4, md: 8 }}>
-                {/* Welcome */}
-                <Box mb={6}>
-                    <Text fontSize={{ base: "2xl", md: "3xl" }} fontWeight="extrabold" mb={1}>
-                        Chào mừng trở lại! 👋
-                    </Text>
-                    <Text color="fg.muted">Tiếp tục hành trình học từ vựng của bạn hôm nay.</Text>
-                </Box>
-
-                <Flex direction={{ base: "column", lg: "row" }} gap={6} alignItems="flex-start">
-                    {/* Left Column (Main Content) */}
-                    <Box flex="1" w="full" minW="0" display="flex" flexDirection="column" gap={6}>
-
-
-                        {/* Stats Grid */}
-                        <VStack gap={4} align="stretch">
-                            <SimpleGrid columns={{ base: 2, md: 4 }} gap={4}>
-                                <StatCard
-                                    icon={FiZap}
-                                    label="Có thể học ngay"
-                                    value={stats?.dueCards ?? "—"}
-                                    color="blue"
-                                    highlight={stats?.dueCards > 0}
-                                    onClick={() => navigate("/study/global")}
-                                />
-                                <StatCard icon={FiLayers} label="Tổng từ vựng" value={stats?.totalWords} color="purple" />
-                                <StatCard icon={FiBook} label="Đã học hôm nay" value={stats?.reviewedToday} color="green" />
-                                <StatCard icon={FiAward} label="Từ đã thuộc (Lv5)" value={stats?.masteredCards} color="orange" onClick={() => setSelectedLevel(5)} />
-                            </SimpleGrid>
-
-                            <SimpleGrid columns={{ base: 2, md: 4 }} gap={4}>
-                                <StatCard icon={FiActivity} label="Cấp độ 1" value={stats?.level1Count ?? 0} color="red" onClick={() => setSelectedLevel(1)} />
-                                <StatCard icon={FiActivity} label="Cấp độ 2" value={stats?.level2Count ?? 0} color="orange" onClick={() => setSelectedLevel(2)} />
-                                <StatCard icon={FiActivity} label="Cấp độ 3" value={stats?.level3Count ?? 0} color="cyan" onClick={() => setSelectedLevel(3)} />
-                                <StatCard icon={FiActivity} label="Cấp độ 4" value={stats?.level4Count ?? 0} color="teal" onClick={() => setSelectedLevel(4)} />
-                            </SimpleGrid>
-                        </VStack>
-
-                        {/* Study Streak Heatmap — full width */}
-                        <StudyStreakHeatmap />
-
-                        {/* SRS Schedule Widget */}
-                        <SRSScheduleWidget />
-
-                        {/* Recent Sets */}
-                        {/* <Box>
-                            <Flex justify="space-between" align="center" mb={4}>
-                                <Text fontSize="xl" fontWeight="bold">Bộ từ gần đây</Text>
-                                <Button variant="ghost" size="sm" colorPalette="blue" onClick={() => navigate("/sets")}>
-                                    Xem tất cả →
-                                </Button>
-                            </Flex>
-
-                            {loading ? (
-                                <Flex justify="center" py={10}><Spinner /></Flex>
-                            ) : wordSets.length === 0 ? (
-                                <Flex
-                                    direction="column" align="center" justify="center"
-                                    py={12} borderRadius="2xl" borderWidth="2px"
-                                    borderStyle="dashed" borderColor="border.muted"
-                                    gap={3}
-                                >
-                                    <Text fontSize="4xl">📚</Text>
-                                    <Text fontWeight="semibold" fontSize="lg">Bạn chưa có bộ từ nào</Text>
-                                    <Text color="fg.muted" fontSize="sm">Tạo bộ từ đầu tiên để bắt đầu học!</Text>
-                                    <Button colorPalette="blue" mt={2} onClick={() => navigate("/sets")}>
-                                        Tạo bộ từ
-                                    </Button>
-                                </Flex>
-                            ) : (
-                                <SimpleGrid columns={{ base: 1, md: 2 }} gap={4}>
-                                    {wordSets.slice(0, 4).map((ws) => (
-                                        <Box
-                                            key={ws._id}
-                                            bg="bg.panel"
-                                            borderRadius="xl"
-                                            p={5}
-                                            borderWidth="1px"
-                                            borderColor="border.muted"
-                                            cursor="pointer"
-                                            onClick={() => navigate(`/sets/${ws._id}`)}
-                                            _hover={{ transform: "translateY(-2px)", shadow: "md", borderColor: "blue.300" }}
-                                            transition="all 0.2s ease"
-                                        >
-                                            <Flex align="center" gap={3} mb={3}>
-                                                <Box
-                                                    w="36px" h="36px" borderRadius="lg"
-                                                    bg={`${ws.color || "blue"}.100`}
-                                                    _dark={{ bg: `${ws.color || "blue"}.900/30` }}
-                                                    display="flex" alignItems="center" justifyContent="center"
-                                                    fontSize="lg"
-                                                >
-                                                    📖
-                                                </Box>
-                                                <Text fontWeight="bold" isTruncated flex={1}>{ws.title}</Text>
-                                            </Flex>
-                                            <Text color="fg.muted" fontSize="sm" mb={4} noOfLines={2}>
-                                                {ws.description || "Không có mô tả"}
-                                            </Text>
-                                            <Flex justify="space-between" align="center">
-                                                <Text fontSize="xs" color="fg.subtle">{ws.wordCount} từ</Text>
-                                                <Button
-                                                    size="xs"
-                                                    bg="linear-gradient(135deg, #3b82f6, #6366f1)"
-                                                    color="white"
-                                                    borderRadius="lg"
-                                                    gap={1}
-                                                    fontWeight="bold"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        navigate(`/study/${ws._id}`);
-                                                    }}
-                                                    _hover={{ opacity: 0.9 }}
-                                                >
-                                                    <FiPlay size={10} /> Học ngay
-                                                </Button>
-                                            </Flex>
-                                        </Box>
-                                    ))}
-                                </SimpleGrid>
-                            )}
-                        </Box> */}
-                    </Box>
-
-                    {/* Right Column (Side Widgets) */}
-                    <Box w={{ base: "full", lg: "320px", xl: "360px" }} flexShrink={0}>
-                        <VStack gap={6} align="stretch" position={{ lg: "sticky" }} top="20px">
-                            <StreakRanking />
-                            <CommunityChat />
-                            <TipsWidget />
-
-                            <Box
-                                bg="linear-gradient(135deg, var(--chakra-colors-purple-500) 0%, var(--chakra-colors-blue-600) 100%)"
-                                borderRadius="2xl"
-                                p={5}
-                                color="white"
-                                position="relative"
-                                overflow="hidden"
-                            >
-                                <Box
-                                    position="absolute" top="-20px" right="-20px"
-                                    w="100px" h="100px" bg="white/10" borderRadius="full" blur="md"
-                                />
-                                <Text fontSize="2xl" mb={2}>🚀</Text>
-                                <Text fontWeight="900" fontSize="lg" mb={1}>IELTS Vocab Pro</Text>
-                                <Text fontSize="sm" color="white/80" mb={4}>
-                                    Mở khóa phát âm AI, học không giới hạn và xoá quảng cáo.
+                {checkingSets ? (
+                    <Flex justify="center" align="center" minH="50vh">
+                        <Spinner size="xl" colorPalette="blue" />
+                    </Flex>
+                ) : (
+                    <>
+                        {/* Welcome */}
+                        {allUserSets.length > 0 && (
+                            <Box mb={6}>
+                                <Text fontSize={{ base: "2xl", md: "3xl" }} fontWeight="extrabold" mb={1}>
+                                    Chào mừng trở lại! 👋
                                 </Text>
-                                <Button size="sm" bg="white" color="purple.600" w="full" fontWeight="bold" _hover={{ bg: "gray.50" }} onClick={() => navigate("/premium")}>
-                                    Nâng cấp ngay
-                                </Button>
+                                <Text color="fg.muted">Tiếp tục hành trình học từ vựng của bạn hôm nay.</Text>
                             </Box>
-                        </VStack>
-                    </Box>
-                </Flex>
+                        )}
+
+                        <Flex direction={{ base: "column", lg: "row" }} gap={6} alignItems="flex-start">
+                            {/* Left Column (Main Content) */}
+                            <Box flex="1" w="full" minW="0" display="flex" flexDirection="column" gap={6}>
+                                {allUserSets.length === 0 ? (
+                                    renderNewUserDashboard()
+                                ) : (
+                                    <>
+                                        {/* Stats Grid */}
+                                        <VStack gap={4} align="stretch">
+                                            <SimpleGrid columns={{ base: 2, md: 4 }} gap={4}>
+                                                <StatCard
+                                                    icon={FiZap}
+                                                    label="Có thể học ngay"
+                                                    value={stats?.dueCards ?? "—"}
+                                                    color="blue"
+                                                    highlight={stats?.dueCards > 0}
+                                                    onClick={() => navigate("/study/global")}
+                                                />
+                                                <StatCard icon={FiLayers} label="Tổng từ vựng" value={stats?.totalWords} color="purple" />
+                                                <StatCard icon={FiBook} label="Đã học hôm nay" value={stats?.reviewedToday} color="green" />
+                                                <StatCard icon={FiAward} label="Từ đã thuộc (Lv5)" value={stats?.masteredCards} color="orange" onClick={() => setSelectedLevel(5)} />
+                                            </SimpleGrid>
+
+                                            <SimpleGrid columns={{ base: 2, md: 4 }} gap={4}>
+                                                <StatCard icon={FiActivity} label="Cấp độ 1" value={stats?.level1Count ?? 0} color="red" onClick={() => setSelectedLevel(1)} />
+                                                <StatCard icon={FiActivity} label="Cấp độ 2" value={stats?.level2Count ?? 0} color="orange" onClick={() => setSelectedLevel(2)} />
+                                                <StatCard icon={FiActivity} label="Cấp độ 3" value={stats?.level3Count ?? 0} color="cyan" onClick={() => setSelectedLevel(3)} />
+                                                <StatCard icon={FiActivity} label="Cấp độ 4" value={stats?.level4Count ?? 0} color="teal" onClick={() => setSelectedLevel(4)} />
+                                            </SimpleGrid>
+                                        </VStack>
+
+                                        {/* Study Streak Heatmap — full width */}
+                                        <StudyStreakHeatmap />
+
+                                        {/* SRS Schedule Widget */}
+                                        <SRSScheduleWidget />
+                                    </>
+                                )}
+                            </Box>
+
+                            {/* Right Column (Side Widgets) */}
+                            <Box w={{ base: "full", lg: "320px", xl: "360px" }} flexShrink={0}>
+                                <VStack gap={6} align="stretch" position={{ lg: "sticky" }} top="20px">
+                                    <StreakRanking />
+                                    <CommunityChat />
+                                    <TipsWidget />
+
+                                    <Box
+                                        bg="linear-gradient(135deg, var(--chakra-colors-purple-500) 0%, var(--chakra-colors-blue-600) 100%)"
+                                        borderRadius="2xl"
+                                        p={5}
+                                        color="white"
+                                        position="relative"
+                                        overflow="hidden"
+                                    >
+                                        <Box
+                                            position="absolute" top="-20px" right="-20px"
+                                            w="100px" h="100px" bg="white/10" borderRadius="full" blur="md"
+                                        />
+                                        <Text fontSize="2xl" mb={2}>🚀</Text>
+                                        <Text fontWeight="900" fontSize="lg" mb={1}>IELTS Vocab Pro</Text>
+                                        <Text fontSize="sm" color="white/80" mb={4}>
+                                            Mở khóa phát âm AI, học không giới hạn và xoá quảng cáo.
+                                        </Text>
+                                        <Button size="sm" bg="white" color="purple.600" w="full" fontWeight="bold" _hover={{ bg: "gray.50" }} onClick={() => navigate("/premium")}>
+                                            Nâng cấp ngay
+                                        </Button>
+                                    </Box>
+                                </VStack>
+                            </Box>
+                        </Flex>
+                    </>
+                )}
             </Box>
             {selectedLevel !== null && (
                 <WordLevelModal

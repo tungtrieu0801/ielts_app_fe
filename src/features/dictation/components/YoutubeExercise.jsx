@@ -160,7 +160,7 @@ const NoteTable = ({ notes, setNotes }) => {
     }, [en, vi, setNotes]);
 
     const exportCSV = async () => {
-        const ExcelJS = (await import('exceljs')).default;
+        const ExcelJS = (await import(/* @vite-ignore */ 'exceljs')).default;
         const wb = new ExcelJS.Workbook();
         const ws = wb.addWorksheet('Vocabulary');
 
