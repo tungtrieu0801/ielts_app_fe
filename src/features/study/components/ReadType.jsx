@@ -219,20 +219,44 @@ const ReadType = ({ word, onAnswer }) => {
         if (hintLevel < maxHint) setHintLevel(v => v + 1);
     }, [hintLevel, word]);
 
-    // Keyboard shortcuts
+    // Stable refs so keyboard listener registered ONCE always calls latest version
+    const handleHintRef = useRef(handleHint);
+    handleHintRef.current = handleHint;
+    const handleNextRef = useRef(handleNext);
+    handleNextRef.current = handleNext;
+    const handleSubmitRef = useRef(handleSubmit);
+    handleSubmitRef.current = handleSubmit;
+    const wordRef = useRef(word);
+    wordRef.current = word;
+    const submittedRef = useRef(submitted);
+    submittedRef.current = submitted;
+    const inputRef2 = useRef(input);
+    inputRef2.current = input;
+
+    // Keyboard shortcuts — registered ONCE, reads latest state via refs
     useEffect(() => {
         const handleKeyDown = (e) => {
-            if (e.key === "Control" && submitted) { e.preventDefault(); speak(word.english); }
+            // Ctrl+Space → gợi ý (check cả e.key và e.code để hỗ trợ mọi browser/IME)
+            const isCtrlSpace = e.ctrlKey && (e.code === "Space" || e.key === " " || e.key === "Spacebar");
+            if (isCtrlSpace) {
+                e.preventDefault();
+                e.stopPropagation();
+                handleHintRef.current();
+                return;
+            }
+            if (e.key === "Control" && submittedRef.current) {
+                e.preventDefault();
+                speak(wordRef.current?.english ?? "");
+            }
             if (e.key === "e" && e.ctrlKey) { e.preventDefault(); setShowExample(v => !v); }
-            if (e.code === "Space" && e.ctrlKey) { e.preventDefault(); handleHint(); }
             if (e.key === "Enter") {
-                if (submitted) handleNext();
-                else if (input.trim()) handleSubmit();
+                if (submittedRef.current) handleNextRef.current();
+                else if (inputRef2.current.trim()) handleSubmitRef.current();
             }
         };
-        window.addEventListener("keydown", handleKeyDown);
-        return () => window.removeEventListener("keydown", handleKeyDown);
-    }, [word, input, submitted, hintLevel, correct, handleHint, handleNext, handleSubmit]);
+        window.addEventListener("keydown", handleKeyDown, true); // capture phase để bắt trước browser
+        return () => window.removeEventListener("keydown", handleKeyDown, true);
+    }, []); // ← empty: đăng ký một lần duy nhất
 
     const getHintText = () => {
         if (hintLevel >= 1) {
