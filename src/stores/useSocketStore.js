@@ -10,16 +10,25 @@ export const useSocketStore = create((set, get) => ({
 
     connect: (token) => {
         if (!token) return;
-        if (get().socket?.connected) return;
+        
+        const existingSocket = get().socket;
+        if (existingSocket?.connected) return;
 
         // Cleanup old socket if exists
-        if (get().socket) get().socket.disconnect();
+        if (existingSocket) {
+            existingSocket.disconnect();
+        }
 
         const socket = io(socketURL, {
             path: "/socket.io",
             auth: { token },
             withCredentials: true,
-            transports: ["websocket"]
+            transports: ["websocket", "polling"], // Allow polling fallback if websocket drops
+            reconnection: true,
+            reconnectionAttempts: Infinity,
+            reconnectionDelay: 1000,
+            reconnectionDelayMax: 3000,
+            timeout: 20000,
         });
 
         socket.on("connect", () => {
@@ -30,9 +39,25 @@ export const useSocketStore = create((set, get) => ({
         socket.on("disconnect", (reason) => {
             set({ connected: false });
             console.log("⚠️ Global socket disconnected:", reason);
+            if (reason === "io server disconnect") {
+                // If disconnected by server, manually reconnect
+                socket.connect();
+            }
+        });
+
+        socket.io?.on("reconnect", (attempt) => {
+            set({ connected: true });
+            console.log("🔄 Global socket reconnected after", attempt, "attempts");
         });
 
         set({ socket });
+    },
+
+    ensureConnected: (token) => {
+        const { socket, connected, connect } = get();
+        if (!socket || !connected) {
+            connect(token);
+        }
     },
 
     disconnect: () => {

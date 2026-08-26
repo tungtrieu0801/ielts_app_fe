@@ -46,6 +46,28 @@ function App() {
         }
     }, [socket, initListeners, clearListeners, user?._id]);
 
+    // Auto re-verify socket connection when switching back to tab
+    React.useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible' && token) {
+                const s = useSocketStore.getState().socket;
+                if (!s || !s.connected) {
+                    console.log("⚡ Tab visible again: Re-connecting socket...");
+                    connect(token);
+                } else if (user?._id) {
+                    s.emit("user_online", user._id);
+                }
+            }
+        };
+
+        window.addEventListener('visibilitychange', handleVisibilityChange);
+        window.addEventListener('focus', handleVisibilityChange);
+        return () => {
+            window.removeEventListener('visibilitychange', handleVisibilityChange);
+            window.removeEventListener('focus', handleVisibilityChange);
+        };
+    }, [token, connect, user?._id]);
+
     return (
         <BrowserRouter>
             <ChatNotificationListener />
