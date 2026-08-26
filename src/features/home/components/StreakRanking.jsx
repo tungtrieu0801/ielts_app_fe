@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { Box, Flex, Text, Spinner, VStack, Icon } from "@chakra-ui/react";
-import { FiTrendingUp, FiZap } from "react-icons/fi";
+import { Box, Flex, Text, Spinner, VStack, Icon, Button } from "@chakra-ui/react";
+import { FiTrendingUp, FiZap, FiChevronDown, FiChevronUp } from "react-icons/fi";
 import { getRanking } from "../../../services/studyApi.js";
 import { useAuthStore } from "../../../stores/useAuthStore";
 
@@ -8,6 +8,7 @@ const StreakRanking = () => {
     const { user: authUser } = useAuthStore();
     const [rankingData, setRankingData] = useState({ topUsers: [], currentUser: null });
     const [loading, setLoading] = useState(true);
+    const [isExpanded, setIsExpanded] = useState(false);
 
     const fetchRanking = async () => {
         try {
@@ -30,7 +31,7 @@ const StreakRanking = () => {
         <Flex
             key={user._id || "current"}
             align="center"
-            p={3}
+            p={2.5}
             borderRadius="xl"
             bg={isCurrentUser ? "orange.50" : "transparent"}
             _dark={{ bg: isCurrentUser ? "orange.900/30" : "transparent" }}
@@ -41,11 +42,12 @@ const StreakRanking = () => {
             borderColor="orange.200"
         >
             <Text
-                fontSize="sm"
-                fontWeight="bold"
+                fontSize="xs"
+                fontWeight="extrabold"
                 color={rank <= 3 ? "orange.500" : "fg.muted"}
-                w="24px"
+                minW="30px"
                 textAlign="center"
+                whiteSpace="nowrap"
             >
                 {rank ? `#${rank}` : "—"}
             </Text>
@@ -57,8 +59,8 @@ const StreakRanking = () => {
             >
                 <img src={user.picture} alt={user.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
             </Box>
-            <Box flex={1}>
-                <Text fontSize="sm" fontWeight="bold" isTruncated maxW="150px" color={isCurrentUser ? "orange.700" : "fg"} _dark={{ color: isCurrentUser ? "orange.300" : "fg" }}>
+            <Box flex={1} overflow="hidden">
+                <Text fontSize="xs" fontWeight="bold" isTruncated color={isCurrentUser ? "orange.700" : "fg"} _dark={{ color: isCurrentUser ? "orange.300" : "fg" }}>
                     {user.name} {isCurrentUser && "(Bạn)"}
                 </Text>
             </Box>
@@ -71,7 +73,9 @@ const StreakRanking = () => {
         </Flex>
     );
 
-    const isCurrentUserInTop10 = rankingData.currentUser && rankingData.topUsers.some(u => u._id === rankingData.currentUser._id);
+    const displayedUsers = isExpanded ? rankingData.topUsers : rankingData.topUsers.slice(0, 3);
+    const isCurrentUserInDisplayed = rankingData.currentUser && displayedUsers.some(u => u._id === rankingData.currentUser._id);
+    const hasMore = rankingData.topUsers.length > 3;
 
     return (
         <Box
@@ -83,10 +87,15 @@ const StreakRanking = () => {
             shadow="sm"
         >
             <Box bg="orange.50" p={4} borderBottomWidth="1px" borderColor="orange.100" _dark={{ bg: "orange.900/30", borderColor: "orange.800/30" }}>
-                <Flex align="center" gap={2}>
-                    <Icon as={FiTrendingUp} color="orange.500" />
-                    <Text fontSize="md" fontWeight="bold" color="orange.700" _dark={{ color: "orange.300" }}>
-                        Bảng xếp hạng Streak
+                <Flex align="center" justify="space-between">
+                    <Flex align="center" gap={2}>
+                        <Icon as={FiTrendingUp} color="orange.500" />
+                        <Text fontSize="md" fontWeight="bold" color="orange.700" _dark={{ color: "orange.300" }}>
+                            Bảng xếp hạng Streak
+                        </Text>
+                    </Flex>
+                    <Text fontSize="xs" color="orange.500" fontWeight="bold">
+                        Top {isExpanded ? rankingData.topUsers.length : 3}
                     </Text>
                 </Flex>
             </Box>
@@ -100,21 +109,51 @@ const StreakRanking = () => {
                     </Text>
                 ) : (
                     <>
-                        {rankingData.topUsers.map((user, index) => renderUser(user, index + 1, rankingData.currentUser && user._id === rankingData.currentUser._id))}
+                        {displayedUsers.map((user, index) => renderUser(user, index + 1, rankingData.currentUser && user._id === rankingData.currentUser._id))}
                         
-                        {!isCurrentUserInTop10 && rankingData.currentUser && rankingData.currentUser.currentStreak > 0 && (
+                        {!isCurrentUserInDisplayed && rankingData.currentUser && rankingData.currentUser.currentStreak > 0 && (
                             <>
-                                <Box h="1px" bg="border.subtle" my={2} w="full" />
+                                <Box h="1px" bg="border.subtle" my={1.5} w="full" />
                                 {renderUser(rankingData.currentUser, rankingData.currentUser.rank, true)}
                             </>
                         )}
-                        {!isCurrentUserInTop10 && (!rankingData.currentUser || rankingData.currentUser.currentStreak === 0) && authUser && (
+
+                        {!isCurrentUserInDisplayed && (!rankingData.currentUser || rankingData.currentUser.currentStreak === 0) && authUser && (
                             <>
-                                <Box h="1px" bg="border.subtle" my={2} w="full" />
-                                <Text fontSize="xs" color="fg.muted" textAlign="center" py={2}>
+                                <Box h="1px" bg="border.subtle" my={1.5} w="full" />
+                                <Text fontSize="xs" color="fg.muted" textAlign="center" py={1.5}>
                                     Bạn chưa có streak. Hãy học ngay hôm nay!
                                 </Text>
                             </>
+                        )}
+
+                        {hasMore && (
+                            <Box pt={1.5} borderTopWidth="1px" borderColor="border.subtle" mt={1}>
+                                <Button
+                                    size="xs"
+                                    variant="ghost"
+                                    w="full"
+                                    color="orange.600"
+                                    _dark={{ color: "orange.300" }}
+                                    _hover={{ bg: "orange.50" }}
+                                    onClick={() => setIsExpanded(!isExpanded)}
+                                    display="flex"
+                                    alignItems="center"
+                                    justifyContent="center"
+                                    gap={1}
+                                    fontWeight="bold"
+                                >
+                                    {isExpanded ? (
+                                        <>
+                                            Thu gọn <FiChevronUp />
+                                        </>
+                                    ) : (
+                                        <>
+                                            Xem thêm (Top {rankingData.topUsers.length}) <FiChevronDown />
+                                        </>
+                                    )}
+                                </Button>
+                            </Box>
                         )}
                     </>
                 )}

@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef, useLayoutEffect } from "react";
 import { Box, Flex, Text, Input, IconButton, VStack, HStack, Icon } from "@chakra-ui/react";
-import { FiSend, FiMessageSquare, FiX, FiCornerUpLeft } from "react-icons/fi";
-import { io } from "socket.io-client";
+import { FiSend, FiMessageSquare, FiX, FiCornerUpLeft, FiSmile } from "react-icons/fi";
 import { useAuthStore } from "../../../stores/useAuthStore";
+import { useSocketStore } from "../../../stores/useSocketStore";
 
 const formatTime = (isoString) => {
     if (!isoString) return "";
@@ -15,7 +15,11 @@ const formatTime = (isoString) => {
     });
 };
 
-import { useSocketStore } from "../../../stores/useSocketStore";
+const EMOJI_PRESETS = [
+    "😊", "😂", "🤣", "😍", "😎", "🥳", "💩", "👍", "👏", "🔥", "❤️", "💯", "✨", "🎉",
+    "📚", "📖", "✏️", "💡", "🧠", "🎯", "🏆", "🌟", "💪", "⚡", "💬", "📍",
+    "🥰", "😜", "🤐", "🤩", "😴", "🤔", "😅", "😇", "🙏", "🙌", "💖", "🤝"
+];
 
 const CommunityChat = () => {
     const { user } = useAuthStore();
@@ -94,6 +98,7 @@ const CommunityChat = () => {
 
     return (
         <Box
+            id="community-chat-container"
             bg="bg.panel"
             borderRadius="2xl"
             borderWidth="1px"
@@ -229,19 +234,110 @@ const CommunityChat = () => {
 
 const ChatInputArea = ({ onSend, replyingTo, setReplyingTo }) => {
     const [input, setInput] = useState("");
+    const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+    const inputRef = useRef(null);
+    const pickerRef = useRef(null);
 
     const handleSendClick = () => {
         if (!input.trim()) return;
         onSend(input.trim());
         setInput("");
+        setShowEmojiPicker(false);
     };
 
     const handleKeyPress = (e) => {
         if (e.key === "Enter") handleSendClick();
     };
 
+    const handleSelectEmoji = (emoji) => {
+        setInput((prev) => prev + emoji);
+        inputRef.current?.focus();
+    };
+
+    // Close picker when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (pickerRef.current && !pickerRef.current.contains(e.target)) {
+                setShowEmojiPicker(false);
+            }
+        };
+        if (showEmojiPicker) {
+            document.addEventListener("mousedown", handleClickOutside);
+        }
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, [showEmojiPicker]);
+
     return (
-        <Box p={3} borderTopWidth="1px" borderColor="border.subtle">
+        <Box p={3} borderTopWidth="1px" borderColor="border.subtle" position="relative">
+            {/* Emoji Picker Popup */}
+            {showEmojiPicker && (
+                <Box
+                    ref={pickerRef}
+                    position="absolute"
+                    bottom="calc(100% + 8px)"
+                    right={3}
+                    zIndex={100}
+                    bg="bg.panel"
+                    _dark={{ bg: "gray.900" }}
+                    borderRadius="2xl"
+                    borderWidth="1px"
+                    borderColor="border.subtle"
+                    shadow="2xl"
+                    p={3}
+                    w="280px"
+                    style={{ animation: "fadeIn 0.2s ease-out forwards" }}
+                >
+                    <style>{`
+                        @keyframes fadeIn {
+                            from { opacity: 0; transform: translateY(6px); }
+                            to { opacity: 1; transform: translateY(0); }
+                        }
+                    `}</style>
+                    <Flex justify="space-between" align="center" mb={2} px={1}>
+                        <Text fontSize="xs" fontWeight="extrabold" color="fg.muted">
+                            😃 Bộ Icon mặc định
+                        </Text>
+                        <IconButton
+                            size="xs"
+                            variant="ghost"
+                            onClick={() => setShowEmojiPicker(false)}
+                            aria-label="Close emoji picker"
+                        >
+                            <FiX size={12} />
+                        </IconButton>
+                    </Flex>
+                    <Box
+                        display="grid"
+                        gridTemplateColumns="repeat(7, 1fr)"
+                        gap={1.5}
+                        maxH="180px"
+                        overflowY="auto"
+                        p={1}
+                        css={{
+                            "&::-webkit-scrollbar": { width: "3px" },
+                            "&::-webkit-scrollbar-thumb": { background: "var(--chakra-colors-gray-300)", borderRadius: "10px" },
+                        }}
+                    >
+                        {EMOJI_PRESETS.map((emoji, idx) => (
+                            <Flex
+                                key={idx}
+                                align="center"
+                                justify="center"
+                                p={1.5}
+                                borderRadius="lg"
+                                cursor="pointer"
+                                fontSize="lg"
+                                _hover={{ bg: "bg.subtle", transform: "scale(1.25)" }}
+                                transition="transform 0.15s ease"
+                                onClick={() => handleSelectEmoji(emoji)}
+                            >
+                                {emoji}
+                            </Flex>
+                        ))}
+                    </Box>
+                </Box>
+            )}
+
             {replyingTo && (
                 <Flex bg="bg.muted" p={2} mb={2} borderRadius="md" justify="space-between" align="center">
                     <Box fontSize="xs">
@@ -253,8 +349,10 @@ const ChatInputArea = ({ onSend, replyingTo, setReplyingTo }) => {
                     </IconButton>
                 </Flex>
             )}
+
             <HStack gap={2}>
                 <Input
+                    ref={inputRef}
                     placeholder="Nhập tin nhắn..."
                     size="sm"
                     borderRadius="full"
@@ -265,6 +363,16 @@ const ChatInputArea = ({ onSend, replyingTo, setReplyingTo }) => {
                     border="none"
                     _focus={{ bg: "bg.panel", outline: "2px solid", outlineColor: "blue.400" }}
                 />
+                <IconButton
+                    aria-label="Insert Emoji"
+                    size="sm"
+                    variant={showEmojiPicker ? "solid" : "ghost"}
+                    colorPalette={showEmojiPicker ? "blue" : "gray"}
+                    borderRadius="full"
+                    onClick={() => setShowEmojiPicker((prev) => !prev)}
+                >
+                    <FiSmile size={18} />
+                </IconButton>
                 <IconButton
                     aria-label="Send message"
                     size="sm"

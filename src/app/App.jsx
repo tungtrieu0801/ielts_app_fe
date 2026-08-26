@@ -6,6 +6,8 @@ import { useAuthStore } from '../stores/useAuthStore';
 import { useSocketStore } from '../stores/useSocketStore';
 import { useGameStore } from '../stores/useGameStore';
 
+import ChatNotificationListener from '../features/home/components/ChatNotificationListener.jsx';
+
 function App() {
     const token = useAuthStore(s => s.token);
     const user = useAuthStore(s => s.user);
@@ -46,6 +48,7 @@ function App() {
 
     return (
         <BrowserRouter>
+            <ChatNotificationListener />
             <AppRoutes />
         </BrowserRouter>
     );
