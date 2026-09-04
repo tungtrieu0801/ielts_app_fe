@@ -723,25 +723,59 @@ const YoutubeExercise = ({ data, onReset }) => {
         const rect = e.currentTarget.getBoundingClientRect();
         setDictPopup({ x: rect.left, y: rect.bottom + 8, word: cleanWord, loading: true, meaning: "" });
 
+        const fetchWithTimeout = async (url, timeoutMs = 2500) => {
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), timeoutMs);
+            try {
+                const res = await fetch(url, { signal: controller.signal });
+                clearTimeout(timer);
+                if (!res.ok) return null;
+                return await res.json();
+            } catch (err) {
+                clearTimeout(timer);
+                return null;
+            }
+        };
+
         try {
-            const [viRes, enRes] = await Promise.allSettled([
-                fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=vi&dt=t&q=${encodeURIComponent(cleanWord)}`).then(r => r.json()),
-                fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(cleanWord)}`).then(r => r.json())
+            const [viVal, dmVal] = await Promise.allSettled([
+                fetchWithTimeout(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=vi&dt=t&q=${encodeURIComponent(cleanWord)}`, 2500),
+                fetchWithTimeout(`https://api.datamuse.com/words?sp=${encodeURIComponent(cleanWord)}&md=d`, 2500)
             ]);
 
-            const meaningVi = viRes.status === "fulfilled" ? (viRes.value[0]?.[0]?.[0] || "") : "";
-            const enData = enRes.status === "fulfilled" && Array.isArray(enRes.value) ? enRes.value[0] : null;
+            const viData = viVal.status === "fulfilled" ? viVal.value : null;
+            const dmDataRaw = dmVal.status === "fulfilled" ? dmVal.value : null;
+
+            const meaningVi = viData?.[0]?.[0]?.[0] || "";
+
+            let meanings = [];
+            if (Array.isArray(dmDataRaw) && dmDataRaw.length > 0 && dmDataRaw[0].defs) {
+                const posMap = { v: "verb", n: "noun", adj: "adjective", adv: "adverb" };
+                const meaningsMap = {};
+                dmDataRaw[0].defs.forEach(defStr => {
+                    const parts = defStr.split('\t');
+                    const posKey = parts[0] || 'definition';
+                    const posName = posMap[posKey] || posKey;
+                    const text = parts[1] || parts[0];
+                    if (!meaningsMap[posName]) meaningsMap[posName] = [];
+                    meaningsMap[posName].push({ definition: text });
+                });
+                meanings = Object.keys(meaningsMap).map(pos => ({
+                    partOfSpeech: pos,
+                    definitions: meaningsMap[pos]
+                }));
+            }
 
             setDictPopup(p => p?.word === cleanWord ? { 
                 ...p, 
                 loading: false, 
                 meaning: meaningVi,
-                phonetic: enData?.phonetic || enData?.phonetics?.find(ph => ph.text)?.text || "",
-                audio: enData?.phonetics?.find(ph => ph.audio)?.audio || "",
-                meanings: enData?.meanings || []
+                phonetic: "",
+                audio: "",
+                meanings
             } : p);
         } catch (err) {
-            setDictPopup(p => p?.word === cleanWord ? { ...p, loading: false, meaning: "Lỗi kết nối." } : p);
+            setDictPopup(p => p?.word === cleanWord ? { ...p, loading: false, meaning: "Không thể tải nghĩa từ." } : p);
         }
     }, [revealedWords]);
 
