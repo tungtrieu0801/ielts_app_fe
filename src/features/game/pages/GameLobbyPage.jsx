@@ -119,6 +119,9 @@ const GameLobbyPage = () => {
     // Selected CEFR levels for survival
     const [selectedLevels, setSelectedLevels] = useState(["A1", "A2", "B1", "B2", "C1"]);
 
+    // Save learned words to home study list option
+    const [saveWords, setSaveWords] = useState(true);
+
     // Modal state
     const [newRoomName, setNewRoomName] = useState("");
     const [newRoomPassword, setNewRoomPassword] = useState("");
@@ -325,7 +328,7 @@ const GameLobbyPage = () => {
                                     </Text>
 
                                     {/* CEFR Level Selector Pills */}
-                                    <Box mb={6} p={4} bg="bg.subtle" borderRadius="2xl" borderWidth="1px" borderColor="border.muted">
+                                    <Box mb={4} p={4} bg="bg.subtle" borderRadius="2xl" borderWidth="1px" borderColor="border.muted">
                                         <Text fontSize="xs" fontWeight="800" color="fg.muted" mb={3} letterSpacing="wider">
                                             CHỌN CẤP ĐỘ HỌC:
                                         </Text>
@@ -360,6 +363,41 @@ const GameLobbyPage = () => {
                                         </Flex>
                                     </Box>
 
+                                    {/* Save progress / words option */}
+                                    <Box mb={6} p={4} bg="bg.subtle" borderRadius="2xl" borderWidth="1px" borderColor="border.muted">
+                                        <Flex align="center" justify="space-between" flexWrap="wrap" gap={3}>
+                                            <Box flex={1}>
+                                                <Flex align="center" gap={2} mb={1}>
+                                                    <Text fontSize="xs" fontWeight="800" color="fg" letterSpacing="wider">
+                                                        LƯU TỪ VỰNG KHI HỌC:
+                                                    </Text>
+                                                    <Badge colorPalette={saveWords ? "green" : "gray"} size="sm" borderRadius="full">
+                                                        {saveWords ? "CÓ LƯU" : "KHÔNG LƯU"}
+                                                    </Badge>
+                                                </Flex>
+                                                <Text fontSize="11px" color="fg.muted" lineHeight="1.4">
+                                                    {saveWords
+                                                        ? "Các từ gặp khi chơi sẽ tự động được lưu vào danh sách học từ vựng ở Trang chủ."
+                                                        : "Các từ gặp khi chơi sẽ KHÔNG được lưu vào danh sách học ở ngoài Trang chủ."}
+                                                </Text>
+                                            </Box>
+                                            <Button
+                                                size="sm"
+                                                px={4}
+                                                h="36px"
+                                                borderRadius="xl"
+                                                colorPalette={saveWords ? "green" : "gray"}
+                                                variant={saveWords ? "solid" : "outline"}
+                                                onClick={() => setSaveWords(!saveWords)}
+                                                fontWeight="bold"
+                                                fontSize="xs"
+                                                shadow="xs"
+                                            >
+                                                {saveWords ? "Có (Lưu từ)" : "Không (Không lưu)"}
+                                            </Button>
+                                        </Flex>
+                                    </Box>
+
                                     {/* Stats and Play Button */}
                                     <Flex align="center" justify="space-between" bg="bg.subtle" p={4} borderRadius="2xl" borderWidth="1px" borderColor="border.muted" flexWrap="wrap" gap={3}>
                                         <Box>
@@ -379,7 +417,7 @@ const GameLobbyPage = () => {
                                             borderRadius="xl"
                                             fontWeight="700"
                                             fontSize="15px"
-                                            onClick={() => navigate(`/game/survival/play?levels=${selectedLevels.join(",")}`)}
+                                            onClick={() => navigate(`/game/survival/play?levels=${selectedLevels.join(",")}&saveWords=${saveWords}`)}
                                             gap={2}
                                             shadow="md"
                                             _hover={{ transform: "translateY(-2px)" }}
@@ -387,6 +425,7 @@ const GameLobbyPage = () => {
                                             CHƠI NGAY <FiArrowRight />
                                         </Button>
                                     </Flex>
+
                                 </Box>
 
                                 {/* Survival Weak Words */}

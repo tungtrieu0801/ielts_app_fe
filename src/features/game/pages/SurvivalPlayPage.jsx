@@ -189,7 +189,9 @@ const SurvivalPlayPage = () => {
         setSavingScore(true);
 
         try {
-            const res = await submitSurvivalScore(score, gameResultsRef.current);
+            const queryParams = new URLSearchParams(window.location.search);
+            const isSaveWords = queryParams.get("saveWords") !== "false";
+            const res = await submitSurvivalScore(score, gameResultsRef.current, isSaveWords);
             if (res) {
                 setHighScore(res.highScore);
                 if (res.isNewHighScore) {
@@ -202,6 +204,9 @@ const SurvivalPlayPage = () => {
             setSavingScore(false);
         }
     };
+
+    const queryParams = new URLSearchParams(window.location.search);
+    const isSaveWords = queryParams.get("saveWords") !== "false";
 
     if (loading) {
         return (
@@ -220,12 +225,16 @@ const SurvivalPlayPage = () => {
             <style>{GAME_CSS}</style>
             <Box maxW="800px" mx="auto" px={{ base: 4, md: 6 }} py={{ base: 4, md: 8 }}>
 
-                {/* Back button */}
-                <Flex align="center" gap={3} mb={6}>
+                {/* Back button & Mode Badge */}
+                <Flex align="center" justify="space-between" mb={6}>
                     <Button variant="ghost" size="sm" onClick={() => navigate("/game")} gap={2} fontWeight="700">
                         <FiArrowLeft /> RỜI GAME LOBBY
                     </Button>
+                    <Badge colorPalette={isSaveWords ? "green" : "gray"} variant="subtle" size="md" borderRadius="full" px={3}>
+                        {isSaveWords ? "🟢 Lưu từ vào Trang chủ" : "⚪ Không lưu từ vào Trang chủ"}
+                    </Badge>
                 </Flex>
+
 
                 {!isGameOver && currentQuestion ? (
                     <Box>
