@@ -120,7 +120,7 @@ const GameLobbyPage = () => {
     const [selectedLevels, setSelectedLevels] = useState(["A1", "A2", "B1", "B2", "C1"]);
 
     // Save learned words to home study list option
-    const [saveWords, setSaveWords] = useState(true);
+    const [saveWords, setSaveWords] = useState(false);
 
     // Modal state
     const [newRoomName, setNewRoomName] = useState("");

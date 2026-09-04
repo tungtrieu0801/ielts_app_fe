@@ -190,7 +190,7 @@ const SurvivalPlayPage = () => {
 
         try {
             const queryParams = new URLSearchParams(window.location.search);
-            const isSaveWords = queryParams.get("saveWords") !== "false";
+            const isSaveWords = queryParams.get("saveWords") === "true";
             const res = await submitSurvivalScore(score, gameResultsRef.current, isSaveWords);
             if (res) {
                 setHighScore(res.highScore);
@@ -206,7 +206,8 @@ const SurvivalPlayPage = () => {
     };
 
     const queryParams = new URLSearchParams(window.location.search);
-    const isSaveWords = queryParams.get("saveWords") !== "false";
+    const isSaveWords = queryParams.get("saveWords") === "true";
+
 
     if (loading) {
         return (

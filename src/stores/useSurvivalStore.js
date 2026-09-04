@@ -21,7 +21,7 @@ export const useSurvivalStore = create((set, get) => ({
         }
     },
 
-    submitScore: async (score, results, saveWords = true) => {
+    submitScore: async (score, results, saveWords = false) => {
         set({ loading: true });
         try {
             const res = await survivalApi.submitSurvivalScore(score, results, saveWords);
