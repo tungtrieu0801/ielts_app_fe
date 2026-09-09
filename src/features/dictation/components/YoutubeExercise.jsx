@@ -737,16 +737,34 @@ const YoutubeExercise = ({ data, onReset }) => {
             }
         };
 
+        const fetchVietnameseMeaning = async (word) => {
+            const encoded = encodeURIComponent(word);
+            try {
+                const res = await fetchWithTimeout(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=vi&dt=t&q=${encoded}`, 2000);
+                if (res?.[0]?.[0]?.[0]) return res[0][0][0];
+            } catch (e) {}
+            try {
+                const res = await fetchWithTimeout(`https://clients5.google.com/translate_a/t?client=dict-chrome-ex&sl=en&tl=vi&q=${encoded}`, 2000);
+                if (typeof res === "string" && res) return res;
+                if (Array.isArray(res) && typeof res[0] === "string") return res[0];
+                if (Array.isArray(res) && Array.isArray(res[0]) && res[0][0]) return res[0][0];
+            } catch (e) {}
+            try {
+                const res = await fetchWithTimeout(`https://api.mymemory.translated.net/get?q=${encoded}&langpair=en|vi`, 2000);
+                if (res?.responseData?.translatedText && !res.responseData.translatedText.includes("MYMEMORY WARNING")) {
+                    return res.responseData.translatedText;
+                }
+            } catch (e) {}
+            return "";
+        };
+
         try {
-            const [viVal, dmVal] = await Promise.allSettled([
-                fetchWithTimeout(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=vi&dt=t&q=${encodeURIComponent(cleanWord)}`, 2500),
+            const [meaningVi, dmVal] = await Promise.all([
+                fetchVietnameseMeaning(cleanWord),
                 fetchWithTimeout(`https://api.datamuse.com/words?sp=${encodeURIComponent(cleanWord)}&md=d`, 2500)
             ]);
 
-            const viData = viVal.status === "fulfilled" ? viVal.value : null;
-            const dmDataRaw = dmVal.status === "fulfilled" ? dmVal.value : null;
-
-            const meaningVi = viData?.[0]?.[0]?.[0] || "";
+            const dmDataRaw = dmVal;
 
             let meanings = [];
             if (Array.isArray(dmDataRaw) && dmDataRaw.length > 0 && dmDataRaw[0].defs) {

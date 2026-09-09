@@ -32,7 +32,8 @@ import { useParams, useNavigate } from "react-router-dom";
 import ExcelJS from "exceljs";
 import {
     getTranslationSessionById,
-    updateTranslationSession
+    updateTranslationSession,
+    lookupWordApi
 } from "../../../services/translationApi.js";
 
 const TranslationWorkspacePage = () => {
@@ -177,6 +178,41 @@ const TranslationWorkspacePage = () => {
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
+    // Multi-tiered Vietnamese translation resolver to prevent HTTP 429 rate limits
+    const fetchVietnameseMeaning = async (cleanWord, fetchWithTimeout) => {
+        const encoded = encodeURIComponent(cleanWord);
+
+        // 1. Google GTX API
+        try {
+            const res = await fetchWithTimeout(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=vi&dt=t&q=${encoded}`, 2000);
+            if (res?.[0]?.[0]?.[0]) return res[0][0][0];
+        } catch (e) {}
+
+        // 2. Google Clients5 API
+        try {
+            const res = await fetchWithTimeout(`https://clients5.google.com/translate_a/t?client=dict-chrome-ex&sl=en&tl=vi&q=${encoded}`, 2000);
+            if (typeof res === "string" && res) return res;
+            if (Array.isArray(res) && typeof res[0] === "string") return res[0];
+            if (Array.isArray(res) && Array.isArray(res[0]) && res[0][0]) return res[0][0];
+        } catch (e) {}
+
+        // 3. MyMemory Free API
+        try {
+            const res = await fetchWithTimeout(`https://api.mymemory.translated.net/get?q=${encoded}&langpair=en|vi`, 2000);
+            if (res?.responseData?.translatedText && !res.responseData.translatedText.includes("MYMEMORY WARNING")) {
+                return res.responseData.translatedText;
+            }
+        } catch (e) {}
+
+        // 4. Backend fallback API (uses server-side google-translate-api-x)
+        try {
+            const res = await lookupWordApi(cleanWord);
+            if (res?.translation) return res.translation;
+        } catch (e) {}
+
+        return "";
+    };
+
     // Interactive word lookup logic
     const handleWordLookup = useCallback(async (wordStr, event) => {
         const cleanWord = wordStr.replace(/[^a-zA-Z0-9-']/g, "").toLowerCase();
@@ -206,15 +242,12 @@ const TranslationWorkspacePage = () => {
         };
 
         try {
-            const [viVal, dmVal] = await Promise.allSettled([
-                fetchWithTimeout(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=vi&dt=t&q=${encodeURIComponent(cleanWord)}`, 2500),
+            const [meaningVi, dmVal] = await Promise.all([
+                fetchVietnameseMeaning(cleanWord, fetchWithTimeout),
                 fetchWithTimeout(`https://api.datamuse.com/words?sp=${encodeURIComponent(cleanWord)}&md=d`, 2500)
             ]);
 
-            const viData = viVal.status === "fulfilled" ? viVal.value : null;
-            const dmDataRaw = dmVal.status === "fulfilled" ? dmVal.value : null;
-
-            const meaningVi = viData?.[0]?.[0]?.[0] || "";
+            const dmDataRaw = dmVal;
 
             let meanings = [];
             if (Array.isArray(dmDataRaw) && dmDataRaw.length > 0 && dmDataRaw[0].defs) {
@@ -239,7 +272,7 @@ const TranslationWorkspacePage = () => {
                     ? {
                           ...p,
                           loading: false,
-                          meaning: meaningVi,
+                          meaning: meaningVi || "Không tìm thấy nghĩa",
                           meanings
                       }
                     : p

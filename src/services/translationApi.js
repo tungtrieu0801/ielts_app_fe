@@ -14,3 +14,6 @@ export const updateTranslationSession = (id, data) =>
 
 export const deleteTranslationSession = (id) =>
     axiosClient.delete(`/translation/${id}`).then((res) => res.data);
+
+export const lookupWordApi = (word) =>
+    axiosClient.get(`/translation/lookup-word?word=${encodeURIComponent(word)}`).then((res) => res.data);
