@@ -17,6 +17,8 @@ import RankingPage from "../features/ranking/pages/RankingPage.jsx";
 import LibraryPage from "../features/reading/LibraryPage.jsx";
 import PdfReaderPage from "../features/reading/PdfReaderPage.jsx";
 import AdminDashboardPage from "../features/admin/pages/AdminDashboardPage.jsx";
+import TranslationListPage from "../features/translation/pages/TranslationListPage.jsx";
+import TranslationWorkspacePage from "../features/translation/pages/TranslationWorkspacePage.jsx";
 import PrivateRoute from "../shared/components/PrivateRoute.jsx";
 
 export default function AppRoutes() {
@@ -34,6 +36,8 @@ export default function AppRoutes() {
             <Route path="/sets/:setId" element={<PrivateRoute><VocabularyPage /></PrivateRoute>} />
             <Route path="/study/:setId" element={<PrivateRoute><StudyPage /></PrivateRoute>} />
             <Route path="/dictation" element={<PrivateRoute><DictationPage /></PrivateRoute>} />
+            <Route path="/translation" element={<PrivateRoute><TranslationListPage /></PrivateRoute>} />
+            <Route path="/translation/:id" element={<PrivateRoute><TranslationWorkspacePage /></PrivateRoute>} />
             <Route path="/game" element={<PrivateRoute><GameLobbyPage /></PrivateRoute>} />
             <Route path="/game/survival/play" element={<PrivateRoute><SurvivalPlayPage /></PrivateRoute>} />
             <Route path="/game/:roomId" element={<PrivateRoute><GamePlayPage /></PrivateRoute>} />

@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { Box, Flex, Text, VStack, Image, Button, IconButton } from '@chakra-ui/react';
-import { FiHome, FiBook, FiLogOut, FiMic, FiChevronLeft, FiChevronRight, FiSettings, FiZap, FiStar, FiAward, FiBookOpen, FiShield } from 'react-icons/fi';
+import { FiHome, FiBook, FiLogOut, FiMic, FiChevronLeft, FiChevronRight, FiSettings, FiZap, FiStar, FiAward, FiBookOpen, FiShield, FiFileText } from 'react-icons/fi';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ColorModeButton, useColorMode } from '../../components/ui/color-mode.jsx';
 import { useAuthStore } from '../../stores/useAuthStore.js';
@@ -11,6 +11,7 @@ const menuItems = [
     { name: 'Bộ từ', icon: FiBook, path: '/sets' },
     { name: 'Từ vựng', icon: FiBookOpen, path: '/vocabulary' },
     { name: 'Dictation', icon: FiMic, path: '/dictation' },
+    { name: 'Luyện dịch báo', icon: FiFileText, path: '/translation' },
     { name: 'Game', icon: FiZap, path: '/game' },
     { name: 'Ranking', icon: FiAward, path: '/ranking' },
     { name: 'Thư viện', icon: FiBookOpen, path: '/library' },

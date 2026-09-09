@@ -331,7 +331,8 @@ const AdminDashboardPage = () => {
                                                         </Table.Row>
                                                     ) : (
                                                         filteredUsers.map(u => (
-                                                            <Table.Row key={u._id} _hover={{ bg: "bg.subtle" }}>
+                                                            <React.Fragment key={u._id}>
+                                                                <Table.Row _hover={{ bg: "bg.subtle" }}>
                                                                 <Table.Cell>
                                                                     <Flex align="center" gap={3}>
                                                                         {u.picture ? (
@@ -486,6 +487,7 @@ const AdminDashboardPage = () => {
                                                                     </Table.Row>
                                                                 );
                                                             })()}
+                                                            </React.Fragment>
                                                         ))
                                                     )}
                                                 </Table.Body>
