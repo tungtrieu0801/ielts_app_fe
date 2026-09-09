@@ -16,6 +16,7 @@ import PremiumPage from "../features/premium/pages/PremiumPage.jsx";
 import RankingPage from "../features/ranking/pages/RankingPage.jsx";
 import LibraryPage from "../features/reading/LibraryPage.jsx";
 import PdfReaderPage from "../features/reading/PdfReaderPage.jsx";
+import AdminDashboardPage from "../features/admin/pages/AdminDashboardPage.jsx";
 import PrivateRoute from "../shared/components/PrivateRoute.jsx";
 
 export default function AppRoutes() {
@@ -41,6 +42,7 @@ export default function AppRoutes() {
             <Route path="/ranking" element={<PrivateRoute><RankingPage /></PrivateRoute>} />
             <Route path="/library" element={<PrivateRoute><LibraryPage /></PrivateRoute>} />
             <Route path="/read/:id" element={<PrivateRoute><PdfReaderPage /></PrivateRoute>} />
+            <Route path="/admin/dashboard" element={<PrivateRoute><AdminDashboardPage /></PrivateRoute>} />
         </Routes>
     );
 }

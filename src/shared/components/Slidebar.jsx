@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { Box, Flex, Text, VStack, Image, Button, IconButton } from '@chakra-ui/react';
-import { FiHome, FiBook, FiLogOut, FiMic, FiChevronLeft, FiChevronRight, FiSettings, FiZap, FiStar, FiAward, FiBookOpen } from 'react-icons/fi';
+import { FiHome, FiBook, FiLogOut, FiMic, FiChevronLeft, FiChevronRight, FiSettings, FiZap, FiStar, FiAward, FiBookOpen, FiShield } from 'react-icons/fi';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ColorModeButton, useColorMode } from '../../components/ui/color-mode.jsx';
 import { useAuthStore } from '../../stores/useAuthStore.js';
@@ -23,6 +23,11 @@ const Sidebar = ({ onNavigate, isCollapsed, onToggle }) => {
     const navigate = useNavigate();
     const { user, logout, colorMode: savedMode, setColorModePreference } = useAuthStore();
     const { colorMode, setColorMode } = useColorMode();
+
+    const isAdmin = user?.email?.toLowerCase() === 'tungvp@gmail.com';
+    const displayMenuItems = isAdmin
+        ? [...menuItems, { name: 'Admin Dashboard', icon: FiShield, path: '/admin/dashboard', isAdmin: true }]
+        : menuItems;
     // Sync: khi mount, apply preference đã lưu
     useEffect(() => {
         if (savedMode && savedMode !== colorMode) {
@@ -132,14 +137,15 @@ const Sidebar = ({ onNavigate, isCollapsed, onToggle }) => {
 
                     {/* Navigation */}
                     <VStack align={isCollapsed ? "center" : "stretch"} gap={1.5}>
-                        {menuItems.map((item) => {
+                        {displayMenuItems.map((item) => {
                             const isActive = location.pathname === item.path
                                 || (item.path === '/sets' && location.pathname.startsWith('/sets'))
                                 || (item.path === '/vocabulary' && location.pathname.startsWith('/vocabulary'))
                                 || (item.path === '/dictation' && location.pathname.startsWith('/dictation'))
                                 || (item.path === '/library' && location.pathname.startsWith('/library'))
                                 || (item.path === '/settings' && location.pathname.startsWith('/settings'))
-                                || (item.path === '/ranking' && location.pathname.startsWith('/ranking'));
+                                || (item.path === '/ranking' && location.pathname.startsWith('/ranking'))
+                                || (item.path === '/admin/dashboard' && location.pathname.startsWith('/admin'));
                             
                             return (
                                 <Flex
