@@ -24,7 +24,7 @@ const Sidebar = ({ onNavigate, isCollapsed, onToggle }) => {
     const { user, logout, colorMode: savedMode, setColorModePreference } = useAuthStore();
     const { colorMode, setColorMode } = useColorMode();
 
-    const isAdmin = user?.email?.toLowerCase() === 'tungvp@gmail.com';
+    const isAdmin = user?.email?.toLowerCase() === 'trieutungvp@gmail.com';
     const displayMenuItems = isAdmin
         ? [...menuItems, { name: 'Admin Dashboard', icon: FiShield, path: '/admin/dashboard', isAdmin: true }]
         : menuItems;

@@ -54,7 +54,7 @@ function formatDateFull(dateString) {
 const AdminDashboardPage = () => {
     const navigate = useNavigate();
     const { user } = useAuthStore();
-    const isAdmin = user?.email?.toLowerCase() === "tungvp@gmail.com";
+    const isAdmin = user?.email?.toLowerCase() === "trieutungvp@gmail.com";
 
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -131,7 +131,7 @@ const AdminDashboardPage = () => {
                     </Box>
                     <Heading fontSize="2xl" fontWeight="900">QUYỀN TRUY CẬP BỊ TỪ CHỐI</Heading>
                     <Text color="fg.muted" maxW="480px">
-                        Trang Admin Dashboard này chỉ dành riêng cho tài khoản quản trị viên <strong>tungvp@gmail.com</strong>.
+                        Trang Admin Dashboard này chỉ dành riêng cho tài khoản quản trị viên <strong>trieutungvp@gmail.com</strong>.
                     </Text>
                     <Button colorPalette="blue" borderRadius="xl" mt={2} onClick={() => navigate("/home")} gap={2}>
                         <FiArrowLeft /> QUAY VỀ TRANG CHỦ
@@ -153,7 +153,7 @@ const AdminDashboardPage = () => {
                                 🛡️ ADMIN DASHBOARD
                             </Heading>
                             <Badge colorPalette="purple" variant="solid" size="md" borderRadius="full" px={3}>
-                                tungvp@gmail.com
+                                trieutungvp@gmail.com
                             </Badge>
                         </Flex>
                         <Text fontSize="xs" color="fg.muted" fontWeight="600">
@@ -317,7 +317,7 @@ const AdminDashboardPage = () => {
                                                                         <Box overflow="hidden">
                                                                             <Flex align="center" gap={1.5}>
                                                                                 <Text fontWeight="bold" fontSize="sm" color="fg" isTruncated>{u.name}</Text>
-                                                                                {u.email?.toLowerCase() === "tungvp@gmail.com" && (
+                                                                                {u.email?.toLowerCase() === "trieutungvp@gmail.com" && (
                                                                                     <Badge colorPalette="purple" size="xs">ADMIN</Badge>
                                                                                 )}
                                                                             </Flex>
