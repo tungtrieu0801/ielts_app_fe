@@ -39,9 +39,17 @@ function App() {
             // Re-emit when socket auto-reconnects
             socket.on("connect", handleConnect);
 
+            // Heartbeat every 2 minutes to keep lastActive fresh in admin dashboard
+            const heartbeatInterval = setInterval(() => {
+                if (socket.connected) {
+                    socket.emit("heartbeat");
+                }
+            }, 2 * 60 * 1000); // 2 minutes
+
             return () => {
                 socket.off("connect", handleConnect);
                 clearListeners();
+                clearInterval(heartbeatInterval);
             };
         }
     }, [socket, initListeners, clearListeners, user?._id]);
