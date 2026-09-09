@@ -3,12 +3,12 @@ import {
     Box, Flex, Text, Heading, Button, SimpleGrid, Input, Badge, Spinner, Image, Table, HStack, VStack, Tabs
 } from "@chakra-ui/react";
 import {
-    FiUsers, FiVideo, FiBookOpen, FiClock, FiRefreshCw, FiSearch, FiCheckCircle, FiLock, FiGlobe, FiShield, FiAlertTriangle, FiArrowLeft
+    FiUsers, FiVideo, FiBookOpen, FiClock, FiRefreshCw, FiSearch, FiCheckCircle, FiLock, FiGlobe, FiShield, FiAlertTriangle, FiArrowLeft, FiChevronDown, FiChevronUp, FiExternalLink
 } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import BaseLayout from "../../../layouts/BaseLayout.jsx";
 import { useAuthStore } from "../../../stores/useAuthStore.js";
-import { getAdminDashboardData } from "../../../services/adminApi.js";
+import { getAdminDashboardData, getUserVideos } from "../../../services/adminApi.js";
 
 // Utility function to format relative time in Vietnamese
 function formatTimeAgo(dateString) {
@@ -60,6 +60,32 @@ const AdminDashboardPage = () => {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [error, setError] = useState(null);
+
+    // Expanded user panel for inline video list
+    const [expandedUserId, setExpandedUserId] = useState(null);
+    const [userVideosCache, setUserVideosCache] = useState({}); // { [userId]: videos[] }
+    const [userVideosLoading, setUserVideosLoading] = useState({}); // { [userId]: bool }
+
+    const handleToggleVideos = async (userId) => {
+        if (expandedUserId === userId) {
+            setExpandedUserId(null);
+            return;
+        }
+        setExpandedUserId(userId);
+        // Already loaded — skip API call
+        if (userVideosCache[userId]) return;
+
+        setUserVideosLoading(prev => ({ ...prev, [userId]: true }));
+        try {
+            const res = await getUserVideos(userId);
+            setUserVideosCache(prev => ({ ...prev, [userId]: res.videos || [] }));
+        } catch (e) {
+            console.error("Error fetching user videos:", e);
+            setUserVideosCache(prev => ({ ...prev, [userId]: [] }));
+        } finally {
+            setUserVideosLoading(prev => ({ ...prev, [userId]: false }));
+        }
+    };
 
     // Filters
     const [userSearch, setUserSearch] = useState("");
@@ -293,6 +319,7 @@ const AdminDashboardPage = () => {
                                                         <Table.ColumnHeader fontWeight="bold">BỘ TỪ</Table.ColumnHeader>
                                                         <Table.ColumnHeader fontWeight="bold">VIDEO HỌC</Table.ColumnHeader>
                                                         <Table.ColumnHeader fontWeight="bold">NGÀY THAM GIA</Table.ColumnHeader>
+                                                        <Table.ColumnHeader fontWeight="bold"></Table.ColumnHeader>
                                                     </Table.Row>
                                                 </Table.Header>
                                                 <Table.Body>
@@ -360,7 +387,105 @@ const AdminDashboardPage = () => {
                                                                         {formatDateFull(u.createdAt)}
                                                                     </Text>
                                                                 </Table.Cell>
+
+                                                                <Table.Cell>
+                                                                    {u.userVideosCount > 0 && (
+                                                                        <Button
+                                                                            size="xs"
+                                                                            variant="subtle"
+                                                                            colorPalette="purple"
+                                                                            borderRadius="lg"
+                                                                            gap={1}
+                                                                            loading={userVideosLoading[u._id]}
+                                                                            onClick={() => handleToggleVideos(u._id)}
+                                                                        >
+                                                                            <FiVideo size={11} />
+                                                                            {expandedUserId === u._id ? <FiChevronUp size={11} /> : <FiChevronDown size={11} />}
+                                                                            {expandedUserId === u._id ? "Ẩn" : "Xem video"}
+                                                                        </Button>
+                                                                    )}
+                                                                </Table.Cell>
                                                             </Table.Row>
+
+                                                            {/* Expandable video panel - uses real API data */}
+                                                            {expandedUserId === u._id && (() => {
+                                                                const userVids = userVideosCache[u._id] || [];
+                                                                const isLoading = userVideosLoading[u._id];
+                                                                return (
+                                                                    <Table.Row bg="purple.50" _dark={{ bg: "purple.950/20" }}>
+                                                                        <Table.Cell colSpan={7} py={3} px={4}>
+                                                                            <Box>
+                                                                                <Flex align="center" gap={2} mb={3}>
+                                                                                    <FiVideo size={14} />
+                                                                                    <Text fontSize="xs" fontWeight="800" color="purple.600" _dark={{ color: "purple.300" }} letterSpacing="wider">
+                                                                                        DANH SÁCH VIDEO CỦA {u.name?.toUpperCase()}
+                                                                                        {!isLoading && ` (${userVids.length} video)`}
+                                                                                    </Text>
+                                                                                </Flex>
+                                                                                {isLoading ? (
+                                                                                    <Flex align="center" gap={2} py={2}>
+                                                                                        <Spinner size="sm" colorPalette="purple" />
+                                                                                        <Text fontSize="xs" color="fg.muted">Đang tải danh sách video...</Text>
+                                                                                    </Flex>
+                                                                                ) : userVids.length === 0 ? (
+                                                                                    <Text fontSize="xs" color="fg.muted">Chưa có video nào.</Text>
+                                                                                ) : (
+                                                                                    <VStack align="stretch" gap={2}>
+                                                                                        {userVids.map(vp => (
+                                                                                            <Flex
+                                                                                                key={vp.id}
+                                                                                                align="center"
+                                                                                                justify="space-between"
+                                                                                                bg="bg.panel"
+                                                                                                borderRadius="xl"
+                                                                                                px={4}
+                                                                                                py={2.5}
+                                                                                                borderWidth="1px"
+                                                                                                borderColor="border.muted"
+                                                                                                gap={4}
+                                                                                                flexWrap="wrap"
+                                                                                            >
+                                                                                                <Box flex={1} overflow="hidden" minW="200px">
+                                                                                                    <Text fontSize="xs" fontWeight="bold" color="blue.500" isTruncated title={vp.videoTitle}>
+                                                                                                        {vp.videoTitle}
+                                                                                                    </Text>
+                                                                                                    <Text fontSize="10px" color="fg.muted">ID: {vp.videoId}</Text>
+                                                                                                </Box>
+
+                                                                                                <Box minW="160px">
+                                                                                                    <Flex justify="space-between" align="center" mb={1} fontSize="xs">
+                                                                                                        <Text fontWeight="bold" color="fg">{vp.doneCount} / {vp.totalSentences} câu</Text>
+                                                                                                        <Badge colorPalette={vp.progressPercent === 100 ? "green" : "blue"} size="xs">{vp.progressPercent}%</Badge>
+                                                                                                    </Flex>
+                                                                                                    <Box h="5px" w="100%" bg="bg.subtle" borderRadius="full" overflow="hidden" borderWidth="1px" borderColor="border.muted">
+                                                                                                        <Box h="100%" w={`${vp.progressPercent}%`} bg={vp.progressPercent === 100 ? "green.500" : "purple.500"} borderRadius="full" />
+                                                                                                    </Box>
+                                                                                                </Box>
+
+                                                                                                <Flex align="center" gap={3} flexShrink={0}>
+                                                                                                    <Text fontSize="10px" color="fg.muted">{formatTimeAgo(vp.updatedAt)}</Text>
+                                                                                                    <Button
+                                                                                                        as="a"
+                                                                                                        href={`https://www.youtube.com/watch?v=${vp.videoId}`}
+                                                                                                        target="_blank"
+                                                                                                        size="xs"
+                                                                                                        variant="ghost"
+                                                                                                        colorPalette="blue"
+                                                                                                        borderRadius="lg"
+                                                                                                        gap={1}
+                                                                                                    >
+                                                                                                        <FiExternalLink size={10} /> YouTube
+                                                                                                    </Button>
+                                                                                                </Flex>
+                                                                                            </Flex>
+                                                                                        ))}
+                                                                                    </VStack>
+                                                                                )}
+                                                                            </Box>
+                                                                        </Table.Cell>
+                                                                    </Table.Row>
+                                                                );
+                                                            })()}
                                                         ))
                                                     )}
                                                 </Table.Body>
