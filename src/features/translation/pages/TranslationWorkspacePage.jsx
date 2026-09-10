@@ -185,7 +185,10 @@ const TranslationWorkspacePage = () => {
         // 1. Google GTX API
         try {
             const res = await fetchWithTimeout(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=vi&dt=t&q=${encoded}`, 2000);
-            if (res?.[0]?.[0]?.[0]) return res[0][0][0];
+            if (res?.[0]) {
+                const fullTranslation = res[0].map(item => item?.[0] || "").join("").trim();
+                if (fullTranslation) return fullTranslation;
+            }
         } catch (e) {}
 
         // 2. Google Clients5 API
@@ -213,15 +216,16 @@ const TranslationWorkspacePage = () => {
         return "";
     };
 
-    // Interactive word lookup logic
+    // Interactive word or phrase lookup logic
     const handleWordLookup = useCallback(async (wordStr, event) => {
-        const cleanWord = wordStr.replace(/[^a-zA-Z0-9-']/g, "").toLowerCase();
+        // Preserve spaces between words when highlighting phrases or lines
+        const cleanWord = wordStr.replace(/[^\w\s-']/g, "").replace(/\s+/g, " ").trim().toLowerCase();
         if (!cleanWord) return;
 
         const rect = event.currentTarget ? event.currentTarget.getBoundingClientRect() : { left: event.clientX, bottom: event.clientY };
         setDictPopup({
-            x: Math.min(rect.left, window.innerWidth - 320),
-            y: rect.bottom + 8,
+            x: Math.min(rect.left || event.clientX, window.innerWidth - 350),
+            y: (rect.bottom || event.clientY) + 8,
             word: cleanWord,
             loading: true,
             meaning: ""
@@ -284,11 +288,11 @@ const TranslationWorkspacePage = () => {
         }
     }, []);
 
-    // Text selection lookup on mouseup
+    // Text selection lookup on mouseup (supports multi-word phrases and whole lines)
     const handleTextSelection = (e) => {
         const selection = window.getSelection();
         const selectedText = selection ? selection.toString().trim() : "";
-        if (selectedText && selectedText.length > 0 && selectedText.length < 50) {
+        if (selectedText && selectedText.length > 0 && selectedText.length < 500) {
             handleWordLookup(selectedText, e);
         }
     };
@@ -353,6 +357,20 @@ const TranslationWorkspacePage = () => {
             });
         });
 
+        if (grammarNotes && grammarNotes.trim()) {
+            ws.addRow({});
+            const bannerRow = ws.addRow({ english: "📌 GHI CHÚ NGỮ PHÁP / COLLOCATION CỦA BÀI" });
+            bannerRow.font = { bold: true, color: { argb: "FFFFFFFF" } };
+            bannerRow.fill = {
+                type: "pattern",
+                pattern: "solid",
+                fgColor: { argb: "FF805AD5" }
+            };
+            grammarNotes.split("\n").forEach((line) => {
+                if (line.trim()) ws.addRow({ english: line });
+            });
+        }
+
         const buffer = await wb.xlsx.writeBuffer();
         const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
         const url = URL.createObjectURL(blob);
@@ -363,7 +381,7 @@ const TranslationWorkspacePage = () => {
         URL.revokeObjectURL(url);
     };
 
-    // Excel Export 2: Export Bilingual Document (Câu gốc | Bản dịch thô | Bản dịch chuẩn)
+    // Excel Export 2: Export Bilingual Document (Câu gốc | Bản dịch thô | Bản dịch chuẩn + Ghi chú ngữ pháp)
     const exportBilingualXlsx = async () => {
         if (!session || !session.sentences) return;
 
@@ -396,6 +414,31 @@ const TranslationWorkspacePage = () => {
                 notes: i === currentIdx ? sentenceNotes : st.notes || ""
             });
         });
+
+        // Add Grammar & Collocation notes at the bottom of sheet 1
+        if (grammarNotes && grammarNotes.trim()) {
+            ws.addRow({});
+            const bannerRow = ws.addRow({ original: "📌 GHI CHÚ NGỮ PHÁP / COLLOCATION CỦA BÀI" });
+            bannerRow.font = { bold: true, color: { argb: "FFFFFFFF" } };
+            bannerRow.fill = {
+                type: "pattern",
+                pattern: "solid",
+                fgColor: { argb: "FF805AD5" }
+            };
+            grammarNotes.split("\n").forEach((line) => {
+                if (line.trim()) ws.addRow({ original: line });
+            });
+
+            // Sheet 2 dedicated for Grammar & Collocations
+            const ws2 = wb.addWorksheet("Ghi chú Ngữ pháp & Collocation");
+            ws2.columns = [{ header: "Ghi chú Ngữ pháp / Collocation", key: "note", width: 80 }];
+            const h2 = ws2.getRow(1);
+            h2.font = { bold: true, color: { argb: "FFFFFFFF" } };
+            h2.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF805AD5" } };
+            grammarNotes.split("\n").forEach((line) => {
+                if (line.trim()) ws2.addRow({ note: line });
+            });
+        }
 
         const buffer = await wb.xlsx.writeBuffer();
         const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
@@ -546,21 +589,26 @@ const TranslationWorkspacePage = () => {
                             onMouseUp={handleTextSelection}
                         >
                             {currentSentence.original.split(/\s+/).map((word, wIdx) => (
-                                <Text
-                                    key={wIdx}
-                                    as="span"
-                                    display="inline-block"
-                                    mr="6px"
-                                    px="3px"
-                                    borderRadius="md"
-                                    cursor="pointer"
-                                    transition="all 0.15s"
-                                    _hover={{ bg: "teal.100", color: "teal.800", textDecoration: "underline" }}
-                                    _dark={{ _hover: { bg: "teal.800", color: "teal.100" } }}
-                                    onClick={(e) => handleWordLookup(word, e)}
-                                >
-                                    {word}
-                                </Text>
+                                <React.Fragment key={wIdx}>
+                                    <Text
+                                        as="span"
+                                        display="inline"
+                                        px="2px"
+                                        py="1px"
+                                        borderRadius="md"
+                                        cursor="pointer"
+                                        transition="all 0.15s"
+                                        _hover={{ bg: "teal.100", color: "teal.800", textDecoration: "underline" }}
+                                        _dark={{ _hover: { bg: "teal.800", color: "teal.100" } }}
+                                        onClick={(e) => {
+                                            const sel = window.getSelection()?.toString().trim();
+                                            if (!sel) handleWordLookup(word, e);
+                                        }}
+                                    >
+                                        {word}
+                                    </Text>
+                                    {" "}
+                                </React.Fragment>
                             ))}
                         </Box>
                     </Box>
