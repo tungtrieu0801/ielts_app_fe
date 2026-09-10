@@ -691,9 +691,27 @@ const FinishedScreen = ({ total, correct, wrong, onReset, exercises, savedDone, 
     );
 };
 
+const cleanSubtitleText = (str) => {
+    if (!str || typeof str !== 'string') return '';
+    return str
+        .replace(/&gt;/gi, '>')
+        .replace(/&lt;/gi, '<')
+        .replace(/^(?:\s*>+)+/g, '')
+        .replace(/^(?:\s*>+)+/g, '')
+        .trim();
+};
+
 // ── Main Component ────────────────────────────────────────────────────────
 const YoutubeExercise = ({ data, onReset }) => {
-    const { exercises, videoId, title, savedProgress } = data;
+    const { videoId, title, savedProgress } = data;
+    const rawExercises = data?.exercises || [];
+    const exercises = React.useMemo(() => {
+        return rawExercises.map(ex => ({
+            ...ex,
+            original: cleanSubtitleText(ex.original || ex.text || ''),
+            translated: cleanSubtitleText(ex.translated || ex.vietnamese || '')
+        }));
+    }, [rawExercises]);
 
     // Detect if the video was already completed from a previous session
     const isAlreadyCompleted = savedProgress?.done?.length >= exercises.length && exercises.length > 0;

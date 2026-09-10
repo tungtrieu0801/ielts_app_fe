@@ -28,6 +28,9 @@ const FillInBlank = ({ word, onAnswer, existingAnswer }) => {
     const srsLevel = word?.srs?.level ?? 0;
     const srsStatus = word?.srs?.status ?? "NEW";
 
+    const synonymsStr = Array.isArray(word?.synonyms) ? word.synonyms.flatMap(s => typeof s === 'string' ? s.split(',') : s).map(x => String(x).trim()).filter(Boolean).join(', ') : (typeof word?.synonyms === 'string' ? word.synonyms.trim() : '');
+    const antonymsStr = Array.isArray(word?.antonyms) ? word.antonyms.flatMap(a => typeof a === 'string' ? a.split(',') : a).map(x => String(x).trim()).filter(Boolean).join(', ') : (typeof word?.antonyms === 'string' ? word.antonyms.trim() : '');
+
     React.useEffect(() => {
         if (!word?.example) return;
 
@@ -207,6 +210,20 @@ const FillInBlank = ({ word, onAnswer, existingAnswer }) => {
                         </Flex>
                         {word.vietnamese && (
                             <Text color="fg.muted" fontSize="sm">Nghĩa: {word.vietnamese}</Text>
+                        )}
+                        {(synonymsStr || antonymsStr) && (
+                            <Flex gap={2} align="center" justify="center" flexWrap="wrap" fontSize="xs" mt={1}>
+                                {synonymsStr && (
+                                    <Badge colorPalette="teal" variant="subtle" px={2.5} py={0.5} borderRadius="md">
+                                        ≈ Đồng nghĩa: {synonymsStr}
+                                    </Badge>
+                                )}
+                                {antonymsStr && (
+                                    <Badge colorPalette="pink" variant="subtle" px={2.5} py={0.5} borderRadius="md">
+                                        ≠ Trái nghĩa: {antonymsStr}
+                                    </Badge>
+                                )}
+                            </Flex>
                         )}
                         <Button colorPalette={correct ? "green" : "blue"} onClick={handleNext} mt={2}>
                             Từ tiếp theo →

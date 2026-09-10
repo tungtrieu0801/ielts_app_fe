@@ -46,6 +46,9 @@ const Flashcard = ({ word, onAnswer, existingAnswer }) => {
     const isFirstRender = useRef(true);
     const rafRef = useRef(null);
 
+    const synonymsStr = Array.isArray(word?.synonyms) ? word.synonyms.flatMap(s => typeof s === 'string' ? s.split(',') : s).map(x => String(x).trim()).filter(Boolean).join(', ') : (typeof word?.synonyms === 'string' ? word.synonyms.trim() : '');
+    const antonymsStr = Array.isArray(word?.antonyms) ? word.antonyms.flatMap(a => typeof a === 'string' ? a.split(',') : a).map(x => String(x).trim()).filter(Boolean).join(', ') : (typeof word?.antonyms === 'string' ? word.antonyms.trim() : '');
+
     // Auto-read when new word appears
     useEffect(() => {
         if (!word?.english) return;
@@ -233,13 +236,23 @@ const Flashcard = ({ word, onAnswer, existingAnswer }) => {
                             </Flex>
                         )}
 
-                        {word.synonyms?.length > 0 && (
-                            <Text fontSize="sm" color="fg.muted" mt={2} textAlign="center">
-                                ≈ {word.synonyms.slice(0, 3).join(" · ")}
-                            </Text>
+                        {(synonymsStr || antonymsStr) && (
+                            <Flex gap={2} align="center" justify="center" flexWrap="wrap" mt={2}>
+                                {synonymsStr && (
+                                    <Text fontSize="xs" color="teal.600" _dark={{ color: "teal.300" }} fontWeight="600">
+                                        ≈ Đồng nghĩa: {synonymsStr}
+                                    </Text>
+                                )}
+                                {synonymsStr && antonymsStr && <Text fontSize="xs" color="fg.muted">•</Text>}
+                                {antonymsStr && (
+                                    <Text fontSize="xs" color="pink.600" _dark={{ color: "pink.300" }} fontWeight="600">
+                                        ≠ Trái nghĩa: {antonymsStr}
+                                    </Text>
+                                )}
+                            </Flex>
                         )}
 
-                        <Text fontSize="xs" color="fg.subtle" mt={8} opacity={0.6}>
+                        <Text fontSize="xs" color="fg.subtle" mt={6} opacity={0.6}>
                             {flipped ? "👆 Click để lật lại" : "👆 Click để xem nghĩa"}
                         </Text>
                     </Box>
@@ -275,7 +288,7 @@ const Flashcard = ({ word, onAnswer, existingAnswer }) => {
                             fontWeight="600"
                             textTransform="uppercase"
                             letterSpacing="wider"
-                            mb={5}
+                            mb={4}
                         >
                             🇻🇳 Nghĩa tiếng Việt
                         </Text>
@@ -284,10 +297,25 @@ const Flashcard = ({ word, onAnswer, existingAnswer }) => {
                             fontWeight="extrabold"
                             color="fg"
                             textAlign="center"
-                            mb={6}
+                            mb={4}
                         >
                             {word.vietnamese}
                         </Text>
+
+                        {(synonymsStr || antonymsStr) && (
+                            <Flex gap={2.5} align="center" justify="center" flexWrap="wrap" mb={4}>
+                                {synonymsStr && (
+                                    <Badge colorPalette="teal" variant="subtle" px={2.5} py={1} borderRadius="lg" fontSize="xs">
+                                        ≈ Đồng nghĩa: {synonymsStr}
+                                    </Badge>
+                                )}
+                                {antonymsStr && (
+                                    <Badge colorPalette="pink" variant="subtle" px={2.5} py={1} borderRadius="lg" fontSize="xs">
+                                        ≠ Trái nghĩa: {antonymsStr}
+                                    </Badge>
+                                )}
+                            </Flex>
+                        )}
                         {word.example && (
                             <Box
                                 bg="bg.panel"

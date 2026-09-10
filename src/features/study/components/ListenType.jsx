@@ -7,6 +7,9 @@ import { checkAnswer } from "../../../shared/utils/checkAnswer.js";
 import StudyTimer from "./StudyTimer.jsx";
 
 const ListenType = ({ word, onAnswer }) => {
+    const synonymsStr = Array.isArray(word?.synonyms) ? word.synonyms.flatMap(s => typeof s === 'string' ? s.split(',') : s).map(x => String(x).trim()).filter(Boolean).join(', ') : (typeof word?.synonyms === 'string' ? word.synonyms.trim() : '');
+    const antonymsStr = Array.isArray(word?.antonyms) ? word.antonyms.flatMap(a => typeof a === 'string' ? a.split(',') : a).map(x => String(x).trim()).filter(Boolean).join(', ') : (typeof word?.antonyms === 'string' ? word.antonyms.trim() : '');
+
     const [input, setInput] = useState("");
     const [submitted, setSubmitted] = useState(false);
     const [correct, setCorrect] = useState(false);
@@ -248,6 +251,20 @@ const ListenType = ({ word, onAnswer }) => {
                                 <Text fontSize="sm" fontWeight="bold" color="fg.muted" mt={1}>
                                     ({word.vietnamese})
                                 </Text>
+                            )}
+                            {(synonymsStr || antonymsStr) && (
+                                <Flex gap={2} align="center" justify="center" flexWrap="wrap" fontSize="xs" mt={2}>
+                                    {synonymsStr && (
+                                        <Badge colorPalette="teal" variant="subtle" px={2.5} py={0.5} borderRadius="md">
+                                            ≈ Đồng nghĩa: {synonymsStr}
+                                        </Badge>
+                                    )}
+                                    {antonymsStr && (
+                                        <Badge colorPalette="pink" variant="subtle" px={2.5} py={0.5} borderRadius="md">
+                                            ≠ Trái nghĩa: {antonymsStr}
+                                        </Badge>
+                                    )}
+                                </Flex>
                             )}
                         </Box>
 
