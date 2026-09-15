@@ -390,10 +390,10 @@ const TranslationWorkspacePage = () => {
 
         ws.columns = [
             { header: "STT", key: "stt", width: 8 },
-            { header: "Câu gốc (English)", key: "original", width: 45 },
+            { header: "Đoạn gốc (English)", key: "original", width: 45 },
             { header: "Bản dịch thô (Grammar)", key: "rough", width: 45 },
             { header: "Bản dịch hoàn chỉnh (Vietnamese)", key: "polished", width: 45 },
-            { header: "Ghi chú câu", key: "notes", width: 30 }
+            { header: "Ghi chú đoạn", key: "notes", width: 30 }
         ];
 
         const headerRow = ws.getRow(1);
@@ -510,7 +510,7 @@ const TranslationWorkspacePage = () => {
                             </Text>
                             <HStack gap={2} fontSize="xs" color="fg.muted">
                                 <Text fontWeight="700" color="teal.600">
-                                    Câu {currentIdx + 1} / {totalSentences}
+                                    Đoạn {currentIdx + 1} / {totalSentences}
                                 </Text>
                                 <Text>•</Text>
                                 <Text>{vocabList.length} từ vựng đã nhặt</Text>
@@ -568,7 +568,7 @@ const TranslationWorkspacePage = () => {
                     <Box bg="bg.panel" p={5} borderRadius="2xl" shadow="sm" borderWidth="1px" borderColor="border.muted">
                         <Flex justify="space-between" align="center" mb={3}>
                             <Badge colorPalette="teal" variant="surface" px={2.5} py={0.5} borderRadius="md" fontSize="xs">
-                                PHẦN 1: CÂU / ĐOẠN GỐC (SOURCE TEXT)
+                                PHẦN 1: ĐOẠN GỐC (SOURCE TEXT)
                             </Badge>
                             <Text fontSize="xs" color="fg.muted">
                                 💡 Bôi đen hoặc click từng từ để hiện Pop-up tra cứu nhanh
@@ -670,10 +670,10 @@ const TranslationWorkspacePage = () => {
                     {/* SECTION 3: NOTES & EVALUATION */}
                     <Box bg="bg.panel" p={5} borderRadius="2xl" shadow="sm" borderWidth="1px" borderColor="border.muted">
                         <Badge colorPalette="purple" variant="surface" px={2.5} py={0.5} borderRadius="md" fontSize="xs" mb={3}>
-                            PHẦN 3: ĐÁNH GIÁ / GHI CHÚ CÂU (NOTES)
+                            PHẦN 3: ĐÁNH GIÁ / GHI CHÚ ĐOẠN VĂN (NOTES)
                         </Badge>
                         <Textarea
-                            placeholder="Ghi chú lỗi sai, lưu ý từ vựng quan trọng hoặc ngữ pháp trong câu này..."
+                            placeholder="Ghi chú lỗi sai, lưu ý từ vựng quan trọng hoặc ngữ pháp trong đoạn văn này..."
                             rows={2}
                             value={sentenceNotes}
                             onChange={(e) => setSentenceNotes(e.target.value)}
@@ -690,7 +690,7 @@ const TranslationWorkspacePage = () => {
                             disabled={currentIdx === 0}
                             borderRadius="xl"
                         >
-                            <FiChevronLeft style={{ marginRight: 4 }} /> Câu trước
+                            <FiChevronLeft style={{ marginRight: 4 }} /> Đoạn trước
                         </Button>
 
                         <Button
@@ -709,7 +709,7 @@ const TranslationWorkspacePage = () => {
                             disabled={currentIdx >= totalSentences - 1}
                             borderRadius="xl"
                         >
-                            Lưu & Câu tiếp theo <FiChevronRight style={{ marginLeft: 4 }} />
+                            Lưu & Đoạn tiếp theo <FiChevronRight style={{ marginLeft: 4 }} />
                         </Button>
                     </Flex>
                 </Box>
@@ -775,7 +775,7 @@ const TranslationWorkspacePage = () => {
                         {vocabList.length === 0 ? (
                             <Box textAlign="center" py={6} bg="bg.subtle" borderRadius="xl">
                                 <Text fontSize="xs" color="fg.muted">
-                                    Chưa có từ vựng nào. Click từ ở câu gốc hoặc dùng khung trên để thêm nhanh.
+                                    Chưa có từ vựng nào. Click từ ở đoạn gốc hoặc dùng khung trên để thêm nhanh.
                                 </Text>
                             </Box>
                         ) : (

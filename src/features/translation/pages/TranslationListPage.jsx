@@ -48,14 +48,14 @@ const TranslationListPage = () => {
         fetchSessions();
     }, []);
 
-    // Auto-split preview when text changes
+    // Auto-split preview by paragraphs (Enter / line breaks) when text changes
     useEffect(() => {
         if (!rawText.trim()) {
             setPreviewSentences([]);
             return;
         }
         const split = rawText
-            .split(/(?<=[.!?])\s+|\n+/)
+            .split(/\r?\n+/)
             .map((s) => s.trim())
             .filter((s) => s.length > 0);
         setPreviewSentences(split);
@@ -228,8 +228,8 @@ const TranslationListPage = () => {
 
                                         <VStack align="stretch" gap={1.5} fontSize="xs" color="fg.muted" mb={4}>
                                             <Flex justify="space-between">
-                                                <Text>Số câu gốc:</Text>
-                                                <Text fontWeight="600" color="fg">{s.totalSentences} câu</Text>
+                                                <Text>Số đoạn gốc:</Text>
+                                                <Text fontWeight="600" color="fg">{s.totalSentences} đoạn</Text>
                                             </Flex>
                                             <Flex justify="space-between">
                                                 <Text>Từ vựng nhặt được:</Text>
@@ -344,7 +344,7 @@ const TranslationListPage = () => {
                                     <Box p={3.5} bg="teal.50" _dark={{ bg: "teal.900/20" }} borderRadius="xl" borderLeftWidth="4px" borderColor="teal.500">
                                         <Flex justify="space-between" align="center" mb={1}>
                                             <Text fontSize="xs" fontWeight="700" color="teal.700" _dark={{ color: "teal.300" }}>
-                                                Hệ thống đã tự động phân tách thành {previewSentences.length} câu:
+                                                Hệ thống đã tự động phân tách thành {previewSentences.length} đoạn văn (theo phím Enter):
                                             </Text>
                                         </Flex>
                                         <VStack align="stretch" gap={1} maxH="120px" overflowY="auto" pt={1}>
@@ -355,7 +355,7 @@ const TranslationListPage = () => {
                                             ))}
                                             {previewSentences.length > 4 && (
                                                 <Text fontSize="xs" fontStyle="italic" color="teal.600">
-                                                    ... và {previewSentences.length - 4} câu tiếp theo.
+                                                    ... và {previewSentences.length - 4} đoạn văn tiếp theo.
                                                 </Text>
                                             )}
                                         </VStack>
