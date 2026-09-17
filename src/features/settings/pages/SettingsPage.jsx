@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box, Flex, Text, VStack, Button, Icon, Grid } from '@chakra-ui/react';
-import { FiSettings, FiUser, FiMonitor, FiVolume2, FiSliders } from 'react-icons/fi';
-import { useUIStore } from '../../../stores/useUIStore';
+import { FiSettings, FiUser, FiMonitor, FiVolume2, FiSliders, FiImage, FiUpload, FiRotateCcw } from 'react-icons/fi';
+import { useUIStore, PRESET_WALLPAPERS } from '../../../stores/useUIStore';
 import { useStudyStore } from '../../../stores/useStudyStore';
 import BaseLayout from '../../../layouts/BaseLayout.jsx';
 
@@ -19,7 +19,8 @@ const SettingsPage = () => {
 
     const tabs = [
         { id: 'account', label: 'Tài khoản', desc: 'Thông tin cá nhân', icon: FiUser },
-        { id: 'theme', label: 'Giao diện', desc: 'Màu sắc & Giao diện', icon: FiMonitor },
+        { id: 'theme', label: 'Màu sắc (Theme)', desc: 'Tông màu ứng dụng', icon: FiMonitor },
+        { id: 'background', label: 'Hình nền (Background)', desc: 'Tải ảnh & Ảnh có sẵn', icon: FiImage },
         { id: 'study', label: 'Cấu hình học', desc: 'Số từ học mỗi session', icon: FiSliders },
         { id: 'voice', label: 'Giọng đọc', desc: 'Phát âm (Text-to-Speech)', icon: FiVolume2 },
     ];
@@ -108,6 +109,7 @@ const SettingsPage = () => {
                                 setPalette={setPalette} 
                             />
                         )}
+                        {activeTab === 'background' && <BackgroundSettingsSection />}
                         {activeTab === 'study' && <SessionSettingsSection />}
                         {activeTab === 'voice' && <VoiceSettingsSection />}
                     </Box>
@@ -424,6 +426,216 @@ const VoiceSettingsSection = () => {
                     })
                 )}
             </Grid>
+        </Box>
+    );
+};
+
+/* ── BACKGROUND SETTINGS SECTION ── */
+const BackgroundSettingsSection = () => {
+    const { bgPreset, bgImage, bgBlur, bgOverlay, setBgPreset, setBgImage, setBgBlur, setBgOverlay, resetBg } = useUIStore();
+    const fileInputRef = React.useRef(null);
+
+    const handleFileUpload = (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        if (!file.type.startsWith("image/")) {
+            alert("Vui lòng chọn một file hình ảnh (JPG, PNG, WEBP...)!");
+            return;
+        }
+
+        if (file.size > 10 * 1024 * 1024) {
+            alert("File ảnh không được vượt quá 10MB!");
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            const dataUrl = event.target?.result;
+            if (!dataUrl) return;
+
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const MAX_WIDTH = 1280;
+                const MAX_HEIGHT = 1280;
+                let width = img.width;
+                let height = img.height;
+
+                if (width > height) {
+                    if (width > MAX_WIDTH) {
+                        height *= MAX_WIDTH / width;
+                        width = MAX_WIDTH;
+                    }
+                } else {
+                    if (height > MAX_HEIGHT) {
+                        width *= MAX_HEIGHT / height;
+                        height = MAX_HEIGHT;
+                    }
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+
+                const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.75);
+                setBgImage(compressedDataUrl);
+            };
+            img.src = dataUrl;
+        };
+        reader.readAsDataURL(file);
+    };
+
+    return (
+        <Box
+            p={6} bg="bg.panel" borderRadius="3xl" shadow="sm"
+            border="1px solid" borderColor="border.subtle"
+            display="flex" flexDirection="column" gap={6}
+        >
+            <Flex align="center" justify="space-between" wrap="wrap" gap={3}>
+                <Flex align="center" gap={3}>
+                    <Box p={2.5} bg="brand.solid" borderRadius="xl" color="white" shadow="sm" display="flex" alignItems="center" justifyContent="center">
+                        <Icon as={FiImage} boxSize={5} />
+                    </Box>
+                    <Box>
+                        <Text fontSize="lg" fontWeight="800" color="fg">Hình nền ứng dụng (App Background)</Text>
+                        <Text fontSize="sm" color="fg.muted" fontWeight="500">Tùy chọn hình nền có sẵn hoặc tải ảnh cá nhân từ thiết bị</Text>
+                    </Box>
+                </Flex>
+                {bgImage && (
+                    <Button size="xs" variant="outline" colorPalette="red" borderRadius="lg" gap={1.5} onClick={resetBg}>
+                        <Icon as={FiRotateCcw} /> Xóa hình nền
+                    </Button>
+                )}
+            </Flex>
+
+            {/* Custom Photo Upload Box */}
+            <Box
+                p={5}
+                borderRadius="2xl"
+                borderWidth="2px"
+                borderColor={bgPreset === "custom" ? "brand.solid" : "border.dashed"}
+                borderStyle="dashed"
+                bg={bgPreset === "custom" ? "bg.subtle" : "transparent"}
+                textAlign="center"
+                cursor="pointer"
+                onClick={() => fileInputRef.current?.click()}
+                _hover={{ borderColor: "brand.solid", bg: "bg.subtle" }}
+                transition="all 0.2s"
+            >
+                <input
+                    type="file"
+                    ref={fileInputRef}
+                    accept="image/*"
+                    style={{ display: "none" }}
+                    onChange={handleFileUpload}
+                />
+                <Flex direction="column" align="center" gap={2}>
+                    <Box p={3} borderRadius="full" bg="brand.solid/10" color="brand.solid">
+                        <Icon as={FiUpload} boxSize={6} />
+                    </Box>
+                    <Text fontSize="sm" fontWeight="800" color="fg">
+                        {bgPreset === "custom" ? "📸 Đã tải ảnh cá nhân (Click để chọn ảnh khác)" : "📸 Tải ảnh cá nhân từ máy tính của bạn"}
+                    </Text>
+                    <Text fontSize="xs" color="fg.muted">
+                        Hỗ trợ định dạng JPG, PNG, WEBP, GIF (Tối đa 10MB)
+                    </Text>
+                </Flex>
+            </Box>
+
+            {/* Preset Wallpapers Gallery */}
+            <Box>
+                <Text fontSize="xs" fontWeight="800" color="fg.muted" letterSpacing="wider" uppercase mb={3}>
+                    BỘ HÌNH NỀN CÓ SẴN (PRESETS)
+                </Text>
+                <Grid templateColumns={{ base: "repeat(2, 1fr)", sm: "repeat(3, 1fr)" }} gap={3}>
+                    {PRESET_WALLPAPERS.map((item) => {
+                        const isSelected = bgPreset === item.id;
+                        return (
+                            <Box
+                                key={item.id}
+                                borderRadius="2xl"
+                                borderWidth="3px"
+                                borderColor={isSelected ? "brand.solid" : "border.muted"}
+                                overflow="hidden"
+                                cursor="pointer"
+                                onClick={() => setBgPreset(item.id, item.url)}
+                                transition="all 0.2s"
+                                _hover={{ transform: "translateY(-3px)", borderColor: "brand.solid" }}
+                                position="relative"
+                                h="100px"
+                            >
+                                {item.id === "none" ? (
+                                    <Flex h="full" w="full" bg="bg.subtle" align="center" justify="center" p={2} textAlign="center">
+                                        <Text fontSize="xs" fontWeight="bold" color="fg.muted">🚫 Mặc định (Không ảnh)</Text>
+                                    </Flex>
+                                ) : (
+                                    <Box
+                                        h="full"
+                                        w="full"
+                                        bgImage={`url("${item.thumb}")`}
+                                        bgSize="cover"
+                                        bgPosition="center"
+                                    />
+                                )}
+                                <Box
+                                    position="absolute"
+                                    bottom={0} left={0} right={0}
+                                    bg="blackAlpha.700"
+                                    color="white"
+                                    px={2} py={1}
+                                    fontSize="10px"
+                                    fontWeight="bold"
+                                    textAlign="center"
+                                    isTruncated
+                                >
+                                    {item.name}
+                                </Box>
+                            </Box>
+                        );
+                    })}
+                </Grid>
+            </Box>
+
+            {/* Adjustment Controls (Blur & Overlay) */}
+            {bgImage && (
+                <VStack align="stretch" gap={4} p={5} bg="bg.subtle" borderRadius="2xl" borderWidth="1px" borderColor="border.muted">
+                    <Text fontSize="xs" fontWeight="800" color="fg.muted" letterSpacing="wider" uppercase>
+                        CHỈNH ĐỘ MỜ & ĐỘ SẪM TỐI (FROSTED GLASS ADJUSTMENT)
+                    </Text>
+                    {/* Blur Slider */}
+                    <Box>
+                        <Flex justify="space-between" align="center" mb={1.5} fontSize="xs">
+                            <Text fontWeight="bold" color="fg">Độ mờ hậu cảnh (Blur): {bgBlur}px</Text>
+                        </Flex>
+                        <input
+                            type="range"
+                            min="0"
+                            max="20"
+                            step="1"
+                            value={bgBlur}
+                            onChange={(e) => setBgBlur(Number(e.target.value))}
+                            style={{ width: "100%", cursor: "pointer" }}
+                        />
+                    </Box>
+                    {/* Overlay Opacity Slider */}
+                    <Box>
+                        <Flex justify="space-between" align="center" mb={1.5} fontSize="xs">
+                            <Text fontWeight="bold" color="fg">Độ sẫm phủ mờ (Dark Overlay): {Math.round(bgOverlay * 100)}%</Text>
+                        </Flex>
+                        <input
+                            type="range"
+                            min="0"
+                            max="0.6"
+                            step="0.05"
+                            value={bgOverlay}
+                            onChange={(e) => setBgOverlay(Number(e.target.value))}
+                            style={{ width: "100%", cursor: "pointer" }}
+                        />
+                    </Box>
+                </VStack>
+            )}
         </Box>
     );
 };

@@ -105,26 +105,6 @@ const InputStep = ({ onReady }) => {
 
     return (
         <Box>
-            {/* Page header */}
-            <Box mb={8} textAlign="center">
-                {/* <Box
-                    w="72px" h="72px" borderRadius="2xl"
-                    bg="brand.muted" mx="auto" mb={4}
-                    display="flex" alignItems="center" justifyContent="center"
-                    fontSize="2xl"
-                    boxShadow="0 0 40px var(--chakra-colors-brand-muted)"
-                >
-                    🎧
-                </Box> */}
-                {/* <Text fontSize={{ base: "2xl", md: "4xl" }} fontWeight="extrabold" mb={2}>
-                    Dictation
-                </Text> */}
-                <Text color="fg.muted" maxW="480px" mx="auto" fontSize="sm">
-                    Luyện kỹ năng nghe – chép tiếng Anh theo chuẩn IELTS.
-                    Dán đoạn văn hoặc link YouTube để bắt đầu.
-                </Text>
-            </Box>
-
             {/* Main card */}
             <Box
                 bg="bg.panel" borderRadius="2xl" p={{ base: 5, md: 8 }}

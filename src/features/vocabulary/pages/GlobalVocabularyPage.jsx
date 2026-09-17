@@ -168,9 +168,6 @@ const GlobalVocabularyPage = () => {
                                 {total} từ
                             </Badge>
                         </Flex>
-                        <Text color="fg.muted" fontSize="sm">
-                            Xem, chỉnh sửa, xóa và tìm kiếm nhanh toàn bộ từ vựng đã lưu không phân biệt bộ từ.
-                        </Text>
                     </Box>
                 </Flex>
 

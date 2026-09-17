@@ -478,7 +478,7 @@ const HomePage = () => {
                     position="absolute" bottom="-40px" left="-10px"
                     w="100px" h="100px" bg="white/10" borderRadius="full" blur="md"
                 />
-                
+
                 <Flex direction="column" gap={3} maxW="650px" position="relative" zIndex={1}>
                     <Badge alignSelf="flex-start" bg="white/20" color="white" px={3} py={1} borderRadius="full" fontSize="xs" fontWeight="bold">
                         👋 CHÀO MỪNG BẠN MỚI
@@ -528,16 +528,6 @@ const HomePage = () => {
                     </Flex>
                 ) : (
                     <>
-                        {/* Welcome */}
-                        {allUserSets.length > 0 && (
-                            <Box mb={6}>
-                                <Text fontSize={{ base: "2xl", md: "3xl" }} fontWeight="extrabold" mb={1}>
-                                    Chào mừng trở lại! 👋
-                                </Text>
-                                <Text color="fg.muted">Tiếp tục hành trình học từ vựng của bạn hôm nay.</Text>
-                            </Box>
-                        )}
-
                         <Flex direction={{ base: "column", lg: "row" }} gap={6} alignItems="flex-start">
                             {/* Left Column (Main Content) */}
                             <Box flex="1" w="full" minW="0" display="flex" flexDirection="column" gap={6}>
