@@ -64,6 +64,42 @@ const TranslationWorkspacePage = () => {
     const [dictPopup, setDictPopup] = useState(null);
     const popupRef = useRef(null);
 
+    // Resizable split pane state
+    const [leftRatio, setLeftRatio] = useState(60);
+    const isDraggingRef = useRef(false);
+    const mainContainerRef = useRef(null);
+
+    const handleMouseDown = (e) => {
+        isDraggingRef.current = true;
+        document.body.style.userSelect = "none";
+        document.body.style.cursor = "col-resize";
+    };
+
+    useEffect(() => {
+        const handleMouseMove = (e) => {
+            if (!isDraggingRef.current || !mainContainerRef.current) return;
+            const rect = mainContainerRef.current.getBoundingClientRect();
+            const offsetX = e.clientX - rect.left;
+            const pct = Math.max(30, Math.min(85, (offsetX / rect.width) * 100));
+            setLeftRatio(Math.round(pct * 10) / 10);
+        };
+
+        const handleMouseUp = () => {
+            if (isDraggingRef.current) {
+                isDraggingRef.current = false;
+                document.body.style.userSelect = "";
+                document.body.style.cursor = "";
+            }
+        };
+
+        window.addEventListener("mousemove", handleMouseMove);
+        window.addEventListener("mouseup", handleMouseUp);
+        return () => {
+            window.removeEventListener("mousemove", handleMouseMove);
+            window.removeEventListener("mouseup", handleMouseUp);
+        };
+    }, []);
+
     // Fetch session data on mount
     useEffect(() => {
         const loadData = async () => {
@@ -518,7 +554,46 @@ const TranslationWorkspacePage = () => {
                         </Box>
                     </HStack>
 
-                    <HStack gap={2.5}>
+                    <HStack gap={2.5} flexWrap="wrap">
+                        {/* Ratio Presets */}
+                        <HStack gap={1} bg="bg.subtle" p={1} borderRadius="xl" borderWidth="1px" borderColor="border.muted">
+                            <Text fontSize="10px" fontWeight="800" px={1.5} color="fg.muted" display={{ base: "none", sm: "block" }}>
+                                TỶ LỆ KHUNG:
+                            </Text>
+                            <Button
+                                size="xs"
+                                variant={leftRatio === 50 ? "solid" : "ghost"}
+                                colorPalette="teal"
+                                borderRadius="lg"
+                                onClick={() => setLeftRatio(50)}
+                                px={2}
+                                fontWeight="bold"
+                            >
+                                50:50
+                            </Button>
+                            <Button
+                                size="xs"
+                                variant={leftRatio === 60 ? "solid" : "ghost"}
+                                colorPalette="teal"
+                                borderRadius="lg"
+                                onClick={() => setLeftRatio(60)}
+                                px={2}
+                                fontWeight="bold"
+                            >
+                                60:40
+                            </Button>
+                            <Button
+                                size="xs"
+                                variant={leftRatio === 70 ? "solid" : "ghost"}
+                                colorPalette="teal"
+                                borderRadius="lg"
+                                onClick={() => setLeftRatio(70)}
+                                px={2}
+                                fontWeight="bold"
+                            >
+                                70:30
+                            </Button>
+                        </HStack>
                         <Button
                             size="sm"
                             variant="outline"
@@ -551,18 +626,17 @@ const TranslationWorkspacePage = () => {
                 </Flex>
             </Box>
 
-            {/* Main CAT-Tool Workspace Layout (2 Columns: 60% Left / 40% Right) */}
-            <Flex flex={1} overflow="hidden" direction={{ base: "column", lg: "row" }}>
-                {/* ── LEFT COLUMN (60% Workspace) ── */}
+            {/* Main CAT-Tool Workspace Layout (Resizable Columns) */}
+            <Flex ref={mainContainerRef} flex={1} overflow="hidden" direction={{ base: "column", lg: "row" }} position="relative">
+                {/* ── LEFT COLUMN (Resizable Workspace) ── */}
                 <Box
-                    w={{ base: "100%", lg: "60%" }}
+                    w={{ base: "100%", lg: `${leftRatio}%` }}
                     p={6}
                     overflowY="auto"
-                    borderRightWidth={{ base: 0, lg: "1px" }}
-                    borderColor="border.muted"
                     display="flex"
                     flexDirection="column"
                     gap={6}
+                    transition={isDraggingRef.current ? "none" : "width 0.2s ease"}
                 >
                     {/* SECTION 1: SOURCE TEXT (CÂU / ĐOẠN GỐC) */}
                     <Box bg="bg.panel" p={5} borderRadius="2xl" shadow="sm" borderWidth="1px" borderColor="border.muted">
@@ -714,15 +788,36 @@ const TranslationWorkspacePage = () => {
                     </Flex>
                 </Box>
 
-                {/* ── RIGHT COLUMN (40% Toolkit & Vocab) ── */}
+                {/* ── DRAGGABLE RESIZER BAR ── */}
                 <Box
-                    w={{ base: "100%", lg: "40%" }}
+                    display={{ base: "none", lg: "flex" }}
+                    w="8px"
+                    bg="border.muted"
+                    _hover={{ bg: "teal.400" }}
+                    cursor="col-resize"
+                    onMouseDown={handleMouseDown}
+                    alignItems="center"
+                    justifyContent="center"
+                    transition="background-color 0.2s"
+                    zIndex={10}
+                    position="relative"
+                    title="Kéo thả để chỉnh độ rộng 2 cột"
+                >
+                    <Box w="2px" h="36px" bg="gray.400" _dark={{ bg: "gray.600" }} borderRadius="full" />
+                </Box>
+
+                {/* ── RIGHT COLUMN (Resizable Toolkit & Vocab) ── */}
+                <Box
+                    w={{ base: "100%", lg: `${100 - leftRatio}%` }}
                     p={6}
                     bg="bg.panel"
                     overflowY="auto"
                     display="flex"
                     flexDirection="column"
                     gap={6}
+                    borderLeftWidth={{ base: 0, lg: "1px" }}
+                    borderColor="border.muted"
+                    transition={isDraggingRef.current ? "none" : "width 0.2s ease"}
                 >
                     {/* BẢNG GHI CHÚ TỪ VỰNG (VOCABULARY TABLE) */}
                     <Box borderBottomWidth="1px" borderColor="border.muted" pb={6}>

@@ -124,12 +124,14 @@ const Flashcard = ({ word, onAnswer, existingAnswer }) => {
             {/* ── Card 3D ── */}
             <Box
                 w="full"
-                h={{ base: "340px", md: "420px" }}
+                h={{ base: "360px", md: "430px" }}
                 cursor="pointer"
                 onClick={handleCardClick}
-                style={{ perspective: "1400px" }}
+                style={{ perspective: "1600px" }}
                 mb={6}
                 userSelect="none"
+                _hover={{ transform: "translateY(-4px)" }}
+                transition="transform 0.2s ease"
             >
                 <Box
                     w="full"
@@ -137,7 +139,7 @@ const Flashcard = ({ word, onAnswer, existingAnswer }) => {
                     position="relative"
                     style={{
                         transformStyle: "preserve-3d",
-                        transition: isResetting ? "none" : "transform 0.55s cubic-bezier(0.4,0,0.2,1)",
+                        transition: isResetting ? "none" : "transform 0.65s cubic-bezier(0.34, 1.4, 0.64, 1)",
                         transform: flipped ? "rotateY(180deg)" : "rotateY(0deg)",
                     }}
                 >
@@ -147,33 +149,35 @@ const Flashcard = ({ word, onAnswer, existingAnswer }) => {
                         inset={0}
                         bg="bg.panel"
                         borderRadius="3xl"
-                        borderWidth="1.5px"
+                        borderWidth="2px"
                         borderColor={flipped ? "border.muted" : "brand.solid"}
-                        shadow="xl"
+                        boxShadow="0 20px 40px -15px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.7)"
+                        _dark={{ boxShadow: "0 20px 40px -15px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.1)" }}
                         display="flex"
                         flexDirection="column"
                         alignItems="center"
                         justifyContent="center"
                         p={8}
                         style={{ backfaceVisibility: "hidden" }}
-                        transition="border-color 0.3s"
+                        transition="border-color 0.3s, box-shadow 0.3s"
                     >
                         {/* SRS level badge */}
                         <Flex position="absolute" top={4} left={4} gap={2}>
                             {srsStatus === "NEW" ? (
-                                <Badge colorPalette="cyan" variant="solid" fontSize="xs" px={2} borderRadius="md">
+                                <Badge colorPalette="cyan" variant="solid" fontSize="xs" px={2.5} py={0.5} borderRadius="md" shadow="xs">
                                     ✨ TỪ MỚI
                                 </Badge>
                             ) : (
                                 <Flex gap={2}>
-                                    <Badge colorPalette="orange" variant="solid" fontSize="xs" px={2} borderRadius="md">
+                                    <Badge colorPalette="orange" variant="solid" fontSize="xs" px={2.5} py={0.5} borderRadius="md" shadow="xs">
                                         🔥 CẦN ÔN TẬP
                                     </Badge>
                                     <Badge
                                         colorPalette={LEVEL_COLORS[srsLevel]}
                                         variant="subtle"
                                         fontSize="xs"
-                                        px={2}
+                                        px={2.5}
+                                        py={0.5}
                                         borderRadius="md"
                                         fontWeight="bold"
                                     >
@@ -192,7 +196,8 @@ const Flashcard = ({ word, onAnswer, existingAnswer }) => {
                                 colorPalette="purple"
                                 variant="subtle"
                                 fontSize="xs"
-                                px={2}
+                                px={2.5}
+                                py={0.5}
                                 borderRadius="md"
                                 fontWeight="bold"
                                 mb={4}
@@ -203,20 +208,21 @@ const Flashcard = ({ word, onAnswer, existingAnswer }) => {
 
                         <Text
                             color="fg.subtle"
-                            fontSize="sm"
-                            fontWeight="600"
+                            fontSize="xs"
+                            fontWeight="800"
                             textTransform="uppercase"
-                            letterSpacing="wider"
-                            mb={4}
+                            letterSpacing="widest"
+                            mb={3}
                         >
-                            🇬🇧 Tiếng Anh
+                            🇬🇧 TIẾNG ANH
                         </Text>
                         <Text
                             fontSize={{ base: "4xl", md: "6xl" }}
-                            fontWeight="extrabold"
+                            fontWeight="900"
                             textAlign="center"
                             mb={2}
                             color="fg"
+                            letterSpacing="tight"
                         >
                             {word.english}
                         </Text>
@@ -224,12 +230,12 @@ const Flashcard = ({ word, onAnswer, existingAnswer }) => {
                         {(word.pronunciation || word.partOfSpeech) && (
                             <Flex gap={3} align="center" mb={3}>
                                 {word.partOfSpeech && (
-                                    <Badge colorPalette="blue" variant="subtle" px={2} py={1} fontSize="sm">
+                                    <Badge colorPalette="blue" variant="subtle" px={2.5} py={1} fontSize="xs" borderRadius="md">
                                         {word.partOfSpeech}
                                     </Badge>
                                 )}
                                 {word.pronunciation && (
-                                    <Text fontSize="lg" color="fg.muted" fontStyle="italic">
+                                    <Text fontSize="lg" color="fg.muted" fontStyle="italic" fontWeight="500">
                                         {word.pronunciation}
                                     </Text>
                                 )}
@@ -252,9 +258,9 @@ const Flashcard = ({ word, onAnswer, existingAnswer }) => {
                             </Flex>
                         )}
 
-                        <Text fontSize="xs" color="fg.subtle" mt={6} opacity={0.6}>
-                            {flipped ? "👆 Click để lật lại" : "👆 Click để xem nghĩa"}
-                        </Text>
+                        <Badge colorPalette="teal" variant="surface" px={3} py={1} borderRadius="full" fontSize="11px" mt={6} gap={1.5}>
+                            <Text as="span" fontWeight="900" color="teal.600">Space</Text> hoặc click để lật xem nghĩa 🔄
+                        </Badge>
                     </Box>
 
                     {/* ── Back: Vietnamese ── */}
@@ -263,9 +269,10 @@ const Flashcard = ({ word, onAnswer, existingAnswer }) => {
                         inset={0}
                         bg="brand.muted"
                         borderRadius="3xl"
-                        borderWidth="1.5px"
+                        borderWidth="2px"
                         borderColor="brand.solid"
-                        shadow="xl"
+                        boxShadow="0 20px 40px -15px rgba(0,0,0,0.14), inset 0 1px 0 rgba(255,255,255,0.7)"
+                        _dark={{ boxShadow: "0 20px 40px -15px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.1)" }}
                         display="flex"
                         flexDirection="column"
                         alignItems="center"

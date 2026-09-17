@@ -157,20 +157,46 @@ const StudyStreakHeatmap = () => {
             {/* Header */}
             <Flex px={6} pt={5} pb={4} justify="space-between" align="center" flexWrap="wrap" gap={3}>
                 <Box>
-                    <Text fontSize="md" fontWeight="bold" mb={0.5} style={{ color: C.text }}>
-                        📅 Lịch sử học tập
-                    </Text>
-                    <Text fontSize="xs" style={{ color: C.textMuted }}>
+                    <Flex align="center" gap={2}>
+                        <Text fontSize="md" fontWeight="bold" style={{ color: C.text }}>
+                            📅 Lịch sử học tập
+                        </Text>
+                        {(streakInfo?.currentStreak ?? 0) > 0 && (
+                            <Box
+                                px={2.5}
+                                py={0.5}
+                                borderRadius="full"
+                                bg="orange.500/10"
+                                border="1px solid"
+                                borderColor="orange.400/40"
+                                boxShadow="0 0 12px rgba(255, 140, 0, 0.35)"
+                            >
+                                <Text fontSize="11px" fontWeight="800" color="orange.500">
+                                    🔥 Chuỗi học đang rực cháy!
+                                </Text>
+                            </Box>
+                        )}
+                    </Flex>
+                    <Text fontSize="xs" style={{ color: C.textMuted }} mt={0.5}>
                         {streakInfo ? `${streakInfo.totalStudyDays} ngày đã học trong năm qua` : "Đang tải..."}
                     </Text>
                 </Box>
                 <Flex gap={3} align="center" flexWrap="wrap">
-                    <Flex align="center" gap={1.5} px={3} py={1.5} borderRadius="full"
-                        style={{ backgroundColor: C.badgeBg, border: `1px solid ${C.badgeBorder}` }}
+                    <Flex
+                        align="center"
+                        gap={1.5}
+                        px={3.5}
+                        py={1.5}
+                        borderRadius="full"
+                        style={{
+                            backgroundColor: (streakInfo?.currentStreak ?? 0) > 0 ? "rgba(255, 115, 0, 0.12)" : C.badgeBg,
+                            border: (streakInfo?.currentStreak ?? 0) > 0 ? "1px solid rgba(255, 140, 0, 0.4)" : `1px solid ${C.badgeBorder}`,
+                            boxShadow: (streakInfo?.currentStreak ?? 0) > 0 ? "0 0 14px rgba(255, 120, 0, 0.3)" : "none"
+                        }}
                     >
-                        <Text fontSize="sm">🔥</Text>
-                        <Text fontSize="sm" fontWeight="700" color="orange.500">{streakInfo?.currentStreak ?? "–"}</Text>
-                        <Text fontSize="xs" style={{ color: C.textMuted }}>ngày liên tiếp</Text>
+                        <Text fontSize="md">🔥</Text>
+                        <Text fontSize="sm" fontWeight="900" color="orange.500">{streakInfo?.currentStreak ?? "–"}</Text>
+                        <Text fontSize="xs" fontWeight="600" style={{ color: C.textMuted }}>ngày liên tiếp</Text>
                     </Flex>
                     <Flex align="center" gap={1.5} px={3} py={1.5} borderRadius="full"
                         style={{ backgroundColor: C.badgeBg, border: `1px solid ${C.badgeBorder}` }}
@@ -205,23 +231,25 @@ const StudyStreakHeatmap = () => {
                                 const level = getLevel(dataMap[dateStr] || 0);
                                 const isToday = dateStr === todayStr;
                                 const isFuture = dateStr > todayStr;
+                                const cellGlow = level === 4 ? "0 0 6px rgba(57,211,83,0.7)" : level === 3 ? "0 0 4px rgba(38,166,65,0.5)" : "none";
                                 return (
                                     <Box
                                         key={di}
                                         w={`${cellSize}px`}
                                         h={`${cellSize}px`}
-                                        borderRadius="2px"
+                                        borderRadius="3px"
                                         flexShrink={0}
                                         style={{
                                             backgroundColor: isFuture ? "transparent" : C.cells[level],
                                             outline: isToday ? `2px solid ${C.today}` : "none",
                                             outlineOffset: "1px",
+                                            boxShadow: cellGlow,
                                             cursor: isFuture ? "default" : "pointer",
-                                            transition: "transform 0.1s, filter 0.1s",
+                                            transition: "transform 0.15s ease, filter 0.15s ease, box-shadow 0.15s ease",
                                         }}
                                         onMouseEnter={isFuture ? undefined : (e) => handleMouseEnter(e, dateStr)}
                                         onMouseLeave={isFuture ? undefined : () => setTooltip(null)}
-                                        _hover={isFuture ? {} : { filter: "brightness(1.4)", transform: "scale(1.3)" }}
+                                        _hover={isFuture ? {} : { filter: "brightness(1.4)", transform: "scale(1.35)", zIndex: 5 }}
                                     />
                                 );
                             })}
