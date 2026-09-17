@@ -3,12 +3,12 @@ import {
     Box, Flex, Text, Heading, Button, SimpleGrid, Input, Badge, Spinner, Image, Table, HStack, VStack, Tabs
 } from "@chakra-ui/react";
 import {
-    FiUsers, FiVideo, FiBookOpen, FiClock, FiRefreshCw, FiSearch, FiCheckCircle, FiLock, FiGlobe, FiShield, FiAlertTriangle, FiArrowLeft, FiChevronDown, FiChevronUp, FiExternalLink
+    FiUsers, FiVideo, FiBookOpen, FiClock, FiRefreshCw, FiSearch, FiCheckCircle, FiLock, FiGlobe, FiShield, FiAlertTriangle, FiArrowLeft, FiChevronDown, FiChevronUp, FiExternalLink, FiTrash2
 } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import BaseLayout from "../../../layouts/BaseLayout.jsx";
 import { useAuthStore } from "../../../stores/useAuthStore.js";
-import { getAdminDashboardData, getUserVideos } from "../../../services/adminApi.js";
+import { getAdminDashboardData, getUserVideos, getAdminVideos, deleteAdminVideo } from "../../../services/adminApi.js";
 
 // Utility function to format relative time in Vietnamese
 function formatTimeAgo(dateString) {
@@ -61,6 +61,13 @@ const AdminDashboardPage = () => {
     const [refreshing, setRefreshing] = useState(false);
     const [error, setError] = useState(null);
 
+    // System Videos (Library Cache)
+    const [systemVideos, setSystemVideos] = useState([]);
+    const [systemVideosLoading, setSystemVideosLoading] = useState(false);
+    const [systemVideoSearch, setSystemVideoSearch] = useState("");
+    const [deletingVideoId, setDeletingVideoId] = useState(null);
+    const [deleteModalData, setDeleteModalData] = useState(null); // { videoId, title }
+
     // Expanded user panel for inline video list
     const [expandedUserId, setExpandedUserId] = useState(null);
     const [userVideosCache, setUserVideosCache] = useState({}); // { [userId]: videos[] }
@@ -72,7 +79,6 @@ const AdminDashboardPage = () => {
             return;
         }
         setExpandedUserId(userId);
-        // Already loaded — skip API call
         if (userVideosCache[userId]) return;
 
         setUserVideosLoading(prev => ({ ...prev, [userId]: true }));
@@ -94,6 +100,18 @@ const AdminDashboardPage = () => {
     const [wordSetSearch, setWordSetSearch] = useState("");
     const [wordSetAuthorFilter, setWordSetAuthorFilter] = useState("ALL");
 
+    const fetchSystemVideos = async () => {
+        setSystemVideosLoading(true);
+        try {
+            const res = await getAdminVideos();
+            setSystemVideos(res.videos || []);
+        } catch (err) {
+            console.error("Error fetching system videos:", err);
+        } finally {
+            setSystemVideosLoading(false);
+        }
+    };
+
     const fetchData = async (isManualRefresh = false) => {
         if (isManualRefresh) setRefreshing(true);
         else setLoading(true);
@@ -111,9 +129,34 @@ const AdminDashboardPage = () => {
         }
     };
 
+    const handleRefreshAll = async () => {
+        setRefreshing(true);
+        await Promise.all([fetchData(true), fetchSystemVideos()]);
+        setRefreshing(false);
+    };
+
+    const handleConfirmDeleteVideo = async () => {
+        if (!deleteModalData) return;
+        const targetId = deleteModalData.videoId;
+        setDeletingVideoId(targetId);
+        try {
+            await deleteAdminVideo(targetId);
+            setDeleteModalData(null);
+            setUserVideosCache({});
+            await Promise.all([fetchData(true), fetchSystemVideos()]);
+            alert(`Đã xóa vĩnh viễn video (${targetId}) cùng toàn bộ tiến trình học của tất cả người dùng!`);
+        } catch (err) {
+            console.error("Error deleting video:", err);
+            alert(err.response?.data?.error || err.message || "Lỗi khi xóa video khỏi hệ thống.");
+        } finally {
+            setDeletingVideoId(null);
+        }
+    };
+
     useEffect(() => {
         if (isAdmin) {
             fetchData();
+            fetchSystemVideos();
         }
     }, [isAdmin]);
 
@@ -147,6 +190,14 @@ const AdminDashboardPage = () => {
             return matchesSearch && matchesAuthor;
         });
     }, [data?.wordSets, wordSetSearch, wordSetAuthorFilter]);
+
+    const filteredSystemVideos = useMemo(() => {
+        if (!systemVideos) return [];
+        return systemVideos.filter(v =>
+            v.title?.toLowerCase().includes(systemVideoSearch.toLowerCase()) ||
+            v.videoId?.toLowerCase().includes(systemVideoSearch.toLowerCase())
+        );
+    }, [systemVideos, systemVideoSearch]);
 
     if (!isAdmin) {
         return (
@@ -192,7 +243,7 @@ const AdminDashboardPage = () => {
                         variant="outline"
                         colorPalette="blue"
                         borderRadius="xl"
-                        onClick={() => fetchData(true)}
+                        onClick={handleRefreshAll}
                         loading={refreshing}
                         gap={2}
                         fontWeight="bold"
@@ -281,8 +332,11 @@ const AdminDashboardPage = () => {
                                     <Tabs.Trigger value="users" gap={2} fontSize="sm" fontWeight="800" py={3} px={4}>
                                         <FiUsers size={16} /> NGƯỜI DÙNG & LẦN CUỐI ONLINE ({filteredUsers.length})
                                     </Tabs.Trigger>
+                                    <Tabs.Trigger value="system-videos" gap={2} fontSize="sm" fontWeight="800" py={3} px={4}>
+                                        <FiVideo size={16} /> QUẢN LÝ VIDEO THƯ VIỆN ({filteredSystemVideos.length})
+                                    </Tabs.Trigger>
                                     <Tabs.Trigger value="videos" gap={2} fontSize="sm" fontWeight="800" py={3} px={4}>
-                                        <FiVideo size={16} /> VIDEO ĐÃ HỌC ({filteredVideos.length})
+                                        <FiClock size={16} /> TIẾN TRÌNH HỌC VIDEO ({filteredVideos.length})
                                     </Tabs.Trigger>
                                     <Tabs.Trigger value="wordsets" gap={2} fontSize="sm" fontWeight="800" py={3} px={4}>
                                         <FiBookOpen size={16} /> BỘ TỪ VỰNG ({filteredWordSets.length})
@@ -463,7 +517,7 @@ const AdminDashboardPage = () => {
                                                                                                     </Box>
                                                                                                 </Box>
 
-                                                                                                <Flex align="center" gap={3} flexShrink={0}>
+                                                                                                <Flex align="center" gap={2} flexShrink={0}>
                                                                                                     <Text fontSize="10px" color="fg.muted">{formatTimeAgo(vp.updatedAt)}</Text>
                                                                                                     <Button
                                                                                                         as="a"
@@ -477,6 +531,16 @@ const AdminDashboardPage = () => {
                                                                                                     >
                                                                                                         <FiExternalLink size={10} /> YouTube
                                                                                                     </Button>
+                                                                                                    <Button
+                                                                                                        size="xs"
+                                                                                                        colorPalette="red"
+                                                                                                        variant="subtle"
+                                                                                                        borderRadius="lg"
+                                                                                                        gap={1}
+                                                                                                        onClick={() => setDeleteModalData({ videoId: vp.videoId, title: vp.videoTitle })}
+                                                                                                    >
+                                                                                                        <FiTrash2 size={10} /> Xóa
+                                                                                                    </Button>
                                                                                                 </Flex>
                                                                                             </Flex>
                                                                                         ))}
@@ -488,6 +552,129 @@ const AdminDashboardPage = () => {
                                                                 );
                                                             })()}
                                                             </React.Fragment>
+                                                        ))
+                                                    )}
+                                                </Table.Body>
+                                            </Table.Root>
+                                        </Box>
+                                    </VStack>
+                                </Tabs.Content>
+
+                                {/* TAB 2: SYSTEM VIDEO MANAGEMENT */}
+                                <Tabs.Content value="system-videos">
+                                    <VStack align="stretch" gap={4}>
+                                        <Flex justify="space-between" align="center" flexWrap="wrap" gap={3}>
+                                            <Box w={{ base: "100%", md: "360px" }}>
+                                                <Input
+                                                    placeholder="Tìm kiếm theo tiêu đề hoặc Video ID..."
+                                                    value={systemVideoSearch}
+                                                    onChange={e => setSystemVideoSearch(e.target.value)}
+                                                    borderRadius="xl"
+                                                    fontSize="sm"
+                                                />
+                                            </Box>
+                                            <Text fontSize="xs" color="fg.muted" fontWeight="600">
+                                                Hiển thị {filteredSystemVideos.length} / {systemVideos.length} video trong hệ thống
+                                            </Text>
+                                        </Flex>
+
+                                        <Box overflowX="auto" borderRadius="2xl" borderWidth="1px" borderColor="border.muted">
+                                            <Table.Root size="md" variant="subtle">
+                                                <Table.Header bg="bg.subtle">
+                                                    <Table.Row>
+                                                        <Table.ColumnHeader fontWeight="bold">VIDEO YOUTUBE</Table.ColumnHeader>
+                                                        <Table.ColumnHeader fontWeight="bold">SỐ CÂU GỐC</Table.ColumnHeader>
+                                                        <Table.ColumnHeader fontWeight="bold">NGƯỜI HỌC</Table.ColumnHeader>
+                                                        <Table.ColumnHeader fontWeight="bold">TỔNG CÂU ĐÃ DỊCH/GÕ</Table.ColumnHeader>
+                                                        <Table.ColumnHeader fontWeight="bold">NGÀY THÊM</Table.ColumnHeader>
+                                                        <Table.ColumnHeader fontWeight="bold" textAlign="right">THAO TÁC</Table.ColumnHeader>
+                                                    </Table.Row>
+                                                </Table.Header>
+                                                <Table.Body>
+                                                    {systemVideosLoading ? (
+                                                        <Table.Row>
+                                                            <Table.Cell colSpan={6} textAlign="center" py={8}>
+                                                                <Spinner size="md" colorPalette="blue" />
+                                                                <Text fontSize="xs" color="fg.muted" mt={2}>Đang tải danh sách video...</Text>
+                                                            </Table.Cell>
+                                                        </Table.Row>
+                                                    ) : filteredSystemVideos.length === 0 ? (
+                                                        <Table.Row>
+                                                            <Table.Cell colSpan={6} textAlign="center" py={8} color="fg.muted">
+                                                                Chưa có video nào trong thư viện hệ thống.
+                                                            </Table.Cell>
+                                                        </Table.Row>
+                                                    ) : (
+                                                        filteredSystemVideos.map(v => (
+                                                            <Table.Row key={v.id} _hover={{ bg: "bg.subtle" }}>
+                                                                <Table.Cell maxW="340px">
+                                                                    <Flex align="center" gap={3}>
+                                                                        <Image
+                                                                            src={`https://img.youtube.com/vi/${v.videoId}/hqdefault.jpg`}
+                                                                            w="64px"
+                                                                            h="40px"
+                                                                            objectFit="cover"
+                                                                            borderRadius="lg"
+                                                                            fallbackSrc="https://via.placeholder.com/64x40?text=Video"
+                                                                        />
+                                                                        <Box overflow="hidden">
+                                                                            <Text fontWeight="bold" fontSize="xs" color="fg" isTruncated title={v.title}>
+                                                                                {v.title}
+                                                                            </Text>
+                                                                            <HStack gap={2} mt={0.5}>
+                                                                                <Text fontSize="10px" color="fg.muted">ID: {v.videoId}</Text>
+                                                                                <Button
+                                                                                    as="a"
+                                                                                    href={`https://www.youtube.com/watch?v=${v.videoId}`}
+                                                                                    target="_blank"
+                                                                                    size="xs"
+                                                                                    variant="link"
+                                                                                    colorPalette="blue"
+                                                                                    fontSize="10px"
+                                                                                >
+                                                                                    <FiExternalLink size={10} /> Xem
+                                                                                </Button>
+                                                                            </HStack>
+                                                                        </Box>
+                                                                    </Flex>
+                                                                </Table.Cell>
+
+                                                                <Table.Cell>
+                                                                    <Badge colorPalette="purple" variant="solid" borderRadius="lg" px={2.5}>
+                                                                        {v.totalSentences} câu
+                                                                    </Badge>
+                                                                </Table.Cell>
+
+                                                                <Table.Cell>
+                                                                    <Badge colorPalette={v.totalLearners > 0 ? "green" : "gray"} variant="subtle" borderRadius="full" px={2.5}>
+                                                                        {v.totalLearners} người học
+                                                                    </Badge>
+                                                                </Table.Cell>
+
+                                                                <Table.Cell>
+                                                                    <Text fontSize="xs" fontWeight="bold" color="fg">
+                                                                        {v.totalDoneSentences} lượt hoàn thành
+                                                                    </Text>
+                                                                </Table.Cell>
+
+                                                                <Table.Cell>
+                                                                    <Text fontSize="xs" color="fg.muted">
+                                                                        {formatDateFull(v.createdAt)}
+                                                                    </Text>
+                                                                </Table.Cell>
+
+                                                                <Table.Cell textAlign="right">
+                                                                    <Button
+                                                                        size="xs"
+                                                                        colorPalette="red"
+                                                                        borderRadius="lg"
+                                                                        gap={1.5}
+                                                                        onClick={() => setDeleteModalData({ videoId: v.videoId, title: v.title })}
+                                                                    >
+                                                                        <FiTrash2 size={12} /> Xóa Video
+                                                                    </Button>
+                                                                </Table.Cell>
+                                                            </Table.Row>
                                                         ))
                                                     )}
                                                 </Table.Body>
@@ -526,12 +713,13 @@ const AdminDashboardPage = () => {
                                                         <Table.ColumnHeader fontWeight="bold">VIDEO YOUTUBE</Table.ColumnHeader>
                                                         <Table.ColumnHeader fontWeight="bold">TIẾN ĐỘ</Table.ColumnHeader>
                                                         <Table.ColumnHeader fontWeight="bold">LẦN HỌC GẦN NHẤT</Table.ColumnHeader>
+                                                        <Table.ColumnHeader fontWeight="bold" textAlign="right">THAO TÁC</Table.ColumnHeader>
                                                     </Table.Row>
                                                 </Table.Header>
                                                 <Table.Body>
                                                     {filteredVideos.length === 0 ? (
                                                         <Table.Row>
-                                                            <Table.Cell colSpan={4} textAlign="center" py={8} color="fg.muted">
+                                                            <Table.Cell colSpan={5} textAlign="center" py={8} color="fg.muted">
                                                                 Chưa có dữ liệu bài video luyện nghe nào.
                                                             </Table.Cell>
                                                         </Table.Row>
@@ -583,6 +771,19 @@ const AdminDashboardPage = () => {
                                                                     <Text fontSize="xs" color="fg.muted">
                                                                         {formatTimeAgo(vp.updatedAt)}
                                                                     </Text>
+                                                                </Table.Cell>
+
+                                                                <Table.Cell textAlign="right">
+                                                                    <Button
+                                                                        size="xs"
+                                                                        colorPalette="red"
+                                                                        variant="subtle"
+                                                                        borderRadius="lg"
+                                                                        gap={1}
+                                                                        onClick={() => setDeleteModalData({ videoId: vp.videoId, title: vp.videoTitle })}
+                                                                    >
+                                                                        <FiTrash2 size={11} /> Xóa
+                                                                    </Button>
                                                                 </Table.Cell>
                                                             </Table.Row>
                                                         ))
@@ -690,6 +891,72 @@ const AdminDashboardPage = () => {
                     </VStack>
                 )}
             </Box>
+
+            {/* CONFIRMATION DELETE MODAL */}
+            {deleteModalData && (
+                <Box
+                    position="fixed"
+                    top="0"
+                    left="0"
+                    w="100vw"
+                    h="100vh"
+                    bg="blackAlpha.700"
+                    zIndex={9999}
+                    display="flex"
+                    alignItems="center"
+                    justifyContent="center"
+                    p={4}
+                >
+                    <Box
+                        bg="bg.panel"
+                        maxW="500px"
+                        w="100%"
+                        borderRadius="2xl"
+                        p={6}
+                        shadow="2xl"
+                        borderWidth="1px"
+                        borderColor="red.300"
+                    >
+                        <Flex align="center" gap={3} color="red.500" mb={3}>
+                            <FiAlertTriangle size={24} />
+                            <Heading size="md" fontWeight="800">XÁC NHẬN XÓA VIDEO VĨNH VIỄN</Heading>
+                        </Flex>
+                        <Text fontSize="sm" mb={3} color="fg">
+                            Bạn có chắc chắn muốn xóa video: <strong>{deleteModalData.title}</strong> (ID: <code>{deleteModalData.videoId}</code>)?
+                        </Text>
+                        <Box bg="red.50" _dark={{ bg: "red.950/40", color: "red.200" }} p={3.5} borderRadius="xl" borderLeftWidth="4px" borderColor="red.500" mb={5} fontSize="xs" color="red.700">
+                            <strong>⚠️ CẢNH BÁO QUAN TRỌNG:</strong>
+                            <VStack align="stretch" gap={1} mt={1}>
+                                <Text>• Thao tác này sẽ xóa vĩnh viễn video khỏi thư viện hệ thống (YoutubeCache).</Text>
+                                <Text>• XÓA SẠCH toàn bộ lịch sử học, tiến trình làm bài của <strong>TẤT CẢ</strong> người dùng đối với video này.</Text>
+                                <Text>• Xóa video khỏi danh sách xem gần đây của mọi người dùng.</Text>
+                                <Text>• Không thể khôi phục sau khi xóa.</Text>
+                            </VStack>
+                        </Box>
+                        <Flex justify="flex-end" gap={3}>
+                            <Button
+                                variant="outline"
+                                borderRadius="xl"
+                                size="sm"
+                                onClick={() => setDeleteModalData(null)}
+                                disabled={deletingVideoId !== null}
+                            >
+                                Hủy bỏ
+                            </Button>
+                            <Button
+                                colorPalette="red"
+                                borderRadius="xl"
+                                size="sm"
+                                onClick={handleConfirmDeleteVideo}
+                                loading={deletingVideoId !== null}
+                                gap={1.5}
+                            >
+                                <FiTrash2 /> Xác nhận xóa vĩnh viễn
+                            </Button>
+                        </Flex>
+                    </Box>
+                </Box>
+            )}
         </BaseLayout>
     );
 };
