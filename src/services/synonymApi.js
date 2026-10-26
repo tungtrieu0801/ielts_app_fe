@@ -1,36 +1,61 @@
 import axiosClient from "../config/axios.js";
 
-// ─── Import Excel ───────────────────────────────────────────────────
-export const importSynonyms = (words) =>
-    axiosClient.post("/synonyms/import", { words }).then((r) => r.data);
+export const importSynonyms = async (words) => {
+    const res = await axiosClient.post('/synonyms/import', { words });
+    return res.data;
+};
 
-// ─── Clusters ───────────────────────────────────────────────────────
-export const getClusters = (params = {}) =>
-    axiosClient.get("/synonyms/clusters", { params }).then((r) => r.data);
+export const getClusters = async ({ showAll, page = 1, limit = 20, search = "" }) => {
+    const res = await axiosClient.get('/synonyms/clusters', {
+        params: { showAll, page, limit, search }
+    });
+    return res.data;
+};
 
-// ─── Study ──────────────────────────────────────────────────────────
-export const getNextCluster = (showAll = false) =>
-    axiosClient.get("/synonyms/next-cluster", { params: { showAll } }).then((r) => r.data);
+export const getNextCluster = async (showAll) => {
+    const res = await axiosClient.get('/synonyms/next-cluster', {
+        params: { showAll }
+    });
+    return res.data;
+};
 
-export const getClusterForStudy = (clusterName, showAll = false) =>
-    axiosClient.get(`/synonyms/cluster/${encodeURIComponent(clusterName)}`, { params: { showAll } }).then((r) => r.data);
+export const getClusterForStudy = async (clusterName, showAll) => {
+    const res = await axiosClient.get('/synonyms/cluster', {
+        params: { clusterName, showAll }
+    });
+    return res.data;
+};
 
-// ─── Progress ───────────────────────────────────────────────────────
-export const saveProgress = (data) =>
-    axiosClient.post("/synonyms/progress", data).then((r) => r.data);
+export const getWordsByCluster = async (clusterName, { page = 1, limit = 12 } = {}) => {
+    const res = await axiosClient.get('/synonyms/cluster/words', {
+        params: { clusterName, page, limit }
+    });
+    return res.data;
+};
 
-export const getProgressOverview = () =>
-    axiosClient.get("/synonyms/progress").then((r) => r.data);
+export const deleteCluster = async (clusterName) => {
+    const res = await axiosClient.delete('/synonyms/cluster', {
+        params: { clusterName }
+    });
+    return res.data;
+};
 
-// ─── Word Management ────────────────────────────────────────────────
-export const getWordsByCluster = (clusterName, params = {}) =>
-    axiosClient.get(`/synonyms/cluster/${encodeURIComponent(clusterName)}/words`, { params }).then((r) => r.data);
+export const saveProgress = async (data) => {
+    const res = await axiosClient.post('/synonyms/progress', data);
+    return res.data;
+};
 
-export const updateSynonymWord = (wordId, data) =>
-    axiosClient.put(`/synonyms/words/${wordId}`, data).then((r) => r.data);
+export const getProgressOverview = async () => {
+    const res = await axiosClient.get('/synonyms/progress');
+    return res.data;
+};
 
-export const deleteSynonymWord = (wordId) =>
-    axiosClient.delete(`/synonyms/words/${wordId}`).then((r) => r.data);
+export const updateSynonymWord = async (id, data) => {
+    const res = await axiosClient.put(`/synonyms/words/${id}`, data);
+    return res.data;
+};
 
-export const deleteCluster = (clusterName) =>
-    axiosClient.delete(`/synonyms/cluster/${encodeURIComponent(clusterName)}`).then((r) => r.data);
+export const deleteSynonymWord = async (id) => {
+    const res = await axiosClient.delete(`/synonyms/words/${id}`);
+    return res.data;
+};

@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
     Box, Flex, Text, VStack, Button, Icon, Grid, Input, Badge,
-    Textarea, Spinner, HStack, Separator,
+    Textarea, Spinner, HStack,
 } from '@chakra-ui/react';
 import {
     FiLayers, FiUpload, FiPlay, FiList, FiCheck, FiX, FiChevronLeft,
     FiChevronRight, FiEdit3, FiTrash2, FiEye, FiEyeOff, FiRefreshCw,
-    FiInfo, FiArrowRight, FiSearch, FiZap, FiBookOpen, FiTarget,
+    FiArrowRight, FiSearch, FiZap, FiBookOpen,
 } from 'react-icons/fi';
 import BaseLayout from '../../../layouts/BaseLayout.jsx';
 import * as synonymApi from '../../../services/synonymApi.js';
@@ -56,14 +56,6 @@ const GLOBAL_CSS = `
     0%,100% { transform: translateY(0px); }
     50%     { transform: translateY(-4px); }
 }
-@keyframes synPulseDot {
-    0%,100% { opacity: 1; transform: scale(1); }
-    50%     { opacity: .6; transform: scale(1.3); }
-}
-@keyframes synShimmer {
-    0%   { background-position: -200% 0; }
-    100% { background-position: 200% 0; }
-}
 
 .syn-fade  { animation: synFadeUp .42s cubic-bezier(.34,1.56,.64,1) both; }
 .syn-pop   { animation: synPop .38s cubic-bezier(.34,1.56,.64,1) both; }
@@ -73,12 +65,6 @@ const GLOBAL_CSS = `
 .syn-scroll::-webkit-scrollbar-track { background: transparent; }
 .syn-scroll::-webkit-scrollbar-thumb { background: rgba(99,102,241,.25); border-radius: 99px; }
 .syn-scroll::-webkit-scrollbar-thumb:hover { background: rgba(99,102,241,.45); }
-
-.syn-shimmer {
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
-    background-size: 200% 100%;
-    animation: synShimmer 2.5s infinite;
-}
 `;
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -122,12 +108,10 @@ export default function SynonymPage() {
                     border="1px solid" borderColor="border.muted"
                     shadow="0 1px 3px rgba(0,0,0,0.04), 0 8px 32px rgba(99,102,241,0.06)"
                 >
-                    {/* gradient accent top */}
                     <Box position="absolute" top={0} left={0} right={0} h="3px" bg={T.gradient} />
 
                     <Flex align="center" justify="space-between" wrap="wrap" gap={4}>
                         <Flex align="center" gap={4}>
-                            {/* Logo */}
                             <Box
                                 w="58px" h="58px" borderRadius="18px" flexShrink={0}
                                 bg={T.gradient}
@@ -166,7 +150,6 @@ export default function SynonymPage() {
                             </Box>
                         </Flex>
 
-                        {/* Scope toggle */}
                         <Flex
                             align="center" gap={3} px={4} py={2.5} borderRadius="14px"
                             border="1.5px solid" cursor="pointer" userSelect="none"
@@ -291,6 +274,7 @@ function LearnTab({ showAll }) {
     const startClusterQuiz = async (name) => {
         setLoading(true);
         try {
+            // Đã gọi đúng API, không dùng encodeURIComponent
             const d = await synonymApi.getClusterForStudy(name, showAll);
             initQuiz(d);
         } catch (e) {
@@ -327,7 +311,6 @@ function LearnTab({ showAll }) {
     if (phase === 'select') {
         return (
             <Box>
-                {/* Smart banner */}
                 <Box
                     mb={6} p={{ base: 5, md: 6 }} borderRadius="24px" cursor="pointer"
                     position="relative" overflow="hidden"
@@ -337,7 +320,6 @@ function LearnTab({ showAll }) {
                     shadow="0 12px 32px rgba(99,102,241,.32)"
                     _hover={{ transform: 'translateY(-3px)', shadow: '0 20px 44px rgba(99,102,241,.42)' }}
                 >
-                    {/* decorative blobs */}
                     <Box pos="absolute" top="-60px" right="-40px" w="220px" h="220px"
                         borderRadius="full" bg="rgba(255,255,255,.08)" />
                     <Box pos="absolute" bottom="-50px" left="20%" w="140px" h="140px"
@@ -377,7 +359,6 @@ function LearnTab({ showAll }) {
                     </Flex>
                 </Box>
 
-                {/* Search */}
                 <Flex
                     mb={6} align="center" bg="bg.panel" borderRadius="14px" px={4}
                     border="1.5px solid" borderColor="border.muted"
@@ -392,7 +373,6 @@ function LearnTab({ showAll }) {
                     />
                 </Flex>
 
-                {/* Cluster grid */}
                 {loading ? (
                     <Flex justify="center" py={20}><Spinner size="xl" color="purple.500" thickness="3px" /></Flex>
                 ) : clusters?.clusters?.length > 0 ? (
@@ -422,7 +402,6 @@ function LearnTab({ showAll }) {
                                             shadow: '0 14px 34px rgba(99,102,241,.16)',
                                         }}
                                     >
-                                        {/* top accent */}
                                         <Box h="4px" bg={m.color} />
 
                                         <Box p={5}>
@@ -487,7 +466,6 @@ function LearnTab({ showAll }) {
                             })}
                         </Grid>
 
-                        {/* Pagination */}
                         {clusters.totalPages > 1 && (
                             <Flex justify="center" gap={1.5} mt={7} align="center">
                                 <PagBtn disabled={cPage <= 1} onClick={() => setCPage(p => p - 1)}>
@@ -531,7 +509,6 @@ function LearnTab({ showAll }) {
 
     return (
         <Box>
-            {/* Quiz header card */}
             <Box
                 mb={5} p={5} borderRadius="20px"
                 bg="bg.panel" border="1px solid" borderColor="border.muted"
@@ -556,7 +533,6 @@ function LearnTab({ showAll }) {
                         </Box>
                     </Flex>
 
-                    {/* Word bank */}
                     <Flex gap={1.5} wrap="wrap" maxW="440px">
                         {quizData?.allWords.map(w => (
                             <Box
@@ -570,7 +546,6 @@ function LearnTab({ showAll }) {
                     </Flex>
                 </Flex>
 
-                {/* Progress bar (before submit) */}
                 {!submitted && (
                     <Box>
                         <Flex justify="space-between" mb={1.5}>
@@ -590,7 +565,6 @@ function LearnTab({ showAll }) {
                 )}
             </Box>
 
-            {/* Questions */}
             <VStack align="stretch" gap={3.5}>
                 {quizData?.questions.map((q, idx) => {
                     const ua = (answers[q._id] || '').trim();
@@ -611,7 +585,6 @@ function LearnTab({ showAll }) {
                 })}
             </VStack>
 
-            {/* Bottom action */}
             <Flex justify="center" mt={8} gap={3} wrap="wrap">
                 {!submitted ? (
                     <Button
@@ -718,12 +691,10 @@ function QuizCard({ q, idx, submitted, isCorrect, userAnswer, isOpen, onAnswer, 
             className={!submitted ? 'syn-fade' : isCorrect ? 'syn-pop' : 'syn-shake'}
             style={{ animationDelay: `${idx * .06}s` }}
         >
-            {/* Accent bar */}
             <Box h="3px" bg={accent} transition="background .35s" />
 
             <Box p={{ base: 4, md: 6 }}>
                 <Flex gap={{ base: 3, md: 4 }} align="start">
-                    {/* Number / status badge */}
                     <Flex
                         w="38px" h="38px" borderRadius="12px" flexShrink={0}
                         align="center" justify="center" fontWeight="800" fontSize="sm"
@@ -739,7 +710,6 @@ function QuizCard({ q, idx, submitted, isCorrect, userAnswer, isOpen, onAnswer, 
                     </Flex>
 
                     <Box flex={1} minW={0}>
-                        {/* Badges */}
                         <Flex gap={1.5} mb={3} wrap="wrap">
                             {q.bandLevel && (
                                 <Badge
@@ -759,7 +729,6 @@ function QuizCard({ q, idx, submitted, isCorrect, userAnswer, isOpen, onAnswer, 
                             )}
                         </Flex>
 
-                        {/* English sentence */}
                         <Box
                             fontSize={{ base: 'md', md: 'lg' }}
                             fontWeight={500} color="fg" lineHeight={2.1}
@@ -813,7 +782,6 @@ function QuizCard({ q, idx, submitted, isCorrect, userAnswer, isOpen, onAnswer, 
                             <Text as="span">{after}</Text>
                         </Box>
 
-                        {/* Wrong → correct answer */}
                         {submitted && !isCorrect && (
                             <Flex align="center" gap={2} mb={3} className="syn-pop">
                                 <Box
@@ -827,7 +795,6 @@ function QuizCard({ q, idx, submitted, isCorrect, userAnswer, isOpen, onAnswer, 
                             </Flex>
                         )}
 
-                        {/* Expand explanation */}
                         {submitted && (
                             <Box>
                                 <Button
@@ -955,7 +922,6 @@ function ManageTab() {
         finally { setSaving(false); }
     };
 
-    /* ── Word detail ── */
     if (selCluster) return (
         <Box>
             <Flex align="center" gap={3} mb={6}>
@@ -1042,7 +1008,6 @@ function ManageTab() {
         </Box>
     );
 
-    /* ── Cluster list ── */
     return (
         <Box>
             <Flex
@@ -1298,7 +1263,6 @@ function ImportTab() {
 
     return (
         <Box>
-            {/* Drop zone */}
             <Box
                 mb={6} p={{ base: 8, md: 12 }} borderRadius="24px" textAlign="center" cursor="pointer"
                 border="2px dashed"
@@ -1340,7 +1304,6 @@ function ImportTab() {
                 </Box>
             </Box>
 
-            {/* Success */}
             {result && (
                 <Box p={5} mb={6} borderRadius="18px" className="syn-pop"
                     bg="rgba(16,185,129,.06)" border="1.5px solid" borderColor="rgba(16,185,129,.3)">
@@ -1362,7 +1325,6 @@ function ImportTab() {
                 </Box>
             )}
 
-            {/* Preview */}
             {preview?.length > 0 && (
                 <Box>
                     <Flex align="center" justify="space-between" mb={5} wrap="wrap" gap={3}>
