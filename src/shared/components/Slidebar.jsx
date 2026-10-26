@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { Box, Flex, Text, VStack, Image, Button, IconButton } from '@chakra-ui/react';
-import { FiHome, FiBook, FiLogOut, FiMic, FiChevronLeft, FiChevronRight, FiSettings, FiZap, FiStar, FiAward, FiBookOpen, FiShield, FiFileText } from 'react-icons/fi';
+import { FiHome, FiBook, FiLogOut, FiMic, FiChevronLeft, FiChevronRight, FiSettings, FiZap, FiStar, FiAward, FiBookOpen, FiShield, FiFileText, FiLayers } from 'react-icons/fi';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ColorModeButton, useColorMode } from '../../components/ui/color-mode.jsx';
 import { useAuthStore } from '../../stores/useAuthStore.js';
@@ -15,6 +15,7 @@ const menuItems = [
     { name: 'Game', icon: FiZap, path: '/game' },
     { name: 'Ranking', icon: FiAward, path: '/ranking' },
     { name: 'Thư viện', icon: FiBookOpen, path: '/library' },
+    { name: 'Từ đồng nghĩa', icon: FiLayers, path: '/synonyms', isNew: true },
     { name: 'Cài đặt', icon: FiSettings, path: '/settings' },
     { name: 'Premium', icon: FiStar, path: '/premium', isPremium: true },
 ];
@@ -146,6 +147,7 @@ const Sidebar = ({ onNavigate, isCollapsed, onToggle }) => {
                                 || (item.path === '/library' && location.pathname.startsWith('/library'))
                                 || (item.path === '/settings' && location.pathname.startsWith('/settings'))
                                 || (item.path === '/ranking' && location.pathname.startsWith('/ranking'))
+                                || (item.path === '/synonyms' && location.pathname.startsWith('/synonyms'))
                                 || (item.path === '/admin/dashboard' && location.pathname.startsWith('/admin'));
                             
                             return (
@@ -179,9 +181,22 @@ const Sidebar = ({ onNavigate, isCollapsed, onToggle }) => {
                                 >
                                     <Box as={item.icon} fontSize="lg" flexShrink={0} />
                                     {!isCollapsed && (
-                                        <Text fontSize="sm" fontWeight={isActive ? '800' : item.isPremium ? '700' : '600'}>
-                                            {item.isPremium ? '⭐ ' : ''}{item.name}
-                                        </Text>
+                                        <Flex align="center" gap={2}>
+                                            <Text fontSize="sm" fontWeight={isActive ? '800' : item.isPremium ? '700' : '600'}>
+                                                {item.isPremium ? '⭐ ' : ''}{item.name}
+                                            </Text>
+                                            {item.isNew && !isActive && (
+                                                <Box
+                                                    px={1.5} py={0.5} borderRadius="full"
+                                                    bg="linear-gradient(135deg, #f093fb 0%, #f5576c 100%)"
+                                                    color="white" fontSize="8px" fontWeight="900"
+                                                    lineHeight="1" letterSpacing="wider"
+                                                    animation="pulse 2s infinite"
+                                                >
+                                                    MỚI
+                                                </Box>
+                                            )}
+                                        </Flex>
                                     )}
                                 </Flex>
                             );

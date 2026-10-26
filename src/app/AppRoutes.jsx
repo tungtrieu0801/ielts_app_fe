@@ -19,6 +19,7 @@ import PdfReaderPage from "../features/reading/PdfReaderPage.jsx";
 import AdminDashboardPage from "../features/admin/pages/AdminDashboardPage.jsx";
 import TranslationListPage from "../features/translation/pages/TranslationListPage.jsx";
 import TranslationWorkspacePage from "../features/translation/pages/TranslationWorkspacePage.jsx";
+import SynonymPage from "../features/synonym/pages/SynonymPage.jsx";
 import PrivateRoute from "../shared/components/PrivateRoute.jsx";
 
 export default function AppRoutes() {
@@ -46,6 +47,7 @@ export default function AppRoutes() {
             <Route path="/ranking" element={<PrivateRoute><RankingPage /></PrivateRoute>} />
             <Route path="/library" element={<PrivateRoute><LibraryPage /></PrivateRoute>} />
             <Route path="/read/:id" element={<PrivateRoute><PdfReaderPage /></PrivateRoute>} />
+            <Route path="/synonyms" element={<PrivateRoute><SynonymPage /></PrivateRoute>} />
             <Route path="/admin/dashboard" element={<PrivateRoute><AdminDashboardPage /></PrivateRoute>} />
         </Routes>
     );

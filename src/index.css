@@ -100,3 +100,11 @@ table tr:hover td {
 .dark :focus-visible {
     outline-color: #818cf8;
 }
+
+/* =====================================================
+   Animations
+   ===================================================== */
+@keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.8; transform: scale(1.05); }
+}
