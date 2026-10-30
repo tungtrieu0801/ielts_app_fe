@@ -1,14 +1,14 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useRef } from "react";
 import {
     Box, Flex, Text, Heading, Button, SimpleGrid, Input, Badge, Spinner, Image, Table, HStack, VStack, Tabs
 } from "@chakra-ui/react";
 import {
-    FiUsers, FiVideo, FiBookOpen, FiClock, FiRefreshCw, FiSearch, FiCheckCircle, FiLock, FiGlobe, FiShield, FiAlertTriangle, FiArrowLeft, FiChevronDown, FiChevronUp, FiExternalLink, FiTrash2
+    FiUsers, FiVideo, FiBookOpen, FiClock, FiRefreshCw, FiCheckCircle, FiLock, FiGlobe, FiShield, FiAlertTriangle, FiArrowLeft, FiChevronDown, FiChevronUp, FiExternalLink, FiTrash2, FiDownload, FiUpload
 } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import BaseLayout from "../../../layouts/BaseLayout.jsx";
 import { useAuthStore } from "../../../stores/useAuthStore.js";
-import { getAdminDashboardData, getUserVideos, getAdminVideos, deleteAdminVideo } from "../../../services/adminApi.js";
+import { getAdminDashboardData, getUserVideos, getAdminVideos, deleteAdminVideo, exportDatabaseBackup, importDatabaseBackup } from "../../../services/adminApi.js";
 
 // Utility function to format relative time in Vietnamese
 function formatTimeAgo(dateString) {
@@ -60,6 +60,15 @@ const AdminDashboardPage = () => {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [error, setError] = useState(null);
+
+    // Backup / Restore state
+    const [exporting, setExporting] = useState(false);
+    const [importing, setImporting] = useState(false);
+    const [importModalOpen, setImportModalOpen] = useState(false);
+    const [importFile, setImportFile] = useState(null);
+    const [importResult, setImportResult] = useState(null);
+    const [importError, setImportError] = useState(null);
+    const importFileRef = useRef(null);
 
     // System Videos (Library Cache)
     const [systemVideos, setSystemVideos] = useState([]);
@@ -133,6 +142,45 @@ const AdminDashboardPage = () => {
         setRefreshing(true);
         await Promise.all([fetchData(true), fetchSystemVideos()]);
         setRefreshing(false);
+    };
+
+    const handleExportBackup = async () => {
+        setExporting(true);
+        try {
+            const filename = await exportDatabaseBackup();
+            alert(`✅ Đã tải file backup thành công: ${filename}`);
+        } catch (err) {
+            console.error("Export error:", err);
+            alert(err.response?.data?.error || err.message || "Lỗi khi export database.");
+        } finally {
+            setExporting(false);
+        }
+    };
+
+    const handleOpenImportModal = () => {
+        setImportFile(null);
+        setImportResult(null);
+        setImportError(null);
+        setImportModalOpen(true);
+    };
+
+    const handleImportBackup = async () => {
+        if (!importFile) return;
+        setImporting(true);
+        setImportResult(null);
+        setImportError(null);
+        try {
+            const text = await importFile.text();
+            const backupData = JSON.parse(text);
+            const result = await importDatabaseBackup(backupData);
+            setImportResult(result);
+            await Promise.all([fetchData(true), fetchSystemVideos()]);
+        } catch (err) {
+            console.error("Import error:", err);
+            setImportError(err.response?.data?.error || err.message || "Lỗi khi import database.");
+        } finally {
+            setImporting(false);
+        }
     };
 
     const handleConfirmDeleteVideo = async () => {
@@ -238,18 +286,44 @@ const AdminDashboardPage = () => {
                         </Text>
                     </Box>
 
-                    <Button
-                        size="sm"
-                        variant="outline"
-                        colorPalette="blue"
-                        borderRadius="xl"
-                        onClick={handleRefreshAll}
-                        loading={refreshing}
-                        gap={2}
-                        fontWeight="bold"
-                    >
-                        <FiRefreshCw /> Làm mới dữ liệu
-                    </Button>
+                    <HStack gap={2} flexWrap="wrap">
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            colorPalette="blue"
+                            borderRadius="xl"
+                            onClick={handleRefreshAll}
+                            loading={refreshing}
+                            gap={2}
+                            fontWeight="bold"
+                        >
+                            <FiRefreshCw /> Làm mới dữ liệu
+                        </Button>
+                        <Button
+                            id="btn-export-backup"
+                            size="sm"
+                            colorPalette="green"
+                            borderRadius="xl"
+                            onClick={handleExportBackup}
+                            loading={exporting}
+                            gap={2}
+                            fontWeight="bold"
+                        >
+                            <FiDownload /> Export Backup
+                        </Button>
+                        <Button
+                            id="btn-import-backup"
+                            size="sm"
+                            variant="outline"
+                            colorPalette="orange"
+                            borderRadius="xl"
+                            onClick={handleOpenImportModal}
+                            gap={2}
+                            fontWeight="bold"
+                        >
+                            <FiUpload /> Import Backup
+                        </Button>
+                    </HStack>
                 </Flex>
 
                 {error && (
@@ -953,6 +1027,129 @@ const AdminDashboardPage = () => {
                             >
                                 <FiTrash2 /> Xác nhận xóa vĩnh viễn
                             </Button>
+                        </Flex>
+                    </Box>
+                </Box>
+            )}
+
+            {/* IMPORT BACKUP MODAL */}
+            {importModalOpen && (
+                <Box
+                    position="fixed"
+                    top="0"
+                    left="0"
+                    w="100vw"
+                    h="100vh"
+                    bg="blackAlpha.700"
+                    zIndex={9999}
+                    display="flex"
+                    alignItems="center"
+                    justifyContent="center"
+                    p={4}
+                >
+                    <Box
+                        bg="bg.panel"
+                        maxW="600px"
+                        w="100%"
+                        borderRadius="2xl"
+                        p={6}
+                        shadow="2xl"
+                        borderWidth="1px"
+                        borderColor="orange.300"
+                    >
+                        <Flex align="center" gap={3} color="orange.500" mb={4}>
+                            <FiUpload size={22} />
+                            <Heading size="md" fontWeight="800">IMPORT DATABASE BACKUP</Heading>
+                        </Flex>
+
+                        <Box bg="orange.50" _dark={{ bg: "orange.950/30", color: "orange.200" }} p={3.5} borderRadius="xl" borderLeftWidth="4px" borderColor="orange.500" mb={4} fontSize="xs" color="orange.700">
+                            <strong>⚠️ LƯU Ý QUAN TRỌNG:</strong>
+                            <VStack align="stretch" gap={1} mt={1}>
+                                <Text>• Thao tác Import sẽ <strong>MERGE</strong> dữ liệu từ file backup vào database hiện tại (upsert theo _id).</Text>
+                                <Text>• Các document đã tồn tại sẽ bị ghi đè bằng dữ liệu từ file backup.</Text>
+                                <Text>• Dữ liệu hiện có trong database <strong>KHÔNG</strong> bị xóa — chỉ có dữ liệu trùng _id mới bị cập nhật.</Text>
+                                <Text>• Chỉ dùng file backup đúng định dạng <code>.json</code> được export từ hệ thống này.</Text>
+                            </VStack>
+                        </Box>
+
+                        {!importResult && (
+                            <Box mb={4}>
+                                <Text fontSize="sm" fontWeight="bold" mb={2} color="fg">Chọn file backup (.json):</Text>
+                                <input
+                                    ref={importFileRef}
+                                    type="file"
+                                    accept=".json,application/json"
+                                    style={{ display: "none" }}
+                                    onChange={e => setImportFile(e.target.files?.[0] || null)}
+                                />
+                                <Flex gap={3} align="center">
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        colorPalette="orange"
+                                        borderRadius="xl"
+                                        onClick={() => importFileRef.current?.click()}
+                                        gap={2}
+                                    >
+                                        <FiUpload size={14} /> Chọn file
+                                    </Button>
+                                    {importFile && (
+                                        <Text fontSize="xs" color="green.500" fontWeight="bold" isTruncated maxW="280px">
+                                            ✅ {importFile.name} ({(importFile.size / 1024 / 1024).toFixed(2)} MB)
+                                        </Text>
+                                    )}
+                                </Flex>
+                            </Box>
+                        )}
+
+                        {importError && (
+                            <Box p={3} bg="red.50" _dark={{ bg: "red.950/30" }} borderRadius="xl" borderLeftWidth="4px" borderColor="red.500" mb={4}>
+                                <Flex align="center" gap={2} color="red.600" _dark={{ color: "red.300" }}>
+                                    <FiAlertTriangle />
+                                    <Text fontSize="xs" fontWeight="bold">{importError}</Text>
+                                </Flex>
+                            </Box>
+                        )}
+
+                        {importResult && (
+                            <Box p={4} bg="green.50" _dark={{ bg: "green.950/30" }} borderRadius="xl" borderLeftWidth="4px" borderColor="green.500" mb={4}>
+                                <Text fontSize="sm" fontWeight="800" color="green.600" _dark={{ color: "green.300" }} mb={2}>✅ Import thành công!</Text>
+                                <VStack align="stretch" gap={1}>
+                                    {Object.entries(importResult.results || {}).map(([key, val]) => (
+                                        <Flex key={key} justify="space-between" fontSize="xs" color="fg">
+                                            <Text fontWeight="bold">{key}</Text>
+                                            <Text color="fg.muted">
+                                                {val.skipped ? "Bỏ qua (rỗng)" : `${val.upserted} / ${val.total} records`}
+                                            </Text>
+                                        </Flex>
+                                    ))}
+                                </VStack>
+                            </Box>
+                        )}
+
+                        <Flex justify="flex-end" gap={3}>
+                            <Button
+                                variant="outline"
+                                borderRadius="xl"
+                                size="sm"
+                                onClick={() => { setImportModalOpen(false); setImportFile(null); setImportResult(null); setImportError(null); }}
+                                disabled={importing}
+                            >
+                                {importResult ? "Đóng" : "Hủy bỏ"}
+                            </Button>
+                            {!importResult && (
+                                <Button
+                                    colorPalette="orange"
+                                    borderRadius="xl"
+                                    size="sm"
+                                    onClick={handleImportBackup}
+                                    loading={importing}
+                                    disabled={!importFile || importing}
+                                    gap={1.5}
+                                >
+                                    <FiUpload /> Bắt đầu Import
+                                </Button>
+                            )}
                         </Flex>
                     </Box>
                 </Box>
